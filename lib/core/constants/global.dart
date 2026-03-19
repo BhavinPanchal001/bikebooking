@@ -1,0 +1,17 @@
+import 'package:flutter/material.dart';
+
+class AppColors {
+  // Primary brand color
+  static const Color primary = Color(0xFF2E4475);
+  
+  // App background color
+  static const Color background = Color(0xFFF7F6F9);
+  
+  // Card/Container secondary background
+  static const Color cardBackground = Color(0xFFEBEEF2);
+  
+  // Other UI colors
+  static const Color white = Colors.white;
+  static const Color black = Colors.black;
+  static const Color grey = Colors.grey;
+}

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:bikebooking/core/constants/global.dart';
 
 class SelectLocationScreen extends StatelessWidget {
   const SelectLocationScreen({super.key});
@@ -7,9 +8,9 @@ class SelectLocationScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.background,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.black),
@@ -17,7 +18,7 @@ class SelectLocationScreen extends StatelessWidget {
         ),
         title: Text(
           'Select Location',
-          style: GoogleFonts.outfit(
+          style: GoogleFonts.poppins(
             color: Colors.black,
             fontSize: 18,
             fontWeight: FontWeight.w600,
@@ -27,37 +28,40 @@ class SelectLocationScreen extends StatelessWidget {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          const SizedBox(height: 40),
+          const SizedBox(height: 80),
           // Illustration center
-          Center(
-            child: Image.asset(
-              'assets/images/location_illustration.png',
-              height: 300,
-              fit: BoxFit.contain,
+          Container(
+            // color: Colors.red,
+            child: Center(
+              child: Image.asset(
+                'assets/images/location_illustration2.png',
+                height: 210,
+                fit: BoxFit.contain,
+              ),
             ),
           ),
           const SizedBox(height: 40),
           Text(
             'Select Your Location',
-            style: GoogleFonts.outfit(
-              fontSize: 24,
+            style: GoogleFonts.poppins(
+              fontSize: 22,
               fontWeight: FontWeight.bold,
               color: Colors.black,
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 5),
           Text(
             'How would you like to set your location',
             textAlign: TextAlign.center,
-            style: GoogleFonts.outfit(
+            style: GoogleFonts.poppins(
               fontSize: 14,
               color: Colors.grey[600],
             ),
           ),
-          const Spacer(),
+          const SizedBox(height: 40),
           // Action Buttons
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+            padding: const EdgeInsets.only(left: 24, right: 24, top: 0, bottom: 48),
             child: Column(
               children: [
                 _buildLocationOption(
@@ -68,6 +72,11 @@ class SelectLocationScreen extends StatelessWidget {
                   onTap: () {
                     Navigator.pushNamed(context, '/location_search');
                   },
+                  leading: Image.asset(
+                    'assets/images/currentLocation.png',
+                    height: 35,
+                    width: 35,
+                  ),
                 ),
                 const SizedBox(height: 16),
                 _buildLocationOption(
@@ -78,6 +87,11 @@ class SelectLocationScreen extends StatelessWidget {
                   onTap: () {
                     // Navigate to add address
                   },
+                  leading: Image.asset(
+                    'assets/images/currentLocation2.png',
+                    height: 18,
+                    width: 25,
+                  ),
                 ),
               ],
             ),
@@ -93,29 +107,61 @@ class SelectLocationScreen extends StatelessWidget {
     required String title,
     required String subtitle,
     required VoidCallback onTap,
+    required Widget leading,
   }) {
     return Container(
       decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey[200]!),
+        border: Border.all(color: const Color(0xFFDDDDDD)),
         borderRadius: BorderRadius.circular(12),
       ),
-      child: ListTile(
+      child: InkWell(
         onTap: onTap,
-        leading: Icon(icon, color: const Color(0xFF1A3D6B)),
-        title: Text(
-          title,
-          style: GoogleFonts.outfit(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          child: Row(
+            children: [
+              // Custom Leading
+              leading,
+              const SizedBox(width: 16),
+
+              // Text Content
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      title,
+                      style: GoogleFonts.poppins(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black,
+                      ),
+                    ),
+                    if (subtitle.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle,
+                        style: GoogleFonts.poppins(
+                          fontSize: 11,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+
+              // Trailing Arrow
+              const Icon(
+                Icons.arrow_forward_ios,
+                size: 14,
+                color: AppColors.primary,
+              ),
+            ],
           ),
         ),
-        subtitle: subtitle.isNotEmpty
-            ? Text(
-                subtitle,
-                style: GoogleFonts.outfit(fontSize: 12, color: Colors.grey[600]),
-              )
-            : null,
-        trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
       ),
     );
   }

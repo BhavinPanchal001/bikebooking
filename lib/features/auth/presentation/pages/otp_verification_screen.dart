@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:bikebooking/core/constants/global.dart';
+import 'package:bikebooking/core/widgets/custom_button.dart';
 
 class OtpVerificationScreen extends StatefulWidget {
   final String phoneNumber;
@@ -81,7 +83,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
             left: 24,
             child: Text(
               'Find Your\nPerfect Bike',
-              style: GoogleFonts.outfit(
+              style: GoogleFonts.poppins(
                 fontSize: 40,
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
@@ -97,7 +99,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
               height: 350,
               width: double.infinity,
               decoration: const BoxDecoration(
-                color: Colors.white,
+                color: AppColors.background,
                 borderRadius: BorderRadius.only(
                   topLeft: Radius.circular(32),
                   topRight: Radius.circular(32),
@@ -109,16 +111,16 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                 children: [
                   Text(
                     'Verify your number',
-                    style: GoogleFonts.outfit(
+                    style: GoogleFonts.inter(
                       fontSize: 18,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w500,
                       color: Colors.black,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 20),
                   Text(
                     'Enter OTP sent to ${widget.phoneNumber}',
-                    style: GoogleFonts.outfit(
+                    style: GoogleFonts.plusJakartaSans(
                       fontSize: 12,
                       color: Colors.grey[600],
                     ),
@@ -138,7 +140,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                           textAlign: TextAlign.center,
                           keyboardType: TextInputType.number,
                           maxLength: 1,
-                          style: GoogleFonts.outfit(
+                          style: GoogleFonts.poppins(
                             fontSize: 24,
                             fontWeight: FontWeight.bold,
                           ),
@@ -150,7 +152,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(color: Color(0xFF1A3D6B), width: 2),
+                              borderSide: const BorderSide(color: AppColors.primary, width: 2),
                             ),
                           ),
                         ),
@@ -159,11 +161,11 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                   ),
                   const SizedBox(height: 16),
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                    // mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
                         "Didn't receive OTP? ",
-                        style: GoogleFonts.outfit(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 12,
                           color: Colors.grey[600],
                         ),
@@ -174,10 +176,10 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                         },
                         child: Text(
                           'Resend OTP',
-                          style: GoogleFonts.outfit(
+                          style: GoogleFonts.poppins(
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
-                            color: const Color(0xFF1A3D6B),
+                            color: AppColors.primary,
                             decoration: TextDecoration.underline,
                           ),
                         ),
@@ -185,30 +187,11 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                     ],
                   ),
                   const SizedBox(height: 32),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 56,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        // Verify and navigate to location selection
-                        Navigator.pushNamed(context, '/select_location');
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF1A3D6B),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        elevation: 0,
-                      ),
-                      child: Text(
-                        'Verify',
-                        style: GoogleFonts.outfit(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
+                  CustomGradientButton(
+                    text: 'Verify',
+                    onPressed: () {
+                      Navigator.pushNamed(context, '/select_location');
+                    },
                   ),
                 ],
               ),

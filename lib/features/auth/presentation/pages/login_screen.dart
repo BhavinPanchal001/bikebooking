@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
+import 'package:bikebooking/core/constants/global.dart';
+
+import 'package:bikebooking/core/widgets/custom_button.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -12,18 +15,18 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final PageController _pageController = PageController();
   final TextEditingController _phoneController = TextEditingController();
-  
+
   final List<Map<String, String>> _onboardingData = [
     {
-      'image': 'assets/images/bike_1.png',
+      'image': 'assets/images/intro1.png',
       'title': 'Find Your\nPerfect Bike',
     },
     {
-      'image': 'assets/images/bike_2.png',
+      'image': 'assets/images/intro22.png',
       'title': 'Chat With\nSellers',
     },
     {
-      'image': 'assets/images/bike_3.png',
+      'image': 'assets/images/intro3.png',
       'title': 'Sell Your\nBike Fast',
     },
   ];
@@ -38,9 +41,10 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.primary,
       body: Stack(
         children: [
-          // Background Carousel
+          // Background Carousel Area
           PageView.builder(
             controller: _pageController,
             itemCount: _onboardingData.length,
@@ -48,34 +52,98 @@ class _LoginScreenState extends State<LoginScreen> {
               return Stack(
                 fit: StackFit.expand,
                 children: [
-                  Image.asset(
-                    _onboardingData[index]['image']!,
-                    fit: BoxFit.cover,
-                  ),
-                  Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.black.withOpacity(0.3),
-                          Colors.transparent,
-                          Colors.black.withOpacity(0.7),
-                        ],
+                  // 1. Primary Blue Background (Always at the bottom)
+                  // Container(color: Colors.red),
+                  Container(color: AppColors.primary),
+
+                  // 2. Full-Width Background Image
+                  index == 0
+                      ? Positioned(
+                          top: 200, // Lowered starting point to avoid cutting the head
+                          left: 0,
+                          right: 0,
+                          child: Image.asset(
+                            _onboardingData[index]['image']!,
+                            fit: BoxFit.cover,
+                            width: double.infinity,
+                            height: 350,
+                          ),
+                        )
+                      : index == 1
+                          ? Positioned(
+                              top: 200, // Lowered starting point to avoid cutting the head
+                              left: 0,
+                              right: -100,
+                              child: Image.asset(
+                                _onboardingData[index]['image']!,
+                                // fit: BoxFit.cover,
+                                width: double.infinity,
+                                height: 310,
+                              ),
+                            )
+                          : Positioned(
+                              top: 200, // Lowered starting point to avoid cutting the head
+                              left: 0,
+                              right: -25,
+                              child: Image.asset(
+                                _onboardingData[index]['image']!,
+                                // fit: BoxFit.cover,
+                                width: double.infinity,
+                                height: 280,
+                              ),
+                            ),
+
+                  // 3. Top Slanted "Cut" (Blue Overlay on top of image) - ONLY FOR FIRST SLIDE
+                  if (index == 0)
+                    Positioned(
+                      top: 180,
+                      left: 0,
+                      right: 0,
+                      child: ClipPath(
+                        clipper: TopSlantClipper(),
+                        child: Container(
+                          height: 100,
+                          color: AppColors.primary,
+                        ),
                       ),
                     ),
-                  ),
-                  Positioned(
-                    top: 100,
-                    left: 24,
-                    child: Text(
-                      _onboardingData[index]['title']!,
-                      style: GoogleFonts.outfit(
-                        fontSize: 40,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                        height: 1.1,
+
+                  // 4. Bottom Slanted "Cut" (Blue Overlay on bottom of image) - ONLY FOR FIRST SLIDE
+                  if (index == 0)
+                    Positioned(
+                      top: 430, // Positioned at the bottom of the image segment
+                      left: 0,
+                      right: 0,
+                      child: ClipPath(
+                        clipper: BottomSlantClipper(),
+                        child: Container(
+                          height: 120, // Enough height to cover the transition
+                          color: AppColors.primary,
+                        ),
                       ),
+                    ),
+
+                  // 5. Content (Logo + Title)
+                  Positioned(
+                    top: 50,
+                    left: 24,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Logo Row
+                        Image.asset('assets/images/logoWhite.png', width: 100, height: 70),
+                        const SizedBox(height: 10),
+                        // Main Headline
+                        Text(
+                          _onboardingData[index]['title']!,
+                          style: GoogleFonts.poppins(
+                            fontSize: 32,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                            height: 1.1,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -83,18 +151,22 @@ class _LoginScreenState extends State<LoginScreen> {
             },
           ),
 
-          // Page Indicator
+          // Page Indicator (Floating in the center-ish)
           Positioned(
-            bottom: 380,
-            left: 24,
-            child: SmoothPageIndicator(
-              controller: _pageController,
-              count: _onboardingData.length,
-              effect: const ExpandingDotsEffect(
-                dotHeight: 8,
-                dotWidth: 8,
-                activeDotColor: Colors.white,
-                dotColor: Colors.white54,
+            bottom: 355,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: SmoothPageIndicator(
+                controller: _pageController,
+                count: _onboardingData.length,
+                effect: const ExpandingDotsEffect(
+                  dotHeight: 4,
+                  dotWidth: 8,
+                  activeDotColor: Colors.white,
+                  dotColor: Colors.white54,
+                  spacing: 4,
+                ),
               ),
             ),
           ),
@@ -103,70 +175,95 @@ class _LoginScreenState extends State<LoginScreen> {
           Align(
             alignment: Alignment.bottomCenter,
             child: Container(
-              height: 350,
+              height: 340, // Reduced height for a more compact look
               width: double.infinity,
               decoration: const BoxDecoration(
-                color: Colors.white,
+                color: AppColors.background,
                 borderRadius: BorderRadius.only(
                   topLeft: Radius.circular(32),
                   topRight: Radius.circular(32),
                 ),
               ),
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     'Login Or Sign Up',
-                    style: GoogleFonts.outfit(
+                    style: GoogleFonts.inter(
                       fontSize: 18,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w500,
                       color: Colors.black,
                     ),
                   ),
-                  const SizedBox(height: 24),
-                  Text(
-                    'Enter phone number*',
-                    style: GoogleFonts.outfit(
-                      fontSize: 12,
-                      color: Colors.grey[600],
+                  const SizedBox(height: 12),
+                  const Divider(color: Color(0xFFEEEEEE), thickness: 1),
+                  const SizedBox(height: 16),
+                  RichText(
+                    text: TextSpan(
+                      text: 'Enter phone number',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 13,
+                        color: Colors.black54,
+                      ),
+                      children: const [
+                        TextSpan(
+                          text: '*',
+                          style: TextStyle(color: Colors.red),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 12),
                   Container(
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey[300]!),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
+                    height: 52,
                     child: Row(
                       children: [
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                          child: Text(
-                            '+91',
-                            style: GoogleFonts.outfit(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500,
+                        // Country Code Box
+                        Container(
+                          height: 52, // Slightly more compact height
+                          width: 60,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: AppColors.background,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: const Color(0xFFDDDDDD)),
+                          ),
+                          child: Center(
+                            child: Text(
+                              '+91',
+                              style: GoogleFonts.poppins(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.black,
+                              ),
                             ),
                           ),
                         ),
-                        Container(
-                          width: 1,
-                          height: 24,
-                          color: Colors.grey[300],
-                        ),
+                        const SizedBox(width: 06),
+                        // Phone Number Box
                         Expanded(
-                          child: TextField(
-                            controller: _phoneController,
-                            keyboardType: TextInputType.phone,
-                            decoration: InputDecoration(
-                              hintText: '91 1234567890',
-                              hintStyle: GoogleFonts.outfit(
+                          child: Container(
+                            height: 52,
+                            decoration: BoxDecoration(
+                              color: AppColors.background,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: const Color(0xFFDDDDDD)),
+                            ),
+                            child: TextField(
+                              controller: _phoneController,
+                              keyboardType: TextInputType.phone,
+                              style: GoogleFonts.poppins(
                                 fontSize: 16,
-                                color: Colors.grey[400],
+                                fontWeight: FontWeight.w600,
+                                color: Colors.black,
                               ),
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-                              border: InputBorder.none,
+                              decoration: const InputDecoration(
+                                hintText: '1234567890',
+                                hintStyle: TextStyle(color: Colors.grey),
+                                border: InputBorder.none,
+                                contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                              ),
                             ),
                           ),
                         ),
@@ -174,60 +271,40 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                   const SizedBox(height: 32),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 56,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        // Navigate to OTP verification
-                        Navigator.pushNamed(
-                          context, 
-                          '/otp', 
-                          arguments: _phoneController.text.isNotEmpty 
-                            ? '+91 ${_phoneController.text}' 
-                            : '+91 1234567890', // Default for testing
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF1A3D6B),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        elevation: 0,
-                      ),
-                      child: Text(
-                        'Get OTP',
-                        style: GoogleFonts.outfit(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
+                  // Gradient Button
+                  CustomGradientButton(
+                    text: 'Get OTP',
+                    onPressed: () {
+                      Navigator.pushNamed(
+                        context,
+                        '/otp',
+                        arguments: _phoneController.text.isNotEmpty ? '+91 ${_phoneController.text}' : '+91 1234567890',
+                      );
+                    },
                   ),
                   const Spacer(),
                   Center(
                     child: RichText(
                       textAlign: TextAlign.center,
                       text: TextSpan(
-                        style: GoogleFonts.outfit(
-                          fontSize: 10,
-                          color: Colors.grey[600],
+                        style: GoogleFonts.poppins(
+                          fontSize: 11,
+                          color: Colors.black45,
                         ),
                         children: [
-                          const TextSpan(text: 'By continuing, you agree to our '),
+                          const TextSpan(text: "By continuing, you agree BIENEST's "),
                           TextSpan(
                             text: 'Terms of service',
-                            style: GoogleFonts.outfit(
-                              fontWeight: FontWeight.bold,
+                            style: GoogleFonts.poppins(
+                              color: const Color(0xFF2E4475),
                               decoration: TextDecoration.underline,
                             ),
                           ),
                           const TextSpan(text: ' & '),
                           TextSpan(
                             text: 'Privacy policy',
-                            style: GoogleFonts.outfit(
-                              fontWeight: FontWeight.bold,
+                            style: GoogleFonts.poppins(
+                              color: const Color(0xFF2E4475),
                               decoration: TextDecoration.underline,
                             ),
                           ),
@@ -239,28 +316,39 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ),
           ),
-          
-          // Logo in top left of login screen (optional, matching Figma if needed)
-          Positioned(
-            top: 50,
-            left: 24,
-            child: Row(
-              children: [
-                Image.asset('assets/images/logo.png', width: 24, height: 24),
-                const SizedBox(width: 8),
-                Text(
-                  'Bikenest',
-                  style: GoogleFonts.outfit(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-              ],
-            ),
-          ),
         ],
       ),
     );
   }
+}
+
+class TopSlantClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    Path path = Path();
+    path.lineTo(0, size.height);
+    path.lineTo(size.width, size.height - 100); // Slightly steeper slant
+    path.lineTo(size.width, 0);
+    path.close();
+    return path;
+  }
+
+  @override
+  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
+}
+
+class BottomSlantClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    Path path = Path();
+    path.lineTo(0, 0); // Start higher on the left
+    path.lineTo(size.width, 100); // Slant down to the right
+    path.lineTo(size.width, size.height);
+    path.lineTo(0, size.height);
+    path.close();
+    return path;
+  }
+
+  @override
+  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }
