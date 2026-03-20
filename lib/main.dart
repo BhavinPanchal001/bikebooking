@@ -13,6 +13,21 @@ import 'features/home/presentation/pages/filter_screen.dart';
 import 'features/home/presentation/pages/filter_result_screen.dart';
 import 'features/home/presentation/pages/bike_detail_screen.dart';
 import 'features/chat/presentation/pages/chat_detail_screen.dart';
+import 'features/home/presentation/pages/list_product_screen.dart';
+import 'features/home/presentation/pages/product_images_screen.dart';
+import 'features/home/presentation/pages/bike_detail_form_screen.dart';
+import 'features/home/presentation/pages/bike_price_location_screen.dart';
+import 'features/home/presentation/pages/product_preview_screen.dart';
+import 'features/home/presentation/pages/my_listing_screen.dart';
+import 'features/home/presentation/pages/favorites_screen.dart';
+import 'features/home/presentation/pages/notifications_screen.dart';
+import 'features/home/presentation/pages/profile_overview_screen.dart';
+import 'features/home/presentation/pages/edit_profile_screen.dart';
+import 'features/home/presentation/pages/help_support_screen.dart';
+import 'features/home/presentation/pages/privacy_policy_screen.dart';
+import 'features/home/presentation/pages/manage_notifications_screen.dart';
+import 'features/home/presentation/pages/seller_profile_screen.dart';
+
 
 
 
@@ -74,6 +89,48 @@ class MyApp extends StatelessWidget {
         }
         if (settings.name == '/chat_detail') {
           return MaterialPageRoute(builder: (context) => const ChatDetailScreen());
+        }
+        if (settings.name == '/list_product') {
+          return MaterialPageRoute(builder: (context) => const ListProductScreen());
+        }
+        if (settings.name == '/product_images') {
+          return MaterialPageRoute(builder: (context) => const ProductImagesScreen());
+        }
+        if (settings.name == '/bike_detail_form') {
+          return MaterialPageRoute(builder: (context) => const BikeDetailFormScreen());
+        }
+        if (settings.name == '/bike_price_location') {
+          return MaterialPageRoute(builder: (context) => const BikePriceLocationScreen());
+        }
+        if (settings.name == '/product_preview') {
+          return MaterialPageRoute(builder: (context) => const ProductPreviewScreen());
+        }
+        if (settings.name == '/my_listing') {
+          return MaterialPageRoute(builder: (context) => const MyListingScreen());
+        }
+        if (settings.name == '/favorites') {
+          return MaterialPageRoute(builder: (context) => const FavoritesScreen());
+        }
+        if (settings.name == '/notifications') {
+          return MaterialPageRoute(builder: (context) => const NotificationsScreen());
+        }
+        if (settings.name == '/profile_overview') {
+          return MaterialPageRoute(builder: (context) => const ProfileOverviewScreen());
+        }
+        if (settings.name == '/edit_profile') {
+          return MaterialPageRoute(builder: (context) => const EditProfileScreen());
+        }
+        if (settings.name == '/help_support') {
+          return MaterialPageRoute(builder: (context) => const HelpSupportScreen());
+        }
+        if (settings.name == '/privacy_policy') {
+          return MaterialPageRoute(builder: (context) => const PrivacyPolicyScreen());
+        }
+        if (settings.name == '/manage_notifications') {
+          return MaterialPageRoute(builder: (context) => const ManageNotificationsScreen());
+        }
+        if (settings.name == '/seller_profile') {
+          return MaterialPageRoute(builder: (context) => const SellerProfileScreen());
         }
         return null;
       },

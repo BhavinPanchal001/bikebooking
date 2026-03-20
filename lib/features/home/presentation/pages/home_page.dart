@@ -109,6 +109,14 @@ class _HomePageState extends State<HomePage> {
         child: BottomNavigationBar(
           currentIndex: _selectedIndex,
           onTap: (index) {
+            if (index == 2) {
+              Navigator.pushNamed(context, '/list_product');
+              return;
+            }
+            if (index == 4) {
+              Navigator.pushNamed(context, '/profile_overview');
+              return;
+            }
             setState(() {
               _selectedIndex = index;
             });
