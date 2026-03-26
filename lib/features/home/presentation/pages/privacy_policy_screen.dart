@@ -1,3 +1,4 @@
+import 'package:bikebooking/core/constants/global.dart';
 import 'package:flutter/material.dart';
 
 class PrivacyPolicyScreen extends StatelessWidget {
@@ -13,11 +14,11 @@ class PrivacyPolicyScreen extends StatelessWidget {
             // Header
             Container(
               width: double.infinity,
-              decoration: const BoxDecoration(
-                color: Color(0xFF233A66),
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(24),
-                  bottomRight: Radius.circular(24),
+              decoration: BoxDecoration(
+                color: AppColors.headerBackground,
+                borderRadius: const BorderRadius.only(
+                  bottomLeft: Radius.circular(15),
+                  bottomRight: Radius.circular(15),
                 ),
               ),
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),

@@ -1,3 +1,5 @@
+import 'package:bikebooking/core/constants/global.dart';
+import 'package:bikebooking/core/widgets/custom_button.dart';
 import 'package:flutter/material.dart';
 
 class BikeDetailFormScreen extends StatelessWidget {
@@ -6,18 +8,18 @@ class BikeDetailFormScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: Column(
           children: [
             // Header (Same style)
             Container(
               width: double.infinity,
-              decoration: const BoxDecoration(
-                color: Color(0xFF233A66),
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(24),
-                  bottomRight: Radius.circular(24),
+              decoration: BoxDecoration(
+                color: AppColors.headerBackground,
+                borderRadius: const BorderRadius.only(
+                  bottomLeft: Radius.circular(15),
+                  bottomRight: Radius.circular(15),
                 ),
               ),
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
@@ -35,7 +37,7 @@ class BikeDetailFormScreen extends StatelessWidget {
                     'Bike Detail',
                     style: TextStyle(
                       color: Colors.white,
-                      fontSize: 26,
+                      fontSize: 20,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -53,7 +55,6 @@ class BikeDetailFormScreen extends StatelessWidget {
                     _buildLabel('Product Title'),
                     _buildTextField('Enter Product Title'),
                     const SizedBox(height: 16),
-
                     _buildLabel('Brand'),
                     _buildTextField(
                       'Select a Brand',
@@ -61,7 +62,6 @@ class BikeDetailFormScreen extends StatelessWidget {
                       readOnly: true,
                     ),
                     const SizedBox(height: 16),
-
                     Row(
                       children: [
                         Expanded(
@@ -94,7 +94,6 @@ class BikeDetailFormScreen extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 16),
-
                     Row(
                       children: [
                         Expanded(
@@ -123,7 +122,6 @@ class BikeDetailFormScreen extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 16),
-
                     _buildLabel('Product Description'),
                     _buildTextField(
                       'Describe your product in detail...',
@@ -143,46 +141,51 @@ class BikeDetailFormScreen extends StatelessWidget {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 40),
-
-                    // Actions
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: () => Navigator.pop(context),
-                            style: OutlinedButton.styleFrom(
-                              side: BorderSide(color: Colors.grey.shade200),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                              minimumSize: const Size(0, 54),
-                            ),
-                            child: const Text(
-                              'Previous', // Screenshot says 'Pervious'
-                              style: TextStyle(color: Color(0xFF2E3E5C), fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: () {
-                              Navigator.pushNamed(context, '/bike_price_location');
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF233A66), // Darker blue like header
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                              minimumSize: const Size(0, 54),
-                            ),
-                            child: const Text(
-                              'Next',
-                              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+                    const SizedBox(height: 16),
                   ],
                 ),
+              ),
+            ),
+
+            // Sticky Bottom Actions
+            Container(
+              padding: const EdgeInsets.all(16.0),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    offset: const Offset(0, -4),
+                    blurRadius: 10,
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(color: Colors.grey.shade200),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        minimumSize: const Size(0, 54),
+                      ),
+                      child: const Text(
+                        'Previous',
+                        style: TextStyle(color: Color(0xFF2E3E5C), fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: CustomGradientButton(
+                      text: 'Next',
+                      onPressed: () {
+                        Navigator.pushNamed(context, '/bike_price_location');
+                      },
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -199,8 +202,8 @@ class BikeDetailFormScreen extends StatelessWidget {
           text: text,
           style: const TextStyle(
             fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: Color(0xFF2E3E5C),
+            fontWeight: FontWeight.w500,
+            color: Color(0xFF37474F),
           ),
           children: const [
             TextSpan(
@@ -299,41 +302,45 @@ class BikeDetailFormScreen extends StatelessWidget {
   }
 
   Widget _buildBrandItem(String name, String logoPath) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.black.withOpacity(0.05)),
-      ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-        leading: Container(
-          width: 40,
-          height: 40,
-          padding: const EdgeInsets.all(4),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Image.asset(
-            logoPath,
-            fit: BoxFit.contain,
-            errorBuilder: (context, error, stackTrace) =>
-                const Icon(Icons.directions_bike, color: Colors.grey),
-          ),
+    return GestureDetector(
+      onTap: () {
+        // Handle brand selection
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.black.withOpacity(0.05)),
         ),
-        title: Text(
-          name,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
-            color: Color(0xFF2E3E5C),
-          ),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 22,
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Image.asset(
+                logoPath,
+                fit: BoxFit.contain,
+                errorBuilder: (context, error, stackTrace) => const Icon(Icons.directions_bike, color: Colors.grey),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Text(
+              name,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+                color: Color(0xFF2E3E5C),
+              ),
+            ),
+          ],
         ),
-        onTap: () {
-          // Handle brand selection
-        },
       ),
     );
   }
@@ -516,15 +523,19 @@ class BikeDetailFormScreen extends StatelessWidget {
   }
 
   Widget _buildSelectableItem(String text, VoidCallback onTap) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.black.withOpacity(0.05)),
-      ),
-      child: ListTile(
-        title: Text(
+    return GestureDetector(
+      onTap: () {
+        onTap();
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.black.withOpacity(0.05)),
+        ),
+        child: Text(
           text,
           style: const TextStyle(
             fontSize: 14,
@@ -532,10 +543,6 @@ class BikeDetailFormScreen extends StatelessWidget {
             color: Color(0xFF6E6E6E),
           ),
         ),
-        onTap: () {
-          onTap();
-          // Navigator.pop(context); // Optional
-        },
       ),
     );
   }
@@ -552,11 +559,11 @@ class BikeDetailFormScreen extends StatelessWidget {
         suffixIcon: onTap != null ? Icon(Icons.keyboard_arrow_down, color: Colors.grey.shade400) : null,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey.shade200),
+          borderSide: BorderSide(color: Color(0xFFDDDDDD)),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey.shade200),
+          borderSide: BorderSide(color: Color(0xFFDDDDDD)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),

@@ -1,3 +1,5 @@
+import 'package:bikebooking/core/widgets/custom_button.dart';
+import 'package:bikebooking/core/constants/global.dart';
 import 'package:flutter/material.dart';
 
 class ProductPreviewScreen extends StatelessWidget {
@@ -6,25 +8,42 @@ class ProductPreviewScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF9FBFF),
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: Column(
           children: [
-            // Top Bar
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Row(
+            // Top Header
+            Container(
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: AppColors.headerBackground,
+                borderRadius: const BorderRadius.only(
+                  bottomLeft: Radius.circular(15),
+                  bottomRight: Radius.circular(15),
+                ),
+              ),
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   IconButton(
                     onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.arrow_back, color: Color(0xFF2E3E5C), size: 28),
+                    icon: const Icon(Icons.arrow_back, color: Colors.white, size: 28),
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
+                  ),
+                  const SizedBox(height: 20),
+                  const Text(
+                    'Post Preview',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ],
               ),
             ),
-
             Expanded(
               child: SingleChildScrollView(
                 physics: const BouncingScrollPhysics(),
@@ -95,13 +114,13 @@ class ProductPreviewScreen extends StatelessWidget {
                         children: [
                           const Text(
                             'Item specifications',
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF2E3E5C)),
+                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF37474F)),
                           ),
                           const SizedBox(height: 12),
                           Container(
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
-                              color: Colors.white,
+                              // color: Colors.white,
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(color: Colors.black.withOpacity(0.05)),
                             ),
@@ -128,13 +147,13 @@ class ProductPreviewScreen extends StatelessWidget {
                         children: [
                           const Text(
                             'Description',
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF2E3E5C)),
+                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF37474F)),
                           ),
                           const SizedBox(height: 12),
                           Container(
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
-                              color: Colors.white,
+                              // color: Colors.white,
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(color: Colors.black.withOpacity(0.05)),
                             ),
@@ -174,19 +193,15 @@ class ProductPreviewScreen extends StatelessWidget {
                   ),
                   const SizedBox(width: 16),
                   Expanded(
-                    child: ElevatedButton(
+                    child: CustomGradientButton(
+                      text: 'Post',
                       onPressed: () {
-                        Navigator.pushNamed(context, '/my_listing');
+                        Navigator.pushNamed(
+                          context,
+                          '/my_listing',
+                          arguments: {'showBoost': true},
+                        );
                       },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF4A6495),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        minimumSize: const Size(0, 56),
-                      ),
-                      child: const Text(
-                        'Post',
-                        style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
-                      ),
                     ),
                   ),
                 ],

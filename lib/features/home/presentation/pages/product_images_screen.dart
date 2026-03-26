@@ -1,3 +1,5 @@
+import 'package:bikebooking/core/constants/global.dart';
+import 'package:bikebooking/core/widgets/custom_button.dart';
 import 'package:flutter/material.dart';
 
 class ProductImagesScreen extends StatelessWidget {
@@ -5,19 +7,21 @@ class ProductImagesScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final category = ModalRoute.of(context)?.settings.arguments as String? ?? 'Bikes';
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: Column(
           children: [
             // Header (Same as ListProductScreen)
             Container(
               width: double.infinity,
-              decoration: const BoxDecoration(
-                color: Color(0xFF233A66),
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(24),
-                  bottomRight: Radius.circular(24),
+              decoration: BoxDecoration(
+                color: AppColors.headerBackground,
+                borderRadius: const BorderRadius.only(
+                  bottomLeft: Radius.circular(15),
+                  bottomRight: Radius.circular(15),
                 ),
               ),
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
@@ -35,7 +39,7 @@ class ProductImagesScreen extends StatelessWidget {
                     'List Product',
                     style: TextStyle(
                       color: Colors.white,
-                      fontSize: 26,
+                      fontSize: 20,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -66,7 +70,7 @@ class ProductImagesScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    
+
                     // Main Image Preview
                     Container(
                       width: double.infinity,
@@ -118,26 +122,17 @@ class ProductImagesScreen extends StatelessWidget {
             // Next Button
             Padding(
               padding: const EdgeInsets.all(16.0),
-              child: SizedBox(
-                width: double.infinity,
-                height: 54,
-                child: ElevatedButton(
-                  onPressed: () {
+              child: CustomGradientButton(
+                text: 'Next',
+                onPressed: () {
+                  if (category == 'Spare Parts') {
+                    Navigator.pushNamed(context, '/spare_parts_detail_form');
+                  } else if (category == 'Accessories') {
+                    Navigator.pushNamed(context, '/accessories_detail_form');
+                  } else {
                     Navigator.pushNamed(context, '/bike_detail_form');
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF4A6495),
-                    shape: RoundedRectanglePlatform.borderRadius(20), // Wait, custom shape
-                  ),
-                  child: const Text(
-                    'Next',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
+                  }
+                },
               ),
             ),
           ],

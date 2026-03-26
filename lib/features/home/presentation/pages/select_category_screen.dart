@@ -1,3 +1,4 @@
+import 'package:bikebooking/core/constants/global.dart';
 import 'package:flutter/material.dart';
 
 class SelectCategoryScreen extends StatelessWidget {
@@ -12,11 +13,11 @@ class SelectCategoryScreen extends StatelessWidget {
           children: [
             // Top Section with Search
             Container(
-              decoration: const BoxDecoration(
-                color: Color(0xFF233A66),
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(24),
-                  bottomRight: Radius.circular(24),
+              decoration: BoxDecoration(
+                color: AppColors.headerBackground,
+                borderRadius: const BorderRadius.only(
+                  bottomLeft: Radius.circular(15),
+                  bottomRight: Radius.circular(15),
                 ),
               ),
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
@@ -38,7 +39,7 @@ class SelectCategoryScreen extends StatelessWidget {
                     'Select Categories',
                     style: TextStyle(
                       color: Colors.white,
-                      fontSize: 24,
+                      fontSize: 20,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -48,7 +49,7 @@ class SelectCategoryScreen extends StatelessWidget {
                       // Search Bar
                       Expanded(
                         child: Container(
-                          height: 54,
+                          height: 43,
                           decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(12),
@@ -56,11 +57,15 @@ class SelectCategoryScreen extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           child: Row(
                             children: [
-                              Icon(Icons.search, color: Colors.grey.shade400, size: 24),
+                              Image.asset(
+                                'assets/images/Group 1171276172.png',
+                                height: 15,
+                                width: 15,
+                              ),
                               const SizedBox(width: 12),
                               Text(
                                 'search',
-                                style: TextStyle(color: Colors.grey.shade400, fontSize: 16),
+                                style: TextStyle(color: Colors.grey.shade400, fontSize: 14),
                               ),
                             ],
                           ),
@@ -73,21 +78,26 @@ class SelectCategoryScreen extends StatelessWidget {
                           Navigator.pushNamed(context, '/filter');
                         },
                         child: Container(
-                          height: 54,
-                          width: 54,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Icon(Icons.tune, color: Colors.grey.shade600, size: 28),
-                        ),
+                            height: 43,
+                            width: 43,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Center(
+                              child: Image.asset(
+                                'assets/images/Group.png',
+                                height: 17,
+                                width: 17,
+                              ),
+                            )),
                       ),
                     ],
                   ),
                 ],
               ),
             ),
-            
+            SizedBox(height: 5),
             // Category List
             Expanded(
               child: SingleChildScrollView(
@@ -100,12 +110,12 @@ class SelectCategoryScreen extends StatelessWidget {
                       const Text(
                         'Bike',
                         style: TextStyle(
-                          fontSize: 18,
+                          fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF2E3E5C),
+                          color: Color(0xFF262A36),
                         ),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 5),
                       GridView.count(
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
@@ -114,11 +124,16 @@ class SelectCategoryScreen extends StatelessWidget {
                         mainAxisSpacing: 16,
                         childAspectRatio: 0.82,
                         children: [
-                          _buildCategoryCard('Sports Bikes', '76 Products', 'assets/sports_bike.png', const Color(0xFFD4E7C5)),
-                          _buildCategoryCard('Cruiser Bikes', '56 Products', 'assets/cruiser_bike.png', const Color(0xFFFFD1A5)),
-                          _buildCategoryCard('Commuter Bikes', '98 Products', 'assets/commuter_bike.png', const Color(0xFFC9C9EB)),
-                          _buildCategoryCard('Adventure Bikes', '45 Products', 'assets/adventure_bike.png', const Color(0xFFB9E5F3)),
-                          _buildCategoryCard('Electric Bikes', '45 Products', 'assets/electric_bike.png', const Color(0xFFFFD580)),
+                          _buildCategoryCard(
+                              'Sports Bikes', '76 Products', 'assets/sports_bike.png', const Color(0xFFD4E7C5)),
+                          _buildCategoryCard(
+                              'Cruiser Bikes', '56 Products', 'assets/cruiser_bike.png', const Color(0xFFFFD1A5)),
+                          _buildCategoryCard(
+                              'Commuter Bikes', '98 Products', 'assets/commuter_bike.png', const Color(0xFFC9C9EB)),
+                          _buildCategoryCard(
+                              'Adventure Bikes', '45 Products', 'assets/adventure_bike.png', const Color(0xFFB9E5F3)),
+                          _buildCategoryCard(
+                              'Electric Bikes', '45 Products', 'assets/electric_bike.png', const Color(0xFFFFD580)),
                         ],
                       ),
                     ],
@@ -167,17 +182,18 @@ class SelectCategoryScreen extends StatelessWidget {
                 Text(
                   title,
                   style: const TextStyle(
-                    fontSize: 14,
+                    fontSize: 12,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF2E3E5C),
+                    color: Color(0xFF121926),
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   count,
                   style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey.shade400,
+                    fontSize: 11,
+                    color: Color(0xFF9F9F9F),
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ],

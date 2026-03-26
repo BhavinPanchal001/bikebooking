@@ -1,4 +1,6 @@
+import 'package:bikebooking/core/constants/global.dart';
 import 'package:flutter/material.dart';
+import '../widgets/bike_card.dart';
 
 class SearchScreen extends StatelessWidget {
   const SearchScreen({super.key});
@@ -12,11 +14,11 @@ class SearchScreen extends StatelessWidget {
           children: [
             // Top Bar with Search
             Container(
-              decoration: const BoxDecoration(
-                color: Color(0xFF2E3E5C),
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(24),
-                  bottomRight: Radius.circular(24),
+              decoration: BoxDecoration(
+                color: AppColors.headerBackground,
+                borderRadius: const BorderRadius.only(
+                  bottomLeft: Radius.circular(15),
+                  bottomRight: Radius.circular(15),
                 ),
               ),
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
@@ -33,28 +35,37 @@ class SearchScreen extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 16),
-                  Container(
-                    height: 54,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF1F4F8),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Row(
-                      children: [
-                        Icon(Icons.search, color: Colors.grey.shade400, size: 24),
-                        const SizedBox(width: 12),
-                        const Expanded(
-                          child: TextField(
-                            autofocus: true,
-                            decoration: InputDecoration(
-                              hintText: 'search',
-                              hintStyle: TextStyle(color: Colors.grey, fontSize: 16),
-                              border: InputBorder.none,
-                            ),
+                  SizedBox(
+                    height: 45,
+                    child: TextField(
+                      autofocus: true,
+                      decoration: InputDecoration(
+                        hintText: 'search',
+                        hintStyle: TextStyle(color: Color(0xFFB3B3B3), fontSize: 15, fontFamily: 'Neue Montreal'),
+                        prefixIcon: Padding(
+                          padding: const EdgeInsets.all(14),
+                          child: Image.asset(
+                            'assets/images/Group 1171276172.png',
+                            height: 15,
+                            width: 15,
                           ),
                         ),
-                      ],
+                        filled: true,
+                        fillColor: const Color(0xFFF1F4F8),
+                        contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -91,13 +102,9 @@ class SearchScreen extends StatelessWidget {
                       const SizedBox(height: 24),
 
                       // Recent Searches
-                      const Text(
+                      Text(
                         'Recent Searches',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF2E3E5C),
-                        ),
+                        style: Theme.of(context).textTheme.titleLarge,
                       ),
                       const SizedBox(height: 12),
                       _buildRecentSearchItem('Hunter 350'),
@@ -105,21 +112,20 @@ class SearchScreen extends StatelessWidget {
                       const SizedBox(height: 24),
 
                       // Recommendations
-                      const Text(
+                      Text(
                         'Recommendations',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF2E3E5C),
-                        ),
+                        style: Theme.of(context).textTheme.titleLarge,
                       ),
                       const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(child: _buildBikeCard(context)),
-                          const SizedBox(width: 16),
-                          Expanded(child: _buildBikeCard(context)),
-                        ],
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        physics: const BouncingScrollPhysics(),
+                        child: Row(
+                          children: const [
+                            BikeCard(),
+                            BikeCard(),
+                          ],
+                        ),
                       ),
                     ],
                   ),
@@ -173,119 +179,9 @@ class SearchScreen extends StatelessWidget {
             style: const TextStyle(fontSize: 14, color: Color(0xFF2E3E5C)),
           ),
           const Spacer(),
-          Icon(Icons.close, color: Colors.grey.shade400, size: 20),
+          Icon(Icons.close, color: Colors.grey.shade400, size: 15),
         ],
       ),
-    );
-  }
-
-  Widget _buildBikeCard(context) {
-    return GestureDetector(
-      onTap: () {
-        Navigator.pushNamed(context, '/bike_detail');
-      },
-      child: Container(
-        width: 176,
-        margin: const EdgeInsets.only(right: 16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.03),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Bike Image
-            Stack(
-              children: [
-                ClipRRect(
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-                  child: Image.asset(
-                    'assets/bike_card.png',
-                    height: 110,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                    errorBuilder: (c, e, s) => Container(
-                      height: 110,
-                      width: double.infinity,
-                      color: Colors.grey.shade100,
-                    ),
-                  ),
-                ),
-                Positioned(
-                  top: 8,
-                  right: 8,
-                  child: Container(
-                    padding: const EdgeInsets.all(5),
-                    decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-                    child: Icon(Icons.favorite_border, size: 16, color: Colors.grey.shade400),
-                  ),
-                ),
-              ],
-            ),
-            Padding(
-              padding: const EdgeInsets.all(10.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    '2021 Royal Enfield Hunter 350',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF2E3E5C)),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      _buildInfoTag('15,000 km'),
-                      const SizedBox(width: 4),
-                      _buildInfoTag('Petrol'),
-                      const SizedBox(width: 4),
-                      _buildInfoTag('350cc'),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Icon(Icons.location_on_outlined, size: 10, color: Colors.grey.shade500),
-                      const SizedBox(width: 2),
-                      Text('Madhya Pradesh 458468', style: TextStyle(color: Colors.grey.shade500, fontSize: 9)),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        '₹1.85 Lakh',
-                        style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: Color(0xFF233A66)),
-                      ),
-                      Text('10 days ago', style: TextStyle(color: Colors.grey.shade400, fontSize: 8)),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildInfoTag(String text) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF3F5F7),
-        borderRadius: BorderRadius.circular(4),
-      ),
-      child: Text(text, style: TextStyle(color: Colors.grey.shade600, fontSize: 7, fontWeight: FontWeight.w500)),
     );
   }
 }

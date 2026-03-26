@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:bikebooking/core/constants/global.dart';
+import 'package:bikebooking/core/theme/app_theme.dart';
 import 'features/auth/presentation/pages/splash_screen.dart';
 import 'features/auth/presentation/pages/login_screen.dart';
 import 'features/auth/presentation/pages/otp_verification_screen.dart';
@@ -27,10 +26,8 @@ import 'features/home/presentation/pages/help_support_screen.dart';
 import 'features/home/presentation/pages/privacy_policy_screen.dart';
 import 'features/home/presentation/pages/manage_notifications_screen.dart';
 import 'features/home/presentation/pages/seller_profile_screen.dart';
-
-
-
-
+import 'features/home/presentation/pages/spare_parts_detail_form_screen.dart';
+import 'features/home/presentation/pages/accessories_detail_form_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -44,11 +41,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Bikenest',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: AppColors.primary),
-        useMaterial3: true,
-        textTheme: GoogleFonts.poppinsTextTheme(),
-      ),
+      theme: AppTheme.lightTheme,
       initialRoute: '/',
       onGenerateRoute: (settings) {
         if (settings.name == '/') {
@@ -79,10 +72,10 @@ class MyApp extends StatelessWidget {
           return MaterialPageRoute(builder: (context) => const SearchScreen());
         }
         if (settings.name == '/filter') {
-          return MaterialPageRoute(builder: (context) => const FilterScreen());
+          return MaterialPageRoute(settings: settings, builder: (context) => const FilterScreen());
         }
         if (settings.name == '/filter_result') {
-          return MaterialPageRoute(builder: (context) => const FilterResultScreen());
+          return MaterialPageRoute(settings: settings, builder: (context) => const FilterResultScreen());
         }
         if (settings.name == '/bike_detail') {
           return MaterialPageRoute(builder: (context) => const BikeDetailScreen());
@@ -94,10 +87,16 @@ class MyApp extends StatelessWidget {
           return MaterialPageRoute(builder: (context) => const ListProductScreen());
         }
         if (settings.name == '/product_images') {
-          return MaterialPageRoute(builder: (context) => const ProductImagesScreen());
+          return MaterialPageRoute(settings: settings, builder: (context) => const ProductImagesScreen());
         }
         if (settings.name == '/bike_detail_form') {
           return MaterialPageRoute(builder: (context) => const BikeDetailFormScreen());
+        }
+        if (settings.name == '/spare_parts_detail_form') {
+          return MaterialPageRoute(builder: (context) => const SparePartsDetailFormScreen());
+        }
+        if (settings.name == '/accessories_detail_form') {
+          return MaterialPageRoute(builder: (context) => const AccessoriesDetailFormScreen());
         }
         if (settings.name == '/bike_price_location') {
           return MaterialPageRoute(builder: (context) => const BikePriceLocationScreen());
@@ -106,7 +105,7 @@ class MyApp extends StatelessWidget {
           return MaterialPageRoute(builder: (context) => const ProductPreviewScreen());
         }
         if (settings.name == '/my_listing') {
-          return MaterialPageRoute(builder: (context) => const MyListingScreen());
+          return MaterialPageRoute(settings: settings, builder: (context) => const MyListingScreen());
         }
         if (settings.name == '/favorites') {
           return MaterialPageRoute(builder: (context) => const FavoritesScreen());

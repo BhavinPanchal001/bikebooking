@@ -1,3 +1,4 @@
+import 'package:bikebooking/core/constants/global.dart';
 import 'package:flutter/material.dart';
 
 class ManageNotificationsScreen extends StatefulWidget {
@@ -26,11 +27,11 @@ class _ManageNotificationsScreenState extends State<ManageNotificationsScreen> {
             // Header
             Container(
               width: double.infinity,
-              decoration: const BoxDecoration(
-                color: Color(0xFF233A66),
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(24),
-                  bottomRight: Radius.circular(24),
+              decoration: BoxDecoration(
+                color: AppColors.headerBackground,
+                borderRadius: const BorderRadius.only(
+                  bottomLeft: Radius.circular(15),
+                  bottomRight: Radius.circular(15),
                 ),
               ),
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
@@ -48,7 +49,7 @@ class _ManageNotificationsScreenState extends State<ManageNotificationsScreen> {
                     'Manage Notifications',
                     style: TextStyle(
                       color: Colors.white,
-                      fontSize: 26,
+                      fontSize: 20,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -81,7 +82,8 @@ class _ManageNotificationsScreenState extends State<ManageNotificationsScreen> {
                   _buildSectionHeader('Payment & Subscription'),
                   _buildSwitchTile('Payment Failed', paymentFailed, (v) => setState(() => paymentFailed = v)),
                   _buildDivider(),
-                  _buildSwitchTile('Subscription Expiring Reminder', subscriptionReminder, (v) => setState(() => subscriptionReminder = v)),
+                  _buildSwitchTile('Subscription Expiring Reminder', subscriptionReminder,
+                      (v) => setState(() => subscriptionReminder = v)),
                 ],
               ),
             ),
@@ -134,11 +136,14 @@ class _ManageNotificationsScreenState extends State<ManageNotificationsScreen> {
               ),
             ),
           ),
-          Switch(
-            value: value,
-            onChanged: onChanged,
-            activeColor: const Color(0xFF4CAF50),
-            activeTrackColor: const Color(0xFFC8E6C9),
+          Transform.scale(
+            scale: 0.75,
+            child: Switch(
+              value: value,
+              onChanged: onChanged,
+              activeColor: const Color(0xFF4CAF50),
+              activeTrackColor: const Color(0xFFC8E6C9),
+            ),
           ),
         ],
       ),
@@ -146,6 +151,7 @@ class _ManageNotificationsScreenState extends State<ManageNotificationsScreen> {
   }
 
   Widget _buildDivider() {
-    return Container(color: Colors.white, child: Divider(height: 1, color: Colors.grey.shade100, indent: 16, endIndent: 16));
+    return Container(
+        color: Colors.white, child: Divider(height: 1, color: Colors.grey.shade100, indent: 16, endIndent: 16));
   }
 }

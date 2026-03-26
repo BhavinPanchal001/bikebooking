@@ -1,3 +1,4 @@
+import 'package:bikebooking/core/constants/global.dart';
 import 'package:flutter/material.dart';
 
 class ListProductScreen extends StatelessWidget {
@@ -13,14 +14,14 @@ class ListProductScreen extends StatelessWidget {
             // Top Header
             Container(
               width: double.infinity,
-              decoration: const BoxDecoration(
-                color: Color(0xFF233A66),
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(24),
-                  bottomRight: Radius.circular(24),
+              decoration: BoxDecoration(
+                color: AppColors.headerBackground,
+                borderRadius: const BorderRadius.only(
+                  bottomLeft: Radius.circular(15),
+                  bottomRight: Radius.circular(15),
                 ),
               ),
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -35,7 +36,7 @@ class ListProductScreen extends StatelessWidget {
                     'List Product',
                     style: TextStyle(
                       color: Colors.white,
-                      fontSize: 26,
+                      fontSize: 20,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -55,7 +56,7 @@ class ListProductScreen extends StatelessWidget {
                       const Text(
                         'List Categories',
                         style: TextStyle(
-                          fontSize: 18,
+                          fontSize: 16,
                           fontWeight: FontWeight.bold,
                           color: Color(0xFF2E3E5C),
                         ),
@@ -67,7 +68,7 @@ class ListProductScreen extends StatelessWidget {
                         crossAxisCount: 2,
                         crossAxisSpacing: 16,
                         mainAxisSpacing: 16,
-                        childAspectRatio: 0.85,
+                        childAspectRatio: 1.08,
                         children: [
                           _buildCategoryCard(
                             context,
@@ -110,7 +111,7 @@ class ListProductScreen extends StatelessWidget {
   Widget _buildCategoryCard(BuildContext context, String title, Color bgColor, String imagePath) {
     return GestureDetector(
       onTap: () {
-        Navigator.pushNamed(context, '/product_images');
+        Navigator.pushNamed(context, '/product_images', arguments: title);
       },
       child: Container(
         decoration: BoxDecoration(
@@ -129,7 +130,7 @@ class ListProductScreen extends StatelessWidget {
           children: [
             Expanded(
               child: Container(
-                margin: const EdgeInsets.all(12),
+                margin: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
                   color: bgColor,
                   borderRadius: BorderRadius.circular(12),
@@ -155,9 +156,9 @@ class ListProductScreen extends StatelessWidget {
               child: Text(
                 title,
                 style: const TextStyle(
-                  fontSize: 14,
+                  fontSize: 12,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFF2E3E5C),
+                  color: Color(0xFF121926),
                 ),
               ),
             ),
@@ -198,8 +199,12 @@ class ListProductScreen extends StatelessWidget {
         onTap: (index) {
           if (index == 0) {
             Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
-          } else if (index != 2) {
-            // Handle other nav clicks if needed
+          } else if (index == 1) {
+            Navigator.pushNamed(context, '/filter_result', arguments: 'Bikes');
+          } else if (index == 3) {
+            Navigator.pushNamed(context, '/my_listing');
+          } else if (index == 4) {
+            Navigator.pushNamed(context, '/profile_overview');
           }
         },
         type: BottomNavigationBarType.fixed,

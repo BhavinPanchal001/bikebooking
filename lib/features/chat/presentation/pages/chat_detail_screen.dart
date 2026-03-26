@@ -1,3 +1,5 @@
+import 'package:bikebooking/core/constants/global.dart';
+import 'package:bikebooking/core/widgets/custom_button.dart';
 import 'package:flutter/material.dart';
 
 class ChatDetailScreen extends StatefulWidget {
@@ -28,56 +30,66 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           // Header
           Container(
             padding: const EdgeInsets.only(top: 50, bottom: 20, left: 16, right: 16),
-            decoration: const BoxDecoration(
-              color: Color(0xFF2E3E5C),
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(24),
-                bottomRight: Radius.circular(24),
+            decoration: BoxDecoration(
+              color: AppColors.headerBackground,
+              borderRadius: const BorderRadius.only(
+                bottomLeft: Radius.circular(15),
+                bottomRight: Radius.circular(15),
               ),
             ),
-            child: Row(
+            child: Column(
               children: [
-                GestureDetector(
-                  onTap: () => Navigator.pop(context),
-                  child: const Icon(Icons.arrow_back, color: Colors.white, size: 28),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    GestureDetector(
+                      onTap: () => Navigator.pop(context),
+                      child: const Icon(Icons.arrow_back, color: Colors.white, size: 28),
+                    ),
+                    PopupMenuButton<String>(
+                      icon: const Icon(Icons.more_vert, color: Colors.white, size: 28),
+                      onSelected: (value) {
+                        if (value == 'report') {
+                          _showReportBottomSheet(context);
+                        }
+                      },
+                      itemBuilder: (context) => [
+                        const PopupMenuItem(value: 'block', child: Text('Block user')),
+                        const PopupMenuItem(value: 'report', child: Text('Report user')),
+                      ],
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 12),
-                const CircleAvatar(
-                  radius: 24,
-                  backgroundImage: AssetImage('assets/profile_pic.png'),
-                ),
-                const SizedBox(width: 12),
-                const Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    const CircleAvatar(
+                      radius: 25, // Larger avatar as per screenshot
+                      backgroundImage: AssetImage('assets/images/Oval.png'),
+                    ),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            'Vinayak kadam',
-                            style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                          Row(
+                            children: [
+                              Text(
+                                'Vinayak kadam',
+                                style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                              ),
+                              SizedBox(width: 8),
+                              Icon(Icons.check_circle, color: Color(0xFF4ADE80), size: 18),
+                            ],
                           ),
-                          SizedBox(width: 4),
-                          Icon(Icons.check_circle, color: Color(0xFF4ADE80), size: 16),
+                          SizedBox(height: 4),
+                          Text(
+                            'Last seen 1 minute ago',
+                            style: TextStyle(color: Colors.white70, fontSize: 13),
+                          ),
                         ],
                       ),
-                      Text(
-                        'Last seen 1 minute ago',
-                        style: TextStyle(color: Colors.white70, fontSize: 12),
-                      ),
-                    ],
-                  ),
-                ),
-                PopupMenuButton<String>(
-                  icon: const Icon(Icons.more_vert, color: Colors.white, size: 28),
-                  onSelected: (value) {
-                    if (value == 'report') {
-                      _showReportBottomSheet(context);
-                    }
-                  },
-                  itemBuilder: (context) => [
-                    const PopupMenuItem(value: 'block', child: Text('Block user')),
-                    const PopupMenuItem(value: 'report', child: Text('Report user')),
+                    ),
                   ],
                 ),
               ],
@@ -106,14 +118,14 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
           // Message Input
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 25),
             child: Row(
               children: [
                 Expanded(
                   child: Container(
-                    height: 54,
+                    height: 50,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF1F4F8),
+                      // color: const Color(0xFFF1F4F8),
                       borderRadius: BorderRadius.circular(25),
                       border: Border.all(color: Colors.black.withOpacity(0.05)),
                     ),
@@ -130,13 +142,13 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                 ),
                 const SizedBox(width: 12),
                 Container(
-                  height: 54,
-                  width: 54,
+                  height: 40,
+                  width: 40,
                   decoration: const BoxDecoration(
-                    color: Color(0xFF2E3E5C),
+                    color: Color(0xFF2E4475),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.send, color: Colors.white, size: 24),
+                  child: const Icon(Icons.send, color: Colors.white, size: 20),
                 ),
               ],
             ),
@@ -155,7 +167,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           margin: const EdgeInsets.only(bottom: 4),
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
           decoration: BoxDecoration(
-            color: isMe ? const Color(0xFF2E3E5C) : Colors.white,
+            color: isMe ? const Color(0xFF2E4475) : Colors.white,
             borderRadius: BorderRadius.only(
               topLeft: const Radius.circular(16),
               topRight: const Radius.circular(16),
@@ -196,7 +208,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                 style: const TextStyle(color: Colors.grey, fontSize: 11),
               ),
               const SizedBox(width: 4),
-              const Icon(Icons.done_all, color: Color(0xFF4A6CAD), size: 14),
+              const Icon(Icons.done_all, color: Color(0xFF2E4475), size: 14),
             ],
           ],
         ),
@@ -266,19 +278,14 @@ class _ReportBottomSheetState extends State<_ReportBottomSheet> {
           const SizedBox(height: 24),
           SizedBox(
             width: double.infinity,
-            child: ElevatedButton(
+            child: CustomGradientButton(
+              text: 'Submit',
               onPressed: () {
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Report submitted successfully')),
                 );
               },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF4A6CAD),
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-              child: const Text('Submit', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
             ),
           ),
           // Spacer for keyboard
@@ -300,7 +307,7 @@ class _ReportBottomSheetState extends State<_ReportBottomSheet> {
             margin: const EdgeInsets.only(bottom: 12),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
             decoration: BoxDecoration(
-              color: const Color(0xFFF9FBFF),
+              // color: const Color(0xFFF9FBFF),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: Colors.black.withOpacity(0.05)),
             ),
@@ -313,14 +320,20 @@ class _ReportBottomSheetState extends State<_ReportBottomSheet> {
                       height: 20,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        border: Border.all(color: isSelected ? const Color(0xFF2E3E5C) : Colors.grey.shade400, width: 2),
+                        border:
+                            Border.all(color: isSelected ? const Color(0xFF2E3E5C) : Colors.grey.shade400, width: 2),
                       ),
                       child: isSelected
-                          ? Center(child: Container(width: 10, height: 10, decoration: const BoxDecoration(color: Color(0xFF2E3E5C), shape: BoxShape.circle)))
+                          ? Center(
+                              child: Container(
+                                  width: 10,
+                                  height: 10,
+                                  decoration: const BoxDecoration(color: Color(0xFF2E3E5C), shape: BoxShape.circle)))
                           : null,
                     ),
                     const SizedBox(width: 12),
-                    Text(reason, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF2E3E5C))),
+                    Text(reason,
+                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF2E3E5C))),
                   ],
                 ),
                 if (isOther && isSelected) ...[
@@ -332,7 +345,8 @@ class _ReportBottomSheetState extends State<_ReportBottomSheet> {
                       hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13),
                       filled: true,
                       fillColor: Colors.white,
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Colors.grey.shade300)),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Colors.grey.shade300)),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                     ),
                   ),

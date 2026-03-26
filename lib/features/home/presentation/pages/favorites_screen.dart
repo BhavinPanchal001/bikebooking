@@ -1,3 +1,5 @@
+import 'package:bikebooking/core/constants/global.dart';
+import 'package:bikebooking/core/widgets/custom_button.dart';
 import 'package:flutter/material.dart';
 
 class FavoritesScreen extends StatelessWidget {
@@ -13,11 +15,11 @@ class FavoritesScreen extends StatelessWidget {
             // Header
             Container(
               width: double.infinity,
-              decoration: const BoxDecoration(
-                color: Color(0xFF233A66),
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(24),
-                  bottomRight: Radius.circular(24),
+              decoration: BoxDecoration(
+                color: AppColors.headerBackground,
+                borderRadius: const BorderRadius.only(
+                  bottomLeft: Radius.circular(15),
+                  bottomRight: Radius.circular(15),
                 ),
               ),
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
@@ -35,7 +37,7 @@ class FavoritesScreen extends StatelessWidget {
                     'Favorites',
                     style: TextStyle(
                       color: Colors.white,
-                      fontSize: 26,
+                      fontSize: 20,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -101,7 +103,7 @@ class FavoritesScreen extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: const Color(0xFFF1F4F8), // Card background like screenshot
+        color: const Color(0xFFF1F4F8).withOpacity(0.5),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.black.withOpacity(0.05)),
       ),
@@ -136,7 +138,7 @@ class FavoritesScreen extends StatelessWidget {
                       Text(
                         title,
                         style: const TextStyle(
-                          fontSize: 14,
+                          fontSize: 12,
                           fontWeight: FontWeight.w500,
                           color: Color(0xFF5E6E8C),
                         ),
@@ -145,22 +147,22 @@ class FavoritesScreen extends StatelessWidget {
                       Text(
                         price,
                         style: const TextStyle(
-                          fontSize: 18,
+                          fontSize: 17,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF2E3E5C),
+                          color: Color(0xFF151314),
                         ),
                       ),
                       const SizedBox(height: 4),
                       Row(
                         children: [
-                          Icon(Icons.location_on_outlined, size: 12, color: Colors.grey.shade500),
+                          const Icon(Icons.location_on_outlined, size: 12, color: Color(0xFF37474F)),
                           const SizedBox(width: 4),
                           Expanded(
                             child: Text(
                               location,
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 11,
-                                color: Colors.grey.shade500,
+                                color: Color(0xFF37474F),
                               ),
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -192,7 +194,7 @@ class FavoritesScreen extends StatelessWidget {
                     style: OutlinedButton.styleFrom(
                       backgroundColor: Colors.white,
                       side: BorderSide(color: Colors.black.withOpacity(0.05)),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                       padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
                     child: const Text(
@@ -206,23 +208,13 @@ class FavoritesScreen extends StatelessWidget {
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: ElevatedButton(
+                  child: CustomGradientButton(
+                    height: 42,
+                    text: 'View Details',
                     onPressed: () {
                       // View details logic
                       Navigator.pushNamed(context, '/bike_detail');
                     },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF4A6495),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                    ),
-                    child: const Text(
-                      'View Details',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
                   ),
                 ),
               ],

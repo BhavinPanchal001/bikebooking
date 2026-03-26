@@ -1,3 +1,5 @@
+import 'package:bikebooking/core/constants/global.dart';
+import 'package:bikebooking/core/widgets/custom_button.dart';
 import 'package:flutter/material.dart';
 
 class EditProfileScreen extends StatelessWidget {
@@ -6,18 +8,18 @@ class EditProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: Column(
           children: [
             // Header
             Container(
               width: double.infinity,
-              decoration: const BoxDecoration(
-                color: Color(0xFF233A66),
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(24),
-                  bottomRight: Radius.circular(24),
+              decoration: BoxDecoration(
+                color: AppColors.headerBackground,
+                borderRadius: const BorderRadius.only(
+                  bottomLeft: Radius.circular(15),
+                  bottomRight: Radius.circular(15),
                 ),
               ),
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
@@ -33,9 +35,9 @@ class EditProfileScreen extends StatelessWidget {
                   const SizedBox(height: 20),
                   const Text(
                     'My Profile',
-                    style: TextStyle(
+                    style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 26,
+                      fontSize: 20,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -55,11 +57,17 @@ class EditProfileScreen extends StatelessWidget {
                       Stack(
                         alignment: Alignment.center,
                         children: [
+                          CircleAvatar(
+                            radius: 65,
+                            backgroundColor: Colors.white,
+                            // backgroundImage: const NetworkImage('https://i.pravatar.cc/150?u=rutik'),
+                          ),
                           Container(
                             height: 120,
                             width: 120,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
+                              // borderRadius: BorderRadius.circular(24),
                               border: Border.all(color: Colors.black.withOpacity(0.05), width: 1),
                               image: const DecorationImage(
                                 image: NetworkImage('https://i.pravatar.cc/150?u=rutik'),
@@ -92,22 +100,22 @@ class EditProfileScreen extends StatelessWidget {
                       _buildLabel('Phone Number'),
                       Row(
                         children: [
-                          Container(
-                            height: 56,
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF9FBFF),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.grey.shade200),
-                            ),
-                            child: const Center(
-                              child: Text(
-                                '+91',
-                                style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF2E3E5C)),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
+                          // Container(
+                          //   height: 56,
+                          //   padding: const EdgeInsets.symmetric(horizontal: 16),
+                          //   decoration: BoxDecoration(
+                          //     color: const Color(0xFFF1F4F8).withOpacity(0.5),
+                          //     borderRadius: BorderRadius.circular(12),
+                          //     border: Border.all(color: Colors.grey.shade200),
+                          //   ),
+                          //   child: const Center(
+                          //     child: Text(
+                          //       '+91',
+                          //       style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF2E3E5C)),
+                          //     ),
+                          //   ),
+                          // ),
+                          // const SizedBox(width: 8),
                           Expanded(
                             child: _buildTextField('+91 1234567890'),
                           ),
@@ -129,6 +137,25 @@ class EditProfileScreen extends StatelessWidget {
           ],
         ),
       ),
+      bottomNavigationBar: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, -5),
+            ),
+          ],
+        ),
+        child: CustomGradientButton(
+          text: 'Update Profile',
+          onPressed: () {
+            Navigator.pop(context);
+          },
+        ),
+      ),
     );
   }
 
@@ -140,9 +167,9 @@ class EditProfileScreen extends StatelessWidget {
         child: Text(
           text,
           style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: Color(0xFF2E3E5C),
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: Color(0xFF37474F),
           ),
         ),
       ),
@@ -151,20 +178,21 @@ class EditProfileScreen extends StatelessWidget {
 
   Widget _buildTextField(String hint, [IconData? prefixIcon]) {
     return TextField(
+      // maxLines: maxLines,
+      // onTap: onTap,
+      // readOnly: readOnly,
       decoration: InputDecoration(
         hintText: hint,
         hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
-        prefixIcon: prefixIcon != null ? Icon(prefixIcon, color: Colors.grey.shade400, size: 20) : null,
-        filled: true,
-        fillColor: const Color(0xFFF9FBFF),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        // suffixIcon: onTap != null ? Icon(Icons.keyboard_arrow_down, color: Colors.grey.shade400) : null,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey.shade200),
+          borderSide: BorderSide(color: Color(0xFFDDDDDD)),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey.shade200),
+          borderSide: BorderSide(color: Color(0xFFDDDDDD)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),

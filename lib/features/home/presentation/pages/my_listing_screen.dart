@@ -1,3 +1,5 @@
+import 'package:bikebooking/core/constants/global.dart';
+import 'package:bikebooking/core/widgets/custom_button.dart';
 import 'package:flutter/material.dart';
 
 class MyListingScreen extends StatefulWidget {
@@ -11,9 +13,11 @@ class _MyListingScreenState extends State<MyListingScreen> {
   @override
   void initState() {
     super.initState();
-    // Show boost bottom sheet shortly after screen opens
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _showBoostBottomSheet(context);
+      final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+      if (args != null && args['showBoost'] == true) {
+        _showBoostBottomSheet(context);
+      }
     });
   }
 
@@ -27,11 +31,11 @@ class _MyListingScreenState extends State<MyListingScreen> {
             // Header
             Container(
               width: double.infinity,
-              decoration: const BoxDecoration(
-                color: Color(0xFF233A66),
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(24),
-                  bottomRight: Radius.circular(24),
+              decoration: BoxDecoration(
+                color: AppColors.headerBackground,
+                borderRadius: const BorderRadius.only(
+                  bottomLeft: Radius.circular(15),
+                  bottomRight: Radius.circular(15),
                 ),
               ),
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
@@ -49,14 +53,14 @@ class _MyListingScreenState extends State<MyListingScreen> {
                     'My Listing',
                     style: TextStyle(
                       color: Colors.white,
-                      fontSize: 26,
+                      fontSize: 20,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                 ],
               ),
             ),
-            
+
             // Listings List
             Expanded(
               child: ListView(
@@ -143,7 +147,7 @@ class _MyListingScreenState extends State<MyListingScreen> {
                       Text(
                         title,
                         style: const TextStyle(
-                          fontSize: 14,
+                          fontSize: 12,
                           fontWeight: FontWeight.w500,
                           color: Color(0xFF5E6E8C),
                         ),
@@ -152,30 +156,30 @@ class _MyListingScreenState extends State<MyListingScreen> {
                       Text(
                         price,
                         style: const TextStyle(
-                          fontSize: 18,
+                          fontSize: 17,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF2E3E5C),
+                          color: Color(0xFF151314),
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         stats,
                         style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey.shade400,
+                          fontSize: 10,
+                          color: Color(0xFF37474F),
                         ),
                       ),
                       const SizedBox(height: 4),
                       Row(
                         children: [
-                          Icon(Icons.location_on_outlined, size: 12, color: Colors.grey.shade400),
+                          Icon(Icons.location_on_outlined, size: 12, color: Color(0xFF37474F)),
                           const SizedBox(width: 4),
                           Expanded(
                             child: Text(
                               location,
                               style: TextStyle(
                                 fontSize: 11,
-                                color: Colors.grey.shade400,
+                                color: Color(0xFF37474F),
                               ),
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -201,7 +205,7 @@ class _MyListingScreenState extends State<MyListingScreen> {
                     style: OutlinedButton.styleFrom(
                       backgroundColor: Colors.white,
                       side: BorderSide(color: Colors.black.withOpacity(0.05)),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                       padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
                     child: const Text(
@@ -215,22 +219,13 @@ class _MyListingScreenState extends State<MyListingScreen> {
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: ElevatedButton(
+                  child: CustomGradientButton(
+                    height: 42,
+                    text: 'Edit',
                     onPressed: () {
+                      Navigator.pushNamed(context, '/product_images');
                       // Edit logic
                     },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF4A6495),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                    ),
-                    child: const Text(
-                      'Edit',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
                   ),
                 ),
               ],
@@ -249,6 +244,7 @@ class _MyListingScreenState extends State<MyListingScreen> {
       unselectedItemColor: Colors.grey,
       onTap: (index) {
         if (index == 0) Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+        if (index == 1) Navigator.pushNamed(context, '/filter_result', arguments: 'Bikes');
         if (index == 2) Navigator.pushNamed(context, '/list_product');
         if (index == 4) Navigator.pushNamed(context, '/profile_overview');
       },
@@ -297,9 +293,7 @@ class _MyListingScreenState extends State<MyListingScreen> {
                   color: Color(0xFFE3F2FD),
                   shape: BoxShape.circle,
                 ),
-                child: const Center(
-                  child: Icon(Icons.rocket_launch, size: 80, color: Color(0xFF4A6495)),
-                ),
+                child: Center(child: Image.asset('assets/images/Frame 1171275371.png')),
               ),
               const SizedBox(height: 24),
               const Text(
@@ -332,37 +326,30 @@ class _MyListingScreenState extends State<MyListingScreen> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF8F9FB),
+                  border: Border.all(color: Colors.black.withOpacity(0.05)),
+                  // color: const Color(0xFFF8F9FB),
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: const [
                     Text('1. + 1x extra listing', style: TextStyle(color: Color(0xFF5E6E8C), height: 1.8)),
+                    SizedBox(height: 3),
                     Text('2. Free featured ads', style: TextStyle(color: Color(0xFF5E6E8C), height: 1.8)),
+                    SizedBox(height: 3),
                     Text('3. Priority Visibility', style: TextStyle(color: Color(0xFF5E6E8C), height: 1.8)),
+                    SizedBox(height: 3),
                     Text('4. Priority Visibility', style: TextStyle(color: Color(0xFF5E6E8C), height: 1.8)),
                   ],
                 ),
               ),
               const SizedBox(height: 32),
-              SizedBox(
-                width: double.infinity,
-                height: 56,
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    _showBoostPlansSheet(context);
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF4A6495),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  child: const Text(
-                    'Choose Boost Plan',
-                    style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                ),
+              CustomGradientButton(
+                text: 'Choose Boost Plan',
+                onPressed: () {
+                  Navigator.pop(context);
+                  _showBoostPlansSheet(context);
+                },
               ),
             ],
           ),
@@ -451,7 +438,7 @@ class _MyListingScreenState extends State<MyListingScreen> {
                         ),
                         const Text(
                           '₹1.85 Lakh',
-                          style: TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF4A6495), fontSize: 16),
+                          style: TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF2E4475), fontSize: 14),
                         ),
                       ],
                     ),
@@ -464,23 +451,12 @@ class _MyListingScreenState extends State<MyListingScreen> {
               _buildPlanOption('Popular Boost', '7 Days Boost', 'Rs.199.00', true),
               _buildPlanOption('Premium Boost', '15 Days Boost', 'Rs.399.00', false),
               const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                height: 56,
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    _showPaymentSuccessSheet(context);
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF4A6495),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  child: const Text(
-                    'Choose Boost Plan',
-                    style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                ),
+              CustomGradientButton(
+                text: 'Choose Boost Plan',
+                onPressed: () {
+                  Navigator.pop(context);
+                  _showPaymentSuccessSheet(context);
+                },
               ),
             ],
           ),
@@ -504,7 +480,8 @@ class _MyListingScreenState extends State<MyListingScreen> {
       decoration: BoxDecoration(
         color: const Color(0xFFF9FBFF),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: isSelected ? const Color(0xFF4A6495) : Colors.black.withOpacity(0.05), width: isSelected ? 2 : 1),
+        border: Border.all(
+            color: isSelected ? const Color(0xFF4A6495) : Colors.black.withOpacity(0.05), width: isSelected ? 2 : 1),
       ),
       child: Row(
         children: [
@@ -527,7 +504,7 @@ class _MyListingScreenState extends State<MyListingScreen> {
               ],
             ),
           ),
-          Text(price, style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF4A6495))),
+          Text(price, style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF2E4475))),
         ],
       ),
     );
@@ -594,19 +571,11 @@ class _MyListingScreenState extends State<MyListingScreen> {
                 style: TextStyle(color: Color(0xFF5E6E8C), fontSize: 14),
               ),
               const SizedBox(height: 40),
-              SizedBox(
-                width: double.infinity,
-                height: 56,
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF4A6495),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  child: const Text('Go to Home', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-                ),
+              CustomGradientButton(
+                text: 'Go to Home',
+                onPressed: () {
+                  Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+                },
               ),
             ],
           ),
@@ -670,20 +639,12 @@ class _MyListingScreenState extends State<MyListingScreen> {
                 style: TextStyle(color: Color(0xFF5E6E8C), fontSize: 14),
               ),
               const SizedBox(height: 40),
-              SizedBox(
-                width: double.infinity,
-                height: 56,
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    _showBoostPlansSheet(context);
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF4A6495),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  child: const Text('Retry Payment', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-                ),
+              CustomGradientButton(
+                text: 'Retry Payment',
+                onPressed: () {
+                  Navigator.pop(context);
+                  _showBoostPlansSheet(context);
+                },
               ),
             ],
           ),

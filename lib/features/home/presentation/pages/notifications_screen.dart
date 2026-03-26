@@ -1,3 +1,4 @@
+import 'package:bikebooking/core/constants/global.dart';
 import 'package:flutter/material.dart';
 
 class NotificationsScreen extends StatelessWidget {
@@ -13,11 +14,11 @@ class NotificationsScreen extends StatelessWidget {
             // Header
             Container(
               width: double.infinity,
-              decoration: const BoxDecoration(
-                color: Color(0xFF233A66),
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(24),
-                  bottomRight: Radius.circular(24),
+              decoration: BoxDecoration(
+                color: AppColors.headerBackground,
+                borderRadius: const BorderRadius.only(
+                  bottomLeft: Radius.circular(15),
+                  bottomRight: Radius.circular(15),
                 ),
               ),
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
@@ -35,7 +36,7 @@ class NotificationsScreen extends StatelessWidget {
                     'Notifications',
                     style: TextStyle(
                       color: Colors.white,
-                      fontSize: 26,
+                      fontSize: 20,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -114,8 +115,7 @@ class NotificationsScreen extends StatelessWidget {
                     child: Image.network(
                       avatarUrl,
                       fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) =>
-                          const Icon(Icons.person, color: Color(0xFF233A66)),
+                      errorBuilder: (context, error, stackTrace) => const Icon(Icons.person, color: Color(0xFF233A66)),
                     ),
                   )
                 : Icon(icon ?? Icons.notifications_active, color: const Color(0xFF233A66), size: 22),

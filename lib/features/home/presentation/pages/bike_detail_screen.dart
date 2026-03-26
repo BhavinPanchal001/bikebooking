@@ -1,7 +1,22 @@
+import 'package:bikebooking/core/widgets/custom_button.dart';
 import 'package:flutter/material.dart';
 
-class BikeDetailScreen extends StatelessWidget {
+class BikeDetailScreen extends StatefulWidget {
   const BikeDetailScreen({super.key});
+
+  @override
+  State<BikeDetailScreen> createState() => _BikeDetailScreenState();
+}
+
+class _BikeDetailScreenState extends State<BikeDetailScreen> {
+  int _selectedIndex = 0;
+  final List<String> _images = [
+    'assets/images/pngwing.com (18) 3.png',
+    'assets/images/pngwing.com (18) 3.png',
+    'assets/images/pngwing.com (18) 3.png',
+    'assets/images/pngwing.com (18) 3.png',
+    'assets/images/pngwing.com (18) 3.png',
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -22,7 +37,7 @@ class BikeDetailScreen extends StatelessWidget {
                     color: Colors.white,
                     child: Center(
                       child: Image.asset(
-                        'assets/bike_card.png',
+                        _images[_selectedIndex],
                         fit: BoxFit.contain,
                         errorBuilder: (c, e, s) => const Icon(Icons.directions_bike, size: 100, color: Colors.grey),
                       ),
@@ -31,12 +46,12 @@ class BikeDetailScreen extends StatelessWidget {
                   Positioned(
                     top: 16,
                     left: 16,
-                    child: GestureDetector(
-                      onTap: () => Navigator.pop(context),
-                      child: Container(
+                    child: IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.arrow_back, color: Color(0xFF2E3E5C), size: 28),
+                      style: IconButton.styleFrom(
+                        backgroundColor: const Color(0xFFFAFAFA).withOpacity(0.8),
                         padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4)]),
-                        child: const Icon(Icons.arrow_back, color: Color(0xFF2E3E5C)),
                       ),
                     ),
                   ),
@@ -45,41 +60,116 @@ class BikeDetailScreen extends StatelessWidget {
                     right: 16,
                     child: Row(
                       children: [
-                        _buildTopActionIcon(Icons.favorite_border),
+                        GestureDetector(
+                          onTap: () {
+                            // Favorite logic
+                          },
+                          child: Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFAFAFA),
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.05),
+                                    blurRadius: 4,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: Image.asset(
+                                'assets/images/Path 3392.png',
+                                height: 20,
+                                width: 20,
+                              )),
+                        ),
                         const SizedBox(width: 12),
-                        _buildTopActionIcon(Icons.error_outline),
+                        GestureDetector(
+                          onTap: () {
+                            // Report logic
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              // color: const Color(0xFFF5F5F5),
+                              shape: BoxShape.circle,
+                              // boxShadow: [
+                              //   BoxShadow(
+                              //     color: Colors.black.withOpacity(0.1),
+                              //     blurRadius: 4,
+                              //     offset: const Offset(0, 2),
+                              //   ),
+                              // ],
+                            ),
+                            child: Image.asset(
+                              'assets/images/Vector (3).png',
+                              height: 20,
+                              width: 20,
+                              fit: BoxFit.contain,
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                   ),
                 ],
               ),
-              
-              // Thumbnail Carousel Placeholder
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    _buildThumbnail('assets/bike_card.png'),
-                    _buildThumbnail('assets/bike_card.png'),
-                    _buildThumbnail('assets/bike_card.png'),
-                    _buildThumbnail('assets/bike_card.png'),
-                    _buildThumbnail('assets/bike_card.png'),
-                    _buildPlusThumbnail(),
-                  ],
+
+              const SizedBox(height: 12),
+
+              // Thumbnail Carousel Placeholder - Now Interactive
+              Center(
+                child: Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        ..._images.asMap().entries.map((entry) {
+                          int idx = entry.key;
+                          String path = entry.value;
+                          return _buildThumbnail(path, idx == _selectedIndex, () {
+                            setState(() {
+                              _selectedIndex = idx;
+                            });
+                          });
+                        }),
+                        _buildPlusThumbnail(),
+                      ],
+                    ),
+                  ),
                 ),
               ),
-              
-              const Center(
+
+              const SizedBox(height: 12),
+
+              Center(
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
-                  children: [
-                    CircleAvatar(radius: 3, backgroundColor: Colors.grey),
-                    SizedBox(width: 4),
-                    CircleAvatar(radius: 3, backgroundColor: Color(0xFF2E3E5C)),
-                    SizedBox(width: 4),
-                    CircleAvatar(radius: 3, backgroundColor: Colors.grey),
-                  ],
+                  children: List.generate(_images.length, (index) {
+                    return Container(
+                      width: 6,
+                      height: 6,
+                      margin: const EdgeInsets.symmetric(horizontal: 2),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: _selectedIndex == index ? const Color(0xFF2E3E5C) : Colors.grey.withOpacity(0.3),
+                      ),
+                    );
+                  }),
                 ),
               ),
 
@@ -88,9 +178,11 @@ class BikeDetailScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('2021 Royal Enfield Hunter 350', style: TextStyle(fontSize: 16, color: Color(0xFF334155))),
+                    const Text('2021 Royal Enfield Hunter 350',
+                        style: TextStyle(fontSize: 14, color: Color(0xFF334155))),
                     const SizedBox(height: 8),
-                    const Text('Rs.1,85,000', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF233A66))),
+                    const Text('Rs.1,85,000',
+                        style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: Color(0xFF0C0E1B))),
                     const SizedBox(height: 8),
                     Row(
                       children: [
@@ -100,36 +192,27 @@ class BikeDetailScreen extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 24),
-                    
-                    const Text('Item specifications', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF2E3E5C))),
+                    const Text('Item specifications',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF2E3E5C))),
                     const SizedBox(height: 12),
                     _buildSpecCard(),
-                    
                     const SizedBox(height: 24),
-                    const Text('Description', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF2E3E5C))),
+                    const Text('Description',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF2E3E5C))),
                     const SizedBox(height: 12),
                     _buildDescription(),
-                    
                     const SizedBox(height: 24),
-                    const Text('Seller', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF2E3E5C))),
+                    const Text('Seller',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF2E3E5C))),
                     const SizedBox(height: 12),
                     _buildSellerCard(),
-                    
                     const SizedBox(height: 32),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        onPressed: () {
-                          Navigator.pushNamed(context, '/chat_detail');
-                        },
-                        icon: const Icon(Icons.chat_bubble_outline, color: Colors.white),
-                        label: const Text('Chat', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF4A6CAD),
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        ),
-                      ),
+                    CustomGradientButton(
+                      text: 'Chat',
+                      onPressed: () {
+                        Navigator.pushNamed(context, '/chat_detail');
+                      },
+                      icon: const Icon(Icons.chat_bubble_outline, color: Colors.white),
                     ),
                     const SizedBox(height: 16),
                   ],
@@ -142,38 +225,73 @@ class BikeDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildTopActionIcon(IconData icon) {
-    return Container(
-      padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4)]),
-      child: Icon(icon, color: const Color(0xFF2E3E5C), size: 22),
-    );
-  }
-
-  Widget _buildThumbnail(String imagePath) {
-    return Container(
-      width: 45,
-      height: 40,
-      margin: const EdgeInsets.symmetric(horizontal: 4),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey.shade300),
+  Widget _buildThumbnail(String imagePath, bool isSelected, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        width: 50,
+        height: 45,
+        margin: const EdgeInsets.symmetric(horizontal: 4),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: isSelected ? const Color(0xFF2E3E5C) : Colors.grey.shade200,
+            width: isSelected ? 1.5 : 1,
+          ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: const Color(0xFF2E3E5C).withOpacity(0.1),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  )
+                ]
+              : null,
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: Padding(
+            padding: const EdgeInsets.all(2),
+            child: Image.asset(imagePath, fit: BoxFit.contain),
+          ),
+        ),
       ),
-      child: Image.asset(imagePath, fit: BoxFit.contain),
     );
   }
 
   Widget _buildPlusThumbnail() {
-    return Container(
-      width: 45,
-      height: 40,
-      margin: const EdgeInsets.symmetric(horizontal: 4),
-      decoration: BoxDecoration(
-        color: const Color(0xFF868C91).withOpacity(0.8),
-        borderRadius: BorderRadius.circular(8),
+    return InkWell(
+      onTap: () {
+        // Handle upload logic here
+      },
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        width: 50,
+        height: 45,
+        margin: const EdgeInsets.symmetric(horizontal: 4),
+        decoration: BoxDecoration(
+          color: const Color(0xFF868C91),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Opacity(
+              opacity: 0.4,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Padding(
+                  padding: const EdgeInsets.all(2),
+                  child: Image.asset('assets/bike_card.png', fit: BoxFit.contain),
+                ),
+              ),
+            ),
+            const Icon(Icons.add, color: Colors.white, size: 24),
+          ],
+        ),
       ),
-      child: const Center(child: Icon(Icons.add_a_photo, color: Colors.white, size: 18)),
     );
   }
 
@@ -182,7 +300,7 @@ class BikeDetailScreen extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        // color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.black.withOpacity(0.05)),
       ),
@@ -202,7 +320,7 @@ class BikeDetailScreen extends StatelessWidget {
     );
   }
 
-  static Widget _buildSpecRow(String label, String value) {
+  Widget _buildSpecRow(String label, String value) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -217,7 +335,7 @@ class BikeDetailScreen extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        // color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.black.withOpacity(0.05)),
       ),
@@ -233,7 +351,7 @@ class BikeDetailScreen extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        // color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.black.withOpacity(0.05)),
       ),
@@ -244,7 +362,7 @@ class BikeDetailScreen extends StatelessWidget {
             children: [
               const CircleAvatar(
                 radius: 24,
-                backgroundImage: AssetImage('assets/profile_pic.png'),
+                backgroundImage: AssetImage('assets/images/Oval.png'),
               ),
               const SizedBox(width: 12),
               Column(
@@ -252,7 +370,8 @@ class BikeDetailScreen extends StatelessWidget {
                 children: [
                   const Row(
                     children: [
-                      Text('Vinayak kadam', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF2E3E5C))),
+                      Text('Vinayak kadam',
+                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF2E3E5C))),
                       SizedBox(width: 4),
                       Icon(Icons.check_circle, size: 16, color: Colors.green),
                     ],
@@ -269,9 +388,11 @@ class BikeDetailScreen extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          Text('Joined: 2026', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.grey.shade600)),
+          Text('Joined: 2026',
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.grey.shade600)),
           const SizedBox(height: 4),
-          Text('Total Listings: 10', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.grey.shade600)),
+          Text('Total Listings: 10',
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.grey.shade600)),
         ],
       ),
     );

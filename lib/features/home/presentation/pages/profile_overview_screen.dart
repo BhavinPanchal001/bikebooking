@@ -1,3 +1,4 @@
+import 'package:bikebooking/core/constants/global.dart';
 import 'package:flutter/material.dart';
 
 class ProfileOverviewScreen extends StatelessWidget {
@@ -13,11 +14,11 @@ class ProfileOverviewScreen extends StatelessWidget {
             // Header with Profile Info
             Container(
               width: double.infinity,
-              decoration: const BoxDecoration(
-                color: Color(0xFF233A66),
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(24),
-                  bottomRight: Radius.circular(24),
+              decoration: BoxDecoration(
+                color: AppColors.headerBackground,
+                borderRadius: const BorderRadius.only(
+                  bottomLeft: Radius.circular(15),
+                  bottomRight: Radius.circular(15),
                 ),
               ),
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
@@ -35,7 +36,7 @@ class ProfileOverviewScreen extends StatelessWidget {
                     'My Account',
                     style: TextStyle(
                       color: Colors.white,
-                      fontSize: 26,
+                      fontSize: 20,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -46,8 +47,8 @@ class ProfileOverviewScreen extends StatelessWidget {
                       Stack(
                         children: [
                           Container(
-                            height: 80,
-                            width: 80,
+                            height: 70,
+                            width: 70,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
                               border: Border.all(color: Colors.white, width: 2),
@@ -171,38 +172,49 @@ class ProfileOverviewScreen extends StatelessWidget {
     VoidCallback? onTap,
     bool isDestructive = false,
   }) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF1F4F8).withOpacity(0.5),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.black.withOpacity(0.05)),
-      ),
-      child: ListTile(
-        onTap: onTap,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-        leading: Container(
-          height: 40,
-          width: 40,
-          decoration: BoxDecoration(
-            color: const Color(0xFFE8EEF7),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Icon(icon, color: isDestructive ? Colors.red : const Color(0xFF233A66), size: 20),
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.black.withOpacity(0.05)),
         ),
-        title: Text(
-          title,
-          style: TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.bold,
-            color: isDestructive ? Colors.red : const Color(0xFF2E3E5C),
-          ),
+        child: Row(
+          children: [
+            Container(
+              height: 40,
+              width: 40,
+              decoration: const BoxDecoration(
+                color: Color(0xFFE8EEF7),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: isDestructive ? Colors.red : const Color(0xFF233A66), size: 20),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: isDestructive ? Colors.red : const Color(0xFF2E3E5C),
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right, color: Colors.grey.shade400, size: 20),
+          ],
         ),
-        subtitle: Text(
-          subtitle,
-          style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
-        ),
-        trailing: Icon(Icons.chevron_right, color: Colors.grey.shade400, size: 20),
       ),
     );
   }
@@ -256,7 +268,8 @@ class ProfileOverviewScreen extends StatelessWidget {
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           padding: const EdgeInsets.symmetric(vertical: 16),
                         ),
-                        child: const Text('Cancel', style: TextStyle(color: Color(0xFF5E6E8C), fontWeight: FontWeight.bold)),
+                        child: const Text('Cancel',
+                            style: TextStyle(color: Color(0xFF5E6E8C), fontWeight: FontWeight.bold)),
                       ),
                     ),
                     const SizedBox(width: 16),
@@ -292,14 +305,16 @@ class ProfileOverviewScreen extends StatelessWidget {
       unselectedItemColor: Colors.grey,
       onTap: (index) {
         if (index == 0) Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+        if (index == 1) Navigator.pushNamed(context, '/filter_result', arguments: 'Bikes');
         if (index == 2) Navigator.pushNamed(context, '/list_product');
-        if (index == 3) Navigator.pushNamed(context, '/favorites');
+        if (index == 3) Navigator.pushNamed(context, '/my_listing');
       },
       items: const [
         BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: 'Home'),
         BottomNavigationBarItem(icon: Icon(Icons.directions_bike), label: 'Buy'),
         BottomNavigationBarItem(icon: Icon(Icons.add_circle_outline), label: 'Sell'),
-        BottomNavigationBarItem(icon: Icon(Icons.favorite_border), label: 'My Post'), // Favorites in current app context
+        BottomNavigationBarItem(
+            icon: Icon(Icons.favorite_border), label: 'My Post'), // Favorites in current app context
         BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: 'Profile'),
       ],
     );
