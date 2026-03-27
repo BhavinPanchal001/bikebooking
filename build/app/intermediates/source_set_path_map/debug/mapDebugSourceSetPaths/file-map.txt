@@ -1,0 +1,38 @@
+com.example.bikebooking.app-jetified-play-services-basement-18.4.0-0 C:\Users\bhavi\.gradle\caches\8.9\transforms\006d40a316fcf8e0dd7deed177b400ab\transformed\jetified-play-services-basement-18.4.0\res
+com.example.bikebooking.app-core-1.13.1-1 C:\Users\bhavi\.gradle\caches\8.9\transforms\0d74760f50dc73edc971ccdb45a07a28\transformed\core-1.13.1\res
+com.example.bikebooking.app-jetified-window-java-1.2.0-2 C:\Users\bhavi\.gradle\caches\8.9\transforms\30e092497c71388959f5c5cf23178747\transformed\jetified-window-java-1.2.0\res
+com.example.bikebooking.app-jetified-lifecycle-livedata-core-ktx-2.7.0-3 C:\Users\bhavi\.gradle\caches\8.9\transforms\36e26781b5acb216af99a9749fd98006\transformed\jetified-lifecycle-livedata-core-ktx-2.7.0\res
+com.example.bikebooking.app-jetified-core-common-2.0.3-4 C:\Users\bhavi\.gradle\caches\8.9\transforms\40ee97d78934e04a2304a4450e72e7fa\transformed\jetified-core-common-2.0.3\res
+com.example.bikebooking.app-jetified-firebase-common-21.0.0-5 C:\Users\bhavi\.gradle\caches\8.9\transforms\438e832f4f501f2f987f37d883f30ee4\transformed\jetified-firebase-common-21.0.0\res
+com.example.bikebooking.app-fragment-1.7.1-6 C:\Users\bhavi\.gradle\caches\8.9\transforms\5396f8aec23c22a10dbca79e6369e4b8\transformed\fragment-1.7.1\res
+com.example.bikebooking.app-jetified-credentials-1.2.0-rc01-7 C:\Users\bhavi\.gradle\caches\8.9\transforms\66881a267786efac3f22b963bdddfdbb\transformed\jetified-credentials-1.2.0-rc01\res
+com.example.bikebooking.app-jetified-tracing-1.2.0-8 C:\Users\bhavi\.gradle\caches\8.9\transforms\6e077caf84afbd5e782a71201823e9ee\transformed\jetified-tracing-1.2.0\res
+com.example.bikebooking.app-jetified-annotation-experimental-1.4.0-9 C:\Users\bhavi\.gradle\caches\8.9\transforms\7507c978fecea23ed5e325bf5b4b9cfb\transformed\jetified-annotation-experimental-1.4.0\res
+com.example.bikebooking.app-jetified-activity-1.8.1-10 C:\Users\bhavi\.gradle\caches\8.9\transforms\7bc35de4192ef4c0326486e3f9776cd3\transformed\jetified-activity-1.8.1\res
+com.example.bikebooking.app-jetified-savedstate-1.2.1-11 C:\Users\bhavi\.gradle\caches\8.9\transforms\87075bba7d9b84dd9cc298f79d45fcfa\transformed\jetified-savedstate-1.2.1\res
+com.example.bikebooking.app-jetified-core-ktx-1.13.1-12 C:\Users\bhavi\.gradle\caches\8.9\transforms\884fa6a05a01aa3850594696d1b4f2b6\transformed\jetified-core-ktx-1.13.1\res
+com.example.bikebooking.app-jetified-profileinstaller-1.3.1-13 C:\Users\bhavi\.gradle\caches\8.9\transforms\8c94f742f2f5909373338eab5e5541c3\transformed\jetified-profileinstaller-1.3.1\res
+com.example.bikebooking.app-jetified-lifecycle-viewmodel-savedstate-2.7.0-14 C:\Users\bhavi\.gradle\caches\8.9\transforms\957a7b3c294743a9d34adbc012a8deae\transformed\jetified-lifecycle-viewmodel-savedstate-2.7.0\res
+com.example.bikebooking.app-jetified-play-services-base-18.0.1-15 C:\Users\bhavi\.gradle\caches\8.9\transforms\9d034f54676e7b4a67343a3792ebc262\transformed\jetified-play-services-base-18.0.1\res
+com.example.bikebooking.app-lifecycle-viewmodel-2.7.0-16 C:\Users\bhavi\.gradle\caches\8.9\transforms\9d6cc23439ea9d7a0fae7d758b51c64f\transformed\lifecycle-viewmodel-2.7.0\res
+com.example.bikebooking.app-jetified-credentials-play-services-auth-1.2.0-rc01-17 C:\Users\bhavi\.gradle\caches\8.9\transforms\a4a223605f0c48ea40ab261885c57017\transformed\jetified-credentials-play-services-auth-1.2.0-rc01\res
+com.example.bikebooking.app-jetified-lifecycle-process-2.7.0-18 C:\Users\bhavi\.gradle\caches\8.9\transforms\a6c14486750ced146152d2f0e2501011\transformed\jetified-lifecycle-process-2.7.0\res
+com.example.bikebooking.app-jetified-startup-runtime-1.1.1-19 C:\Users\bhavi\.gradle\caches\8.9\transforms\c51d89c7cc2d3b7e68ab69fbfa3d4241\transformed\jetified-startup-runtime-1.1.1\res
+com.example.bikebooking.app-jetified-play-services-auth-20.7.0-20 C:\Users\bhavi\.gradle\caches\8.9\transforms\c5fd8f09ee004a1f662e0e1e6f98db79\transformed\jetified-play-services-auth-20.7.0\res
+com.example.bikebooking.app-lifecycle-livedata-2.7.0-21 C:\Users\bhavi\.gradle\caches\8.9\transforms\e0836368d9f6a5f8eb51d04222483d84\transformed\lifecycle-livedata-2.7.0\res
+com.example.bikebooking.app-lifecycle-livedata-core-2.7.0-22 C:\Users\bhavi\.gradle\caches\8.9\transforms\e31a59894a40277ec9fe66cfcdc6a491\transformed\lifecycle-livedata-core-2.7.0\res
+com.example.bikebooking.app-jetified-core-1.0.0-23 C:\Users\bhavi\.gradle\caches\8.9\transforms\e6d7cf75cd8a79a014b5a474b979a9ed\transformed\jetified-core-1.0.0\res
+com.example.bikebooking.app-jetified-window-1.2.0-24 C:\Users\bhavi\.gradle\caches\8.9\transforms\ee72da6527fa5507bfc8074b7379b238\transformed\jetified-window-1.2.0\res
+com.example.bikebooking.app-lifecycle-runtime-2.7.0-25 C:\Users\bhavi\.gradle\caches\8.9\transforms\eff5f5b97fd6b701cd1b17ebcee6bc8e\transformed\lifecycle-runtime-2.7.0\res
+com.example.bikebooking.app-browser-1.4.0-26 C:\Users\bhavi\.gradle\caches\8.9\transforms\fb94d89df7278823f23488b2fc49b3c1\transformed\browser-1.4.0\res
+com.example.bikebooking.app-core-runtime-2.2.0-27 C:\Users\bhavi\.gradle\caches\8.9\transforms\fdc6e7b791da402b7ca2b9f3d0067f3f\transformed\core-runtime-2.2.0\res
+com.example.bikebooking.app-debug-28 D:\Flutter Projects\bikebooking\android\app\src\debug\res
+com.example.bikebooking.app-main-29 D:\Flutter Projects\bikebooking\android\app\src\main\res
+com.example.bikebooking.app-pngs-30 D:\Flutter Projects\bikebooking\build\app\generated\res\pngs\debug
+com.example.bikebooking.app-resValues-31 D:\Flutter Projects\bikebooking\build\app\generated\res\resValues\debug
+com.example.bikebooking.app-packageDebugResources-32 D:\Flutter Projects\bikebooking\build\app\intermediates\incremental\debug\packageDebugResources\merged.dir
+com.example.bikebooking.app-packageDebugResources-33 D:\Flutter Projects\bikebooking\build\app\intermediates\incremental\debug\packageDebugResources\stripped.dir
+com.example.bikebooking.app-debug-34 D:\Flutter Projects\bikebooking\build\app\intermediates\merged_res\debug\mergeDebugResources
+com.example.bikebooking.app-debug-35 D:\Flutter Projects\bikebooking\build\firebase_auth\intermediates\packaged_res\debug\packageDebugResources
+com.example.bikebooking.app-debug-36 D:\Flutter Projects\bikebooking\build\firebase_core\intermediates\packaged_res\debug\packageDebugResources
+com.example.bikebooking.app-debug-37 D:\Flutter Projects\bikebooking\build\path_provider_android\intermediates\packaged_res\debug\packageDebugResources

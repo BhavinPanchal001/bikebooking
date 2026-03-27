@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:bikebooking/core/constants/global.dart';
 import 'package:bikebooking/core/widgets/custom_button.dart';
+import 'package:bikebooking/features/auth/presentation/widgets/auth_feedback_banner.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
+import 'package:bikebooking/features/auth/presentation/controllers/login_controller.dart';
 
 class OtpVerificationScreen extends StatefulWidget {
   final String phoneNumber;
@@ -14,8 +17,7 @@ class OtpVerificationScreen extends StatefulWidget {
 
 class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
   final PageController _pageController = PageController();
-  final List<TextEditingController> _controllers = List.generate(4, (index) => TextEditingController());
-  final List<FocusNode> _focusNodes = List.generate(4, (index) => FocusNode());
+  final LoginController _loginController = Get.find<LoginController>();
   final List<Map<String, String>> _onboardingData = [
     {
       'image': 'assets/images/intro1.png',
@@ -32,24 +34,15 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
   ];
 
   @override
-  void dispose() {
-    _pageController.dispose();
-    for (var controller in _controllers) {
-      controller.dispose();
-    }
-    for (var node in _focusNodes) {
-      node.dispose();
-    }
-    super.dispose();
+  void initState() {
+    super.initState();
+    _loginController.initializeOtp(widget.phoneNumber);
   }
 
-  void _nextField(String value, int index) {
-    if (value.length == 1 && index < 3) {
-      _focusNodes[index + 1].requestFocus();
-    }
-    if (value.isEmpty && index > 0) {
-      _focusNodes[index - 1].requestFocus();
-    }
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
   }
 
   @override
@@ -170,107 +163,112 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
           ),
           Align(
             alignment: Alignment.bottomCenter,
-            child: Container(
-              height: 340,
-              width: double.infinity,
-              decoration: const BoxDecoration(
-                color: AppColors.background,
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(32),
-                  topRight: Radius.circular(32),
-                ),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Verify your number',
-                    style: GoogleFonts.inter(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.black,
+            child: GetBuilder<LoginController>(
+              builder: (controller) {
+                return Container(
+                  height: 395,
+                  width: double.infinity,
+                  decoration: const BoxDecoration(
+                    color: AppColors.background,
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(32),
+                      topRight: Radius.circular(32),
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  const Divider(color: Color(0xFFEEEEEE), thickness: 1),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Enter OTP sent to ${widget.phoneNumber}',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 13,
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: List.generate(
-                      4,
-                      (index) => SizedBox(
-                        width: 68,
-                        height: 56,
-                        child: TextField(
-                          controller: _controllers[index],
-                          focusNode: _focusNodes[index],
-                          onChanged: (value) => _nextField(value, index),
-                          textAlign: TextAlign.center,
-                          keyboardType: TextInputType.number,
-                          maxLength: 1,
-                          style: GoogleFonts.poppins(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w600,
-                          ),
-                          decoration: InputDecoration(
-                            counterText: '',
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Colors.grey[300]!),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(color: AppColors.primary, width: 2),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  Row(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        "Didn't receive OTP? ",
+                        'Verify your number',
+                        style: GoogleFonts.inter(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.black,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      const Divider(color: Color(0xFFEEEEEE), thickness: 1),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Enter OTP sent to ${controller.phoneNumber ?? widget.phoneNumber}',
                         style: GoogleFonts.plusJakartaSans(
-                          fontSize: 12,
+                          fontSize: 13,
                           color: Colors.grey[600],
                         ),
                       ),
-                      GestureDetector(
-                        onTap: () {
-                          // Resend logic
-                        },
-                        child: Text(
-                          'Resend OTP',
-                          style: GoogleFonts.poppins(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.primary,
-                            decoration: TextDecoration.underline,
+                      const SizedBox(height: 20),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: List.generate(
+                          controller.otpControllers.length,
+                          (index) => SizedBox(
+                            width: 44,
+                            height: 56,
+                            child: TextField(
+                              controller: controller.otpControllers[index],
+                              focusNode: controller.otpFocusNodes[index],
+                              onChanged: (value) => controller.updateOtpDigit(index, value),
+                              textAlign: TextAlign.center,
+                              keyboardType: TextInputType.number,
+                              maxLength: 1,
+                              style: GoogleFonts.poppins(
+                                fontSize: 22,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              decoration: InputDecoration(
+                                counterText: '',
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide(color: Colors.grey[300]!),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: const BorderSide(color: AppColors.primary, width: 2),
+                                ),
+                              ),
+                            ),
                           ),
                         ),
                       ),
+                      const SizedBox(height: 16),
+                      AuthFeedbackBanner(
+                        errorMessage: controller.errorMessage,
+                        infoMessage: controller.infoMessage,
+                      ),
+                      const SizedBox(height: 14),
+                      Row(
+                        children: [
+                          Text(
+                            "Didn't receive OTP? ",
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 12,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                          GestureDetector(
+                            onTap: controller.isSendingOtp ? null : controller.resendOtp,
+                            child: Text(
+                              controller.isSendingOtp ? 'Sending...' : 'Resend OTP',
+                              style: GoogleFonts.poppins(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.primary,
+                                decoration: TextDecoration.underline,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 22),
+                      CustomGradientButton(
+                        text: controller.isVerifyingOtp ? 'Verifying...' : 'Verify',
+                        onPressed: controller.isVerifyingOtp ? () {} : controller.verifyOtp,
+                      ),
                     ],
                   ),
-                  const SizedBox(height: 22),
-                  CustomGradientButton(
-                    text: 'Verify',
-                    onPressed: () {
-                      Navigator.pushNamed(context, '/select_location');
-                    },
-                  ),
-                ],
-              ),
+                );
+              },
             ),
           ),
           Positioned(

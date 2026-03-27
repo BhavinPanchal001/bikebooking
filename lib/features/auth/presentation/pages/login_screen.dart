@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import 'package:bikebooking/core/constants/global.dart';
-
 import 'package:bikebooking/core/widgets/custom_button.dart';
+import 'package:bikebooking/features/auth/presentation/controllers/login_controller.dart';
+import 'package:bikebooking/features/auth/presentation/widgets/auth_feedback_banner.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -14,7 +16,6 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final PageController _pageController = PageController();
-  final TextEditingController _phoneController = TextEditingController();
 
   final List<Map<String, String>> _onboardingData = [
     {
@@ -34,7 +35,6 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void dispose() {
     _pageController.dispose();
-    _phoneController.dispose();
     super.dispose();
   }
 
@@ -174,146 +174,147 @@ class _LoginScreenState extends State<LoginScreen> {
           // Login Card
           Align(
             alignment: Alignment.bottomCenter,
-            child: Container(
-              height: 340, // Reduced height for a more compact look
-              width: double.infinity,
-              decoration: const BoxDecoration(
-                color: AppColors.background,
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(32),
-                  topRight: Radius.circular(32),
-                ),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Login Or Sign Up',
-                    style: GoogleFonts.inter(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.black,
+            child: GetBuilder<LoginController>(
+              builder: (controller) {
+                return Container(
+                  height: 370,
+                  width: double.infinity,
+                  decoration: const BoxDecoration(
+                    color: AppColors.background,
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(32),
+                      topRight: Radius.circular(32),
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  const Divider(color: Color(0xFFEEEEEE), thickness: 1),
-                  const SizedBox(height: 16),
-                  RichText(
-                    text: TextSpan(
-                      text: 'Enter phone number',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 13,
-                        color: Colors.black54,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Login Or Sign Up',
+                        style: GoogleFonts.inter(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.black,
+                        ),
                       ),
-                      children: const [
-                        TextSpan(
-                          text: '*',
-                          style: TextStyle(color: Colors.red),
+                      const SizedBox(height: 12),
+                      const Divider(color: Color(0xFFEEEEEE), thickness: 1),
+                      const SizedBox(height: 16),
+                      RichText(
+                        text: TextSpan(
+                          text: 'Enter phone number',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 13,
+                            color: Colors.black54,
+                          ),
+                          children: const [
+                            TextSpan(
+                              text: '*',
+                              style: TextStyle(color: Colors.red),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Container(
-                    height: 52,
-                    child: Row(
-                      children: [
-                        // Country Code Box
-                        Container(
-                          height: 52, // Slightly more compact height
-                          width: 60,
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: AppColors.background,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: const Color(0xFFDDDDDD)),
-                          ),
-                          child: Center(
-                            child: Text(
-                              '+91',
-                              style: GoogleFonts.poppins(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.black,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 06),
-                        // Phone Number Box
-                        Expanded(
-                          child: Container(
-                            height: 52,
-                            decoration: BoxDecoration(
-                              color: AppColors.background,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: const Color(0xFFDDDDDD)),
-                            ),
-                            child: TextField(
-                              controller: _phoneController,
-                              keyboardType: TextInputType.phone,
-                              style: GoogleFonts.poppins(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.black,
-                              ),
-                              decoration: const InputDecoration(
-                                hintText: '1234567890',
-                                hintStyle: TextStyle(color: Colors.grey),
-                                border: InputBorder.none,
-                                contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 32),
-                  // Gradient Button
-                  CustomGradientButton(
-                    text: 'Get OTP',
-                    onPressed: () {
-                      Navigator.pushNamed(
-                        context,
-                        '/otp',
-                        arguments: _phoneController.text.isNotEmpty ? '+91 ${_phoneController.text}' : '+91 1234567890',
-                      );
-                    },
-                  ),
-                  const Spacer(),
-                  Center(
-                    child: RichText(
-                      textAlign: TextAlign.center,
-                      text: TextSpan(
-                        style: GoogleFonts.poppins(
-                          fontSize: 11,
-                          color: Colors.black45,
-                        ),
-                        children: [
-                          const TextSpan(text: "By continuing, you agree BIENEST's "),
-                          TextSpan(
-                            text: 'Terms of service',
-                            style: GoogleFonts.poppins(
-                              color: const Color(0xFF2E4475),
-                              decoration: TextDecoration.underline,
-                            ),
-                          ),
-                          const TextSpan(text: ' & '),
-                          TextSpan(
-                            text: 'Privacy policy',
-                            style: GoogleFonts.poppins(
-                              color: const Color(0xFF2E4475),
-                              decoration: TextDecoration.underline,
-                            ),
-                          ),
-                        ],
                       ),
-                    ),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        height: 52,
+                        child: Row(
+                          children: [
+                            Container(
+                              height: 52,
+                              width: 60,
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color: AppColors.background,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: const Color(0xFFDDDDDD)),
+                              ),
+                              child: Center(
+                                child: Text(
+                                  '+91',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.black,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Container(
+                                height: 52,
+                                decoration: BoxDecoration(
+                                  color: AppColors.background,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: const Color(0xFFDDDDDD)),
+                                ),
+                                child: TextField(
+                                  controller: controller.phoneController,
+                                  keyboardType: TextInputType.phone,
+                                  onChanged: controller.updatePhoneNumber,
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.black,
+                                  ),
+                                  decoration: const InputDecoration(
+                                    hintText: '1234567890',
+                                    hintStyle: TextStyle(color: Colors.grey),
+                                    border: InputBorder.none,
+                                    contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      AuthFeedbackBanner(
+                        errorMessage: controller.errorMessage,
+                        infoMessage: controller.infoMessage,
+                      ),
+                      const SizedBox(height: 18),
+                      CustomGradientButton(
+                        text: controller.isSendingOtp ? 'Sending OTP...' : 'Get OTP',
+                        onPressed: controller.isSendingOtp ? () {} : controller.sendOtp,
+                      ),
+                      const Spacer(),
+                      Center(
+                        child: RichText(
+                          textAlign: TextAlign.center,
+                          text: TextSpan(
+                            style: GoogleFonts.poppins(
+                              fontSize: 11,
+                              color: Colors.black45,
+                            ),
+                            children: [
+                              const TextSpan(text: "By continuing, you agree BIENEST's "),
+                              TextSpan(
+                                text: 'Terms of service',
+                                style: GoogleFonts.poppins(
+                                  color: const Color(0xFF2E4475),
+                                  decoration: TextDecoration.underline,
+                                ),
+                              ),
+                              const TextSpan(text: ' & '),
+                              TextSpan(
+                                text: 'Privacy policy',
+                                style: GoogleFonts.poppins(
+                                  color: const Color(0xFF2E4475),
+                                  decoration: TextDecoration.underline,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                );
+              },
             ),
           ),
         ],

@@ -1,4 +1,7 @@
+import 'package:bikebooking/features/auth/presentation/bindings/auth_binding.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:bikebooking/core/theme/app_theme.dart';
 import 'features/auth/presentation/pages/splash_screen.dart';
 import 'features/auth/presentation/pages/login_screen.dart';
@@ -31,7 +34,13 @@ import 'features/home/presentation/pages/seller_profile_screen.dart';
 import 'features/home/presentation/pages/spare_parts_detail_form_screen.dart';
 import 'features/home/presentation/pages/accessories_detail_form_screen.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  try {
+    await Firebase.initializeApp();
+  } catch (_) {
+    // Firebase setup may still be pending in local environments.
+  }
   runApp(const MyApp());
 }
 
@@ -40,10 +49,11 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return GetMaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Bikenest',
       theme: AppTheme.lightTheme,
+      initialBinding: AuthBinding(),
       initialRoute: '/',
       onGenerateRoute: (settings) {
         if (settings.name == '/') {
