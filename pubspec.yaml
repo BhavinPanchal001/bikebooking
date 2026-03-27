@@ -41,6 +41,8 @@ dependencies:
   firebase_storage: ^12.4.4
   smooth_page_indicator: ^1.1.0
   google_fonts: ^6.2.1
+  geolocator: ^13.0.2
+  geocoding: ^4.0.0
 
 dev_dependencies:
   flutter_test:

@@ -37,12 +37,7 @@ import 'features/home/presentation/pages/accessories_detail_form_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  try {
-    await Firebase.initializeApp();
-  } catch (error, stackTrace) {
-    debugPrint('Firebase initialization failed: $error');
-    debugPrintStack(stackTrace: stackTrace);
-  }
+  await Firebase.initializeApp();
   runApp(const MyApp());
 }
 
