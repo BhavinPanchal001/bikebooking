@@ -23,8 +23,6 @@ class LoginController extends GetxController {
   String? verificationId;
   int? resendToken;
   String? phoneNumber;
-  String? errorMessage;
-  String? infoMessage;
 
   String get otpCode => otpControllers.map((controller) => controller.text).join();
 
@@ -41,9 +39,6 @@ class LoginController extends GetxController {
   }
 
   void updatePhoneNumber(String value) {
-    if (errorMessage != null) {
-      errorMessage = null;
-    }
     phoneController.value = phoneController.value.copyWith(
       text: value,
       selection: TextSelection.collapsed(offset: value.length),
@@ -53,10 +48,6 @@ class LoginController extends GetxController {
 
   void initializeOtp(String incomingPhoneNumber) {
     phoneNumber ??= incomingPhoneNumber;
-    if (errorMessage != null) {
-      errorMessage = null;
-      update();
-    }
   }
 
   void updateOtpDigit(int index, String value) {
@@ -65,10 +56,6 @@ class LoginController extends GetxController {
       text: sanitizedValue,
       selection: TextSelection.collapsed(offset: sanitizedValue.length),
     );
-
-    if (errorMessage != null) {
-      errorMessage = null;
-    }
 
     if (sanitizedValue.isNotEmpty && index < otpFocusNodes.length - 1) {
       otpFocusNodes[index + 1].requestFocus();
@@ -86,9 +73,11 @@ class LoginController extends GetxController {
       return;
     }
 
+    if (!_ensureFirebaseConfigured()) {
+      return;
+    }
+
     isSendingOtp = true;
-    errorMessage = null;
-    infoMessage = null;
     phoneNumber = formattedPhoneNumber;
     update();
 
@@ -98,25 +87,30 @@ class LoginController extends GetxController {
         forceResendingToken: resendToken,
         verificationCompleted: (credential) async {
           try {
-            await FirebaseAuth.instance.signInWithCredential(credential);
+            await _authService.signInWithCredential(credential);
             Get.offAllNamed('/select_location');
           } on FirebaseAuthException catch (exception) {
-            _setError(exception.message ?? 'Auto verification failed.');
+            _setFirebaseError(
+              exception,
+              fallback: 'Auto verification failed. Please enter the OTP manually.',
+            );
+          } on StateError catch (exception) {
+            _setError(exception.message);
           } catch (_) {
             _setError('Auto verification failed. Please enter the OTP manually.');
           }
         },
         verificationFailed: (exception) {
           isSendingOtp = false;
-          _setError(exception.message ?? 'Unable to send OTP right now.');
+          _setFirebaseError(exception, fallback: 'Unable to send OTP right now.');
         },
         codeSent: (receivedVerificationId, receivedResendToken) {
           verificationId = receivedVerificationId;
           resendToken = receivedResendToken;
           isSendingOtp = false;
           _clearOtpFields();
-          infoMessage = 'OTP sent successfully.';
           update();
+          _showInfo('OTP sent successfully.');
           if (Get.currentRoute != '/otp') {
             Get.toNamed('/otp', arguments: formattedPhoneNumber);
           }
@@ -129,7 +123,10 @@ class LoginController extends GetxController {
       );
     } on FirebaseAuthException catch (exception) {
       isSendingOtp = false;
-      _setError(exception.message ?? 'Unable to send OTP right now.');
+      _setFirebaseError(exception, fallback: 'Unable to send OTP right now.');
+    } on StateError catch (exception) {
+      isSendingOtp = false;
+      _setError(exception.message);
     } catch (_) {
       isSendingOtp = false;
       _setError('Unable to send OTP right now. Please try again.');
@@ -157,9 +154,11 @@ class LoginController extends GetxController {
       return;
     }
 
+    if (!_ensureFirebaseConfigured()) {
+      return;
+    }
+
     isVerifyingOtp = true;
-    errorMessage = null;
-    infoMessage = null;
     update();
 
     try {
@@ -172,20 +171,14 @@ class LoginController extends GetxController {
       Get.offAllNamed('/select_location');
     } on FirebaseAuthException catch (exception) {
       isVerifyingOtp = false;
-      _setError(exception.message ?? 'Invalid OTP. Please try again.');
+      _setFirebaseError(exception, fallback: 'Invalid OTP. Please try again.');
+    } on StateError catch (exception) {
+      isVerifyingOtp = false;
+      _setError(exception.message);
     } catch (_) {
       isVerifyingOtp = false;
       _setError('OTP verification failed. Please try again.');
     }
-  }
-
-  void clearFeedback() {
-    if (errorMessage == null && infoMessage == null) {
-      return;
-    }
-    errorMessage = null;
-    infoMessage = null;
-    update();
   }
 
   void _clearOtpFields() {
@@ -194,10 +187,98 @@ class LoginController extends GetxController {
     }
   }
 
+  bool _ensureFirebaseConfigured() {
+    if (_authService.isConfigured) {
+      return true;
+    }
+    _setError(
+      'Firebase is not configured yet. Create a Firebase project, then run flutterfire configure.',
+    );
+    return false;
+  }
+
   void _setError(String message) {
-    errorMessage = message;
-    infoMessage = null;
     update();
+    _showSnackbar(
+      title: 'Something went wrong',
+      message: message,
+      backgroundColor: const Color(0xFFC62828),
+    );
+  }
+
+  void _setFirebaseError(
+    FirebaseAuthException exception, {
+    required String fallback,
+  }) {
+    _setError(
+      _friendlyFirebaseMessage(
+        code: exception.code,
+        message: exception.message,
+        fallback: fallback,
+      ),
+    );
+  }
+
+  void _showInfo(String message) {
+    _showSnackbar(
+      title: 'Success',
+      message: message,
+      backgroundColor: const Color(0xFF2E7D32),
+    );
+  }
+
+  void _showSnackbar({
+    required String title,
+    required String message,
+    required Color backgroundColor,
+  }) {
+    if (Get.isSnackbarOpen) {
+      Get.closeCurrentSnackbar();
+    }
+
+    Get.snackbar(
+      title,
+      message,
+      snackPosition: SnackPosition.BOTTOM,
+      margin: const EdgeInsets.all(16),
+      borderRadius: 12,
+      backgroundColor: backgroundColor,
+      colorText: Colors.white,
+      duration: const Duration(seconds: 3),
+    );
+  }
+
+  String _friendlyFirebaseMessage({
+    String? code,
+    String? message,
+    required String fallback,
+  }) {
+    final normalizedCode = code?.toLowerCase() ?? '';
+    final normalizedMessage = message?.toLowerCase() ?? '';
+
+    if (normalizedMessage.contains('billing_not_enabled')) {
+      return 'Phone verification is not available right now. Please try again later.';
+    }
+    if (normalizedCode == 'invalid-phone-number') {
+      return 'Enter a valid phone number.';
+    }
+    if (normalizedCode == 'too-many-requests' || normalizedCode == 'quota-exceeded') {
+      return 'Too many attempts. Please wait a bit and try again.';
+    }
+    if (normalizedCode == 'invalid-verification-code') {
+      return 'Invalid OTP. Please try again.';
+    }
+    if (normalizedCode == 'session-expired') {
+      return 'OTP expired. Please request a new OTP.';
+    }
+    if (normalizedCode == 'network-request-failed') {
+      return 'Check your internet connection and try again.';
+    }
+    if (normalizedMessage.contains('internal error')) {
+      return fallback;
+    }
+
+    return fallback;
   }
 
   String? _formatPhoneNumber(String rawPhoneNumber) {

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "536779967703",
+    "project_id": "bikeseller-857b8",
+    "storage_bucket": "bikeseller-857b8.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:536779967703:android:c6a81a7664bb60a42bb492",
+        "android_client_info": {
+          "package_name": "com.example.bikebooking"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBXM_XdFCLgzkTT_oYjm_Xyqk26C-eiN9A"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

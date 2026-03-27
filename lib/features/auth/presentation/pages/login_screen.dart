@@ -271,11 +271,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           ],
                         ),
                       ),
-                      const SizedBox(height: 14),
-                      AuthFeedbackBanner(
-                        errorMessage: controller.errorMessage,
-                        infoMessage: controller.infoMessage,
-                      ),
+
                       const SizedBox(height: 18),
                       CustomGradientButton(
                         text: controller.isSendingOtp ? 'Sending OTP...' : 'Get OTP',
@@ -353,3 +349,4 @@ class BottomSlantClipper extends CustomClipper<Path> {
   @override
   bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }
+

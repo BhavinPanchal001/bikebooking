@@ -1,196 +1,228 @@
 import 'package:bikebooking/core/constants/global.dart';
+import 'package:bikebooking/features/home/presentation/controllers/list_product_controller.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
 class AccessoriesDetailFormScreen extends StatelessWidget {
   const AccessoriesDetailFormScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Header
-            Container(
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: AppColors.headerBackground,
-                borderRadius: const BorderRadius.only(
-                  bottomLeft: Radius.circular(15),
-                  bottomRight: Radius.circular(15),
-                ),
-              ),
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  IconButton(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.arrow_back, color: Colors.white, size: 28),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                  ),
-                  const SizedBox(height: 20),
-                  const Text(
-                    'Bike Detail', // As per screenshot
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 26,
-                      fontWeight: FontWeight.bold,
+    return GetBuilder<ListProductController>(
+      builder: (controller) {
+        return Scaffold(
+          backgroundColor: Colors.white,
+          body: SafeArea(
+            child: Column(
+              children: [
+                // Header
+                Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: AppColors.headerBackground,
+                    borderRadius: const BorderRadius.only(
+                      bottomLeft: Radius.circular(15),
+                      bottomRight: Radius.circular(15),
                     ),
                   ),
-                ],
-              ),
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      IconButton(
+                        onPressed: () => Navigator.pop(context),
+                        icon: const Icon(Icons.arrow_back, color: Colors.white, size: 28),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                      ),
+                      const SizedBox(height: 20),
+                      const Text(
+                        'Bike Detail',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 26,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                Expanded(
+                  child: SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildLabel('Product Title'),
+                        _buildTextField(
+                          'Enter Product Title',
+                          controller: controller.titleController,
+                        ),
+                        const SizedBox(height: 16),
+
+                        _buildLabel('Brand'),
+                        _buildTextField(
+                          controller.brand.isEmpty ? 'Select a Brand' : controller.brand,
+                          onTap: () => _showBrandBottomSheet(context, controller),
+                          readOnly: true,
+                        ),
+                        const SizedBox(height: 16),
+
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _buildLabel('Year'),
+                                  _buildTextField(
+                                    controller.year == null ? 'Select a year' : controller.year.toString(),
+                                    onTap: () => _showYearBottomSheet(context, controller),
+                                    readOnly: true,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _buildLabel('Accessories'),
+                                  _buildTextField(
+                                    controller.subCategory ?? 'Select a Category',
+                                    onTap: () => _showCategoryBottomSheet(context, controller),
+                                    readOnly: true,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _buildLabel('Condition'),
+                                  _buildTextField(
+                                    controller.condition ?? 'Select Condition',
+                                    onTap: () => _showConditionBottomSheet(context, controller),
+                                    readOnly: true,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _buildLabel('Seller Type'),
+                                  _buildTextField(
+                                    controller.sellerType ?? 'Select a Seller Type',
+                                    onTap: () => _showSellerTypeBottomSheet(context, controller),
+                                    readOnly: true,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+
+                        _buildLabel('Product Description'),
+                        _buildDescriptionField(controller),
+                        const SizedBox(height: 40),
+
+                        // Actions
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton(
+                                onPressed: () => Navigator.pop(context),
+                                style: OutlinedButton.styleFrom(
+                                  side: BorderSide(color: Colors.grey.shade200),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  minimumSize: const Size(0, 54),
+                                ),
+                                child: const Text(
+                                  'Previous',
+                                  style: TextStyle(color: Color(0xFF2E3E5C), fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: ElevatedButton(
+                                onPressed: () {
+                                  Navigator.pushNamed(context, '/bike_price_location');
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF4A6495),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  minimumSize: const Size(0, 54),
+                                ),
+                                child: const Text(
+                                  'Next',
+                                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
+          ),
+        );
+      },
+    );
+  }
 
-            Expanded(
-              child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildLabel('Product Title'),
-                    _buildTextField('Enter Product Title'),
-                    const SizedBox(height: 16),
-
-                    _buildLabel('Brand'),
-                    _buildTextField(
-                      'Select a Brand',
-                      onTap: () => _showBrandBottomSheet(context),
-                      readOnly: true,
-                    ),
-                    const SizedBox(height: 16),
-
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _buildLabel('Year'),
-                              _buildTextField(
-                                'Select a year',
-                                onTap: () => _showYearBottomSheet(context),
-                                readOnly: true,
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _buildLabel('Accessories'),
-                              _buildTextField(
-                                'Select a Category',
-                                onTap: () => _showCategoryBottomSheet(context),
-                                readOnly: true,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _buildLabel('Condition'),
-                              _buildTextField(
-                                'Select a year', // Hint from screenshot
-                                onTap: () => _showConditionBottomSheet(context),
-                                readOnly: true,
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _buildLabel('Seller Type'),
-                              _buildTextField(
-                                'Select a Seller Type',
-                                onTap: () => _showSellerTypeBottomSheet(context),
-                                readOnly: true,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-
-                    _buildLabel('Product Description'),
-                    _buildTextField(
-                      'Describe your product in detail...',
-                      maxLines: 5,
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Min. 20 characters',
-                          style: TextStyle(color: Colors.grey.shade400, fontSize: 12),
-                        ),
-                        Text(
-                          '0/1000',
-                          style: TextStyle(color: Colors.grey.shade400, fontSize: 12),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 40),
-
-                    // Actions
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: () => Navigator.pop(context),
-                            style: OutlinedButton.styleFrom(
-                              side: BorderSide(color: Colors.grey.shade200),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                              minimumSize: const Size(0, 54),
-                            ),
-                            child: const Text(
-                              'Pervious', // Screenshot typo preserved
-                              style: TextStyle(color: Color(0xFF2E3E5C), fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: () {
-                              Navigator.pushNamed(context, '/bike_price_location');
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF4A6495),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                              minimumSize: const Size(0, 54),
-                            ),
-                            child: const Text(
-                              'Next',
-                              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
+  Widget _buildDescriptionField(ListProductController controller) {
+    return TextField(
+      controller: controller.descriptionController,
+      maxLines: 5,
+      maxLength: 1000,
+      buildCounter: (context, {required currentLength, required isFocused, maxLength}) {
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Min. 20 characters',
+              style: TextStyle(color: Colors.grey.shade400, fontSize: 12),
+            ),
+            Text(
+              '$currentLength/$maxLength',
+              style: TextStyle(color: Colors.grey.shade400, fontSize: 12),
             ),
           ],
+        );
+      },
+      decoration: InputDecoration(
+        hintText: 'Describe your product in detail...',
+        hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey.shade200),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey.shade200),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(0xFF233A66)),
         ),
       ),
     );
@@ -218,11 +250,12 @@ class AccessoriesDetailFormScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildTextField(String hint, {int maxLines = 1, VoidCallback? onTap, bool readOnly = false}) {
+  Widget _buildTextField(String hint, {int maxLines = 1, VoidCallback? onTap, bool readOnly = false, TextEditingController? controller}) {
     return TextField(
       maxLines: maxLines,
       onTap: onTap,
       readOnly: readOnly,
+      controller: controller,
       decoration: InputDecoration(
         hintText: hint,
         hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
@@ -244,7 +277,7 @@ class AccessoriesDetailFormScreen extends StatelessWidget {
     );
   }
 
-  void _showBrandBottomSheet(BuildContext context) {
+  void _showBrandBottomSheet(BuildContext context, ListProductController controller) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -256,24 +289,24 @@ class AccessoriesDetailFormScreen extends StatelessWidget {
         child: ListView(
           physics: const BouncingScrollPhysics(),
           children: [
-            _buildListItem('UNO Minda', ''), // Placeholder icon
-            _buildListItem('3M', ''),
-            _buildListItem('Motul', ''),
-            _buildListItem('Castrol', ''),
-            _buildListItem('Portronics', ''),
-            _buildListItem('Raido', ''),
-            _buildListItem('Dainese', ''),
-            _buildListItem('Alpinestars', ''),
-            _buildListItem('Rynox', ''),
-            _buildListItem('Moto central', ''),
-            _buildListItem('Studds', ''),
+            _buildListItem('UNO Minda', '', context, controller),
+            _buildListItem('3M', '', context, controller),
+            _buildListItem('Motul', '', context, controller),
+            _buildListItem('Castrol', '', context, controller),
+            _buildListItem('Portronics', '', context, controller),
+            _buildListItem('Raido', '', context, controller),
+            _buildListItem('Dainese', '', context, controller),
+            _buildListItem('Alpinestars', '', context, controller),
+            _buildListItem('Rynox', '', context, controller),
+            _buildListItem('Moto central', '', context, controller),
+            _buildListItem('Studds', '', context, controller),
           ],
         ),
       ),
     );
   }
 
-  void _showYearBottomSheet(BuildContext context) {
+  void _showYearBottomSheet(BuildContext context, ListProductController controller) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -285,15 +318,18 @@ class AccessoriesDetailFormScreen extends StatelessWidget {
           physics: const BouncingScrollPhysics(),
           itemCount: 15,
           itemBuilder: (context, index) {
-            final year = (2025 - index).toString();
-            return _buildSimpleListItem(year, () => Navigator.pop(context));
+            final year = 2025 - index;
+            return _buildSimpleListItem(year.toString(), () {
+              controller.setYear(year);
+              Navigator.pop(context);
+            });
           },
         ),
       ),
     );
   }
 
-  void _showCategoryBottomSheet(BuildContext context) {
+  void _showCategoryBottomSheet(BuildContext context, ListProductController controller) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -305,23 +341,23 @@ class AccessoriesDetailFormScreen extends StatelessWidget {
         child: ListView(
           physics: const BouncingScrollPhysics(),
           children: [
-            _buildSimpleListItem('Arm Sleeves', () => Navigator.pop(context)),
-            _buildSimpleListItem('Helmet', () => Navigator.pop(context)),
-            _buildSimpleListItem('Riding Shoe', () => Navigator.pop(context)),
-            _buildSimpleListItem('Riding Gloves', () => Navigator.pop(context)),
-            _buildSimpleListItem('Rider Protective Pants', () => Navigator.pop(context)),
-            _buildSimpleListItem('Rider Jacket', () => Navigator.pop(context)),
-            _buildSimpleListItem('Rider Face Masks', () => Navigator.pop(context)),
-            _buildSimpleListItem('Phone Holder', () => Navigator.pop(context)),
-            _buildSimpleListItem('Knee & Elbow Guards', () => Navigator.pop(context)),
-            _buildSimpleListItem('Saddle Bag', () => Navigator.pop(context)),
+            _buildSimpleListItem('Arm Sleeves', () { controller.setSubCategory('Arm Sleeves'); Navigator.pop(context); }),
+            _buildSimpleListItem('Helmet', () { controller.setSubCategory('Helmet'); Navigator.pop(context); }),
+            _buildSimpleListItem('Riding Shoe', () { controller.setSubCategory('Riding Shoe'); Navigator.pop(context); }),
+            _buildSimpleListItem('Riding Gloves', () { controller.setSubCategory('Riding Gloves'); Navigator.pop(context); }),
+            _buildSimpleListItem('Rider Protective Pants', () { controller.setSubCategory('Rider Protective Pants'); Navigator.pop(context); }),
+            _buildSimpleListItem('Rider Jacket', () { controller.setSubCategory('Rider Jacket'); Navigator.pop(context); }),
+            _buildSimpleListItem('Rider Face Masks', () { controller.setSubCategory('Rider Face Masks'); Navigator.pop(context); }),
+            _buildSimpleListItem('Phone Holder', () { controller.setSubCategory('Phone Holder'); Navigator.pop(context); }),
+            _buildSimpleListItem('Knee & Elbow Guards', () { controller.setSubCategory('Knee & Elbow Guards'); Navigator.pop(context); }),
+            _buildSimpleListItem('Saddle Bag', () { controller.setSubCategory('Saddle Bag'); Navigator.pop(context); }),
           ],
         ),
       ),
     );
   }
 
-  void _showConditionBottomSheet(BuildContext context) {
+  void _showConditionBottomSheet(BuildContext context, ListProductController controller) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -331,16 +367,16 @@ class AccessoriesDetailFormScreen extends StatelessWidget {
         'Choose a Seller Type',
         child: Column(
           children: [
-            _buildSimpleListItem('New', () => Navigator.pop(context)),
-            _buildSimpleListItem('Used', () => Navigator.pop(context)),
-            _buildSimpleListItem('Refurbished', () => Navigator.pop(context)),
+            _buildSimpleListItem('New', () { controller.setCondition('New'); Navigator.pop(context); }),
+            _buildSimpleListItem('Used', () { controller.setCondition('Used'); Navigator.pop(context); }),
+            _buildSimpleListItem('Refurbished', () { controller.setCondition('Refurbished'); Navigator.pop(context); }),
           ],
         ),
       ),
     );
   }
 
-  void _showSellerTypeBottomSheet(BuildContext context) {
+  void _showSellerTypeBottomSheet(BuildContext context, ListProductController controller) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -350,8 +386,8 @@ class AccessoriesDetailFormScreen extends StatelessWidget {
         'Choose a year below',
         child: Column(
           children: [
-            _buildSimpleListItem('Individual', () => Navigator.pop(context)),
-            _buildSimpleListItem('Dealer', () => Navigator.pop(context)),
+            _buildSimpleListItem('Individual', () { controller.setSellerType('Individual'); Navigator.pop(context); }),
+            _buildSimpleListItem('Dealer', () { controller.setSellerType('Dealer'); Navigator.pop(context); }),
           ],
         ),
       ),
@@ -415,7 +451,7 @@ class AccessoriesDetailFormScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildListItem(String name, String logoPath) {
+  Widget _buildListItem(String name, String logoPath, BuildContext context, ListProductController controller) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
@@ -447,7 +483,10 @@ class AccessoriesDetailFormScreen extends StatelessWidget {
             color: Color(0xFF2E3E5C),
           ),
         ),
-        onTap: () {},
+        onTap: () {
+          controller.setBrand(name);
+          Navigator.pop(context);
+        },
       ),
     );
   }

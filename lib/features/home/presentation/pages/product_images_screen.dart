@@ -1,6 +1,8 @@
 import 'package:bikebooking/core/constants/global.dart';
 import 'package:bikebooking/core/widgets/custom_button.dart';
+import 'package:bikebooking/features/home/presentation/controllers/list_product_controller.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
 class ProductImagesScreen extends StatelessWidget {
   const ProductImagesScreen({super.key});
@@ -8,6 +10,13 @@ class ProductImagesScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final category = ModalRoute.of(context)?.settings.arguments as String? ?? 'Bikes';
+
+    // Initialize the controller at the start of the flow
+    final controller = Get.put(ListProductController());
+    // Store selected category
+    if (controller.category.isEmpty) {
+      controller.setCategory(category);
+    }
 
     return Scaffold(
       backgroundColor: AppColors.background,

@@ -231,11 +231,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                           ),
                         ),
                       ),
-                      const SizedBox(height: 16),
-                      AuthFeedbackBanner(
-                        errorMessage: controller.errorMessage,
-                        infoMessage: controller.infoMessage,
-                      ),
+
                       const SizedBox(height: 14),
                       Row(
                         children: [
@@ -318,3 +314,4 @@ class BottomSlantClipper extends CustomClipper<Path> {
   @override
   bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }
+

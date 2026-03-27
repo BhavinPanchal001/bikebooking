@@ -1,10 +1,22 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class FirebaseAuthService {
-  FirebaseAuthService({FirebaseAuth? firebaseAuth})
-      : _firebaseAuth = firebaseAuth ?? FirebaseAuth.instance;
+  FirebaseAuthService({FirebaseAuth? firebaseAuth}) : _firebaseAuth = firebaseAuth;
 
-  final FirebaseAuth _firebaseAuth;
+  final FirebaseAuth? _firebaseAuth;
+
+  bool get isConfigured => _firebaseAuth != null || Firebase.apps.isNotEmpty;
+
+  FirebaseAuth get _auth {
+    final firebaseAuth = _firebaseAuth ?? (Firebase.apps.isNotEmpty ? FirebaseAuth.instance : null);
+    if (firebaseAuth == null) {
+      throw StateError(
+        'Firebase is not configured. Create a Firebase project and run flutterfire configure before using phone authentication.',
+      );
+    }
+    return firebaseAuth;
+  }
 
   Future<void> verifyPhoneNumber({
     required String phoneNumber,
@@ -14,7 +26,7 @@ class FirebaseAuthService {
     required PhoneCodeAutoRetrievalTimeout codeAutoRetrievalTimeout,
     int? forceResendingToken,
   }) {
-    return _firebaseAuth.verifyPhoneNumber(
+    return _auth.verifyPhoneNumber(
       phoneNumber: phoneNumber,
       forceResendingToken: forceResendingToken,
       verificationCompleted: verificationCompleted,
@@ -33,6 +45,10 @@ class FirebaseAuthService {
       smsCode: smsCode,
     );
 
-    return _firebaseAuth.signInWithCredential(credential);
+    return signInWithCredential(credential);
+  }
+
+  Future<UserCredential> signInWithCredential(AuthCredential credential) {
+    return _auth.signInWithCredential(credential);
   }
 }

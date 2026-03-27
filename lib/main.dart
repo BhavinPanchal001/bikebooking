@@ -1,4 +1,5 @@
 import 'package:bikebooking/features/auth/presentation/bindings/auth_binding.dart';
+import 'package:flutter/foundation.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -38,8 +39,9 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   try {
     await Firebase.initializeApp();
-  } catch (_) {
-    // Firebase setup may still be pending in local environments.
+  } catch (error, stackTrace) {
+    debugPrint('Firebase initialization failed: $error');
+    debugPrintStack(stackTrace: stackTrace);
   }
   runApp(const MyApp());
 }
