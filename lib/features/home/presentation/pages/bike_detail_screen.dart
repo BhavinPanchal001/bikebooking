@@ -347,9 +347,11 @@ class _BikeDetailScreenState extends State<BikeDetailScreen> {
   }
 
   Widget _buildSellerCard() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(12),
+    return GestureDetector(
+      onTap: () => Navigator.pushNamed(context, '/seller_profile'),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         // color: Colors.white,
         borderRadius: BorderRadius.circular(12),
@@ -395,6 +397,7 @@ class _BikeDetailScreenState extends State<BikeDetailScreen> {
               style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.grey.shade600)),
         ],
       ),
+    ),
     );
   }
 }

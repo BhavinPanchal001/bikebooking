@@ -5,6 +5,8 @@ class CustomDrawer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final currentRoute = ModalRoute.of(context)?.settings.name;
+
     return Drawer(
       width: MediaQuery.of(context).size.width * 0.8,
       backgroundColor: Colors.white,
@@ -65,9 +67,21 @@ class CustomDrawer extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
               physics: const BouncingScrollPhysics(),
               children: [
-                _buildDrawerItem(Icons.home_outlined, 'Home', isSelected: true),
+                _buildDrawerItem(
+                  context,
+                  Icons.home_outlined,
+                  'Home',
+                  isSelected: currentRoute == '/home',
+                  onTap: () => _navigateToRoute(context, '/home'),
+                ),
                 const Divider(),
-                _buildDrawerItem(Icons.directions_bike, 'Buy bike'),
+                _buildDrawerItem(
+                  context,
+                  Icons.directions_bike,
+                  'Buy bike',
+                  isSelected: currentRoute == '/search',
+                  onTap: () => _navigateToRoute(context, '/search'),
+                ),
                 
                 const SizedBox(height: 16),
                 const Text('By fuel type', style: TextStyle(color: Colors.grey, fontSize: 13, fontWeight: FontWeight.w500)),
@@ -97,11 +111,40 @@ class CustomDrawer extends StatelessWidget {
                 
                 const SizedBox(height: 24),
                 const Divider(),
-                _buildDrawerItem(Icons.directions_bike_outlined, 'Sell bike'),
-                _buildDrawerItem(Icons.favorite_border, 'My Favorites'),
-                _buildDrawerItem(Icons.add_circle_outline, 'My Post'),
-                _buildDrawerItem(Icons.verified_user_outlined, 'Subscription status'),
-                _buildDrawerItem(Icons.logout, 'Logout'),
+                _buildDrawerItem(
+                  context,
+                  Icons.directions_bike_outlined,
+                  'Sell bike',
+                  isSelected: currentRoute == '/list_product',
+                  onTap: () => _navigateToRoute(context, '/list_product'),
+                ),
+                _buildDrawerItem(
+                  context,
+                  Icons.favorite_border,
+                  'My Favorites',
+                  isSelected: currentRoute == '/favorites',
+                  onTap: () => _navigateToRoute(context, '/favorites'),
+                ),
+                _buildDrawerItem(
+                  context,
+                  Icons.add_circle_outline,
+                  'My Post',
+                  isSelected: currentRoute == '/my_listing',
+                  onTap: () => _navigateToRoute(context, '/my_listing'),
+                ),
+                _buildDrawerItem(
+                  context,
+                  Icons.verified_user_outlined,
+                  'Subscription status',
+                  isSelected: currentRoute == '/profile_overview',
+                  onTap: () => _navigateToRoute(context, '/profile_overview'),
+                ),
+                _buildDrawerItem(
+                  context,
+                  Icons.logout,
+                  'Logout',
+                  onTap: () => _logout(context),
+                ),
                 const Divider(),
               ],
             ),
@@ -132,7 +175,29 @@ class CustomDrawer extends StatelessWidget {
     );
   }
 
-  Widget _buildDrawerItem(IconData icon, String title, {bool isSelected = false}) {
+  void _navigateToRoute(BuildContext context, String routeName) {
+    final currentRoute = ModalRoute.of(context)?.settings.name;
+    Navigator.pop(context);
+
+    if (currentRoute == routeName) {
+      return;
+    }
+
+    Navigator.pushNamed(context, routeName);
+  }
+
+  void _logout(BuildContext context) {
+    Navigator.pop(context);
+    Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+  }
+
+  Widget _buildDrawerItem(
+    BuildContext context,
+    IconData icon,
+    String title, {
+    bool isSelected = false,
+    VoidCallback? onTap,
+  }) {
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 4),
       decoration: BoxDecoration(
@@ -152,6 +217,7 @@ class CustomDrawer extends StatelessWidget {
         minLeadingWidth: 0,
         contentPadding: const EdgeInsets.symmetric(horizontal: 12),
         visualDensity: const VisualDensity(vertical: -2),
+        onTap: onTap,
       ),
     );
   }

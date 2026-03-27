@@ -48,26 +48,29 @@ class SelectCategoryScreen extends StatelessWidget {
                     children: [
                       // Search Bar
                       Expanded(
-                        child: Container(
-                          height: 43,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          child: Row(
-                            children: [
-                              Image.asset(
-                                'assets/images/Group 1171276172.png',
-                                height: 15,
-                                width: 15,
-                              ),
-                              const SizedBox(width: 12),
-                              Text(
-                                'search',
-                                style: TextStyle(color: Colors.grey.shade400, fontSize: 14),
-                              ),
-                            ],
+                        child: GestureDetector(
+                          onTap: () => Navigator.pushNamed(context, '/search'),
+                          child: Container(
+                            height: 43,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            child: Row(
+                              children: [
+                                Image.asset(
+                                  'assets/images/Group 1171276172.png',
+                                  height: 15,
+                                  width: 15,
+                                ),
+                                const SizedBox(width: 12),
+                                Text(
+                                  'search',
+                                  style: TextStyle(color: Colors.grey.shade400, fontSize: 14),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
@@ -125,15 +128,15 @@ class SelectCategoryScreen extends StatelessWidget {
                         childAspectRatio: 0.82,
                         children: [
                           _buildCategoryCard(
-                              'Sports Bikes', '76 Products', 'assets/sports_bike.png', const Color(0xFFD4E7C5)),
+                              context, 'Sports Bikes', '76 Products', 'assets/sports_bike.png', const Color(0xFFD4E7C5)),
                           _buildCategoryCard(
-                              'Cruiser Bikes', '56 Products', 'assets/cruiser_bike.png', const Color(0xFFFFD1A5)),
+                              context, 'Cruiser Bikes', '56 Products', 'assets/cruiser_bike.png', const Color(0xFFFFD1A5)),
                           _buildCategoryCard(
-                              'Commuter Bikes', '98 Products', 'assets/commuter_bike.png', const Color(0xFFC9C9EB)),
+                              context, 'Commuter Bikes', '98 Products', 'assets/commuter_bike.png', const Color(0xFFC9C9EB)),
                           _buildCategoryCard(
-                              'Adventure Bikes', '45 Products', 'assets/adventure_bike.png', const Color(0xFFB9E5F3)),
+                              context, 'Adventure Bikes', '45 Products', 'assets/adventure_bike.png', const Color(0xFFB9E5F3)),
                           _buildCategoryCard(
-                              'Electric Bikes', '45 Products', 'assets/electric_bike.png', const Color(0xFFFFD580)),
+                              context, 'Electric Bikes', '45 Products', 'assets/electric_bike.png', const Color(0xFFFFD580)),
                         ],
                       ),
                     ],
@@ -147,59 +150,64 @@ class SelectCategoryScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildCategoryCard(String title, String count, String imagePath, Color bgColor) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.black.withOpacity(0.05)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Container(
-              margin: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: bgColor,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Center(
-                child: Image.asset(
-                  imagePath,
-                  width: 100,
-                  fit: BoxFit.contain,
-                  errorBuilder: (c, e, s) => const Icon(Icons.directions_bike, color: Colors.white, size: 40),
+  Widget _buildCategoryCard(BuildContext context, String title, String count, String imagePath, Color bgColor) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.pushNamed(context, '/filter_result', arguments: title);
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.black.withOpacity(0.05)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Container(
+                margin: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: bgColor,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Center(
+                  child: Image.asset(
+                    imagePath,
+                    width: 100,
+                    fit: BoxFit.contain,
+                    errorBuilder: (c, e, s) => const Icon(Icons.directions_bike, color: Colors.white, size: 40),
+                  ),
                 ),
               ),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF121926),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF121926),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  count,
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: Color(0xFF9F9F9F),
-                    fontWeight: FontWeight.w500,
+                  const SizedBox(height: 4),
+                  Text(
+                    count,
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Color(0xFF9F9F9F),
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

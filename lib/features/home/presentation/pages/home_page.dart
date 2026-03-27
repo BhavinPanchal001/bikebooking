@@ -128,15 +128,15 @@ class _HomePageState extends State<HomePage> {
           backgroundColor: Colors.white,
           selectedItemColor: const Color(0xFF233A66),
           unselectedItemColor: Colors.grey.shade400,
-          selectedLabelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-          unselectedLabelStyle: const TextStyle(fontSize: 12),
+          selectedLabelStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+          unselectedLabelStyle: const TextStyle(fontSize: 11),
           items: const [
             BottomNavigationBarItem(
-                icon: Icon(Icons.home_outlined, size: 28), activeIcon: Icon(Icons.home, size: 28), label: 'Home'),
-            BottomNavigationBarItem(icon: Icon(Icons.directions_bike_outlined, size: 28), label: 'Buy'),
-            BottomNavigationBarItem(icon: Icon(Icons.add_circle_outline, size: 28), label: 'Sell'),
-            BottomNavigationBarItem(icon: Icon(Icons.favorite_border, size: 28), label: 'My Post'),
-            BottomNavigationBarItem(icon: Icon(Icons.person_outline, size: 28), label: 'Profile'),
+                icon: Icon(Icons.home_outlined, size: 24), activeIcon: Icon(Icons.home, size: 24), label: 'Home'),
+            BottomNavigationBarItem(icon: Icon(Icons.directions_bike_outlined, size: 24), label: 'Buy'),
+            BottomNavigationBarItem(icon: Icon(Icons.add_circle_outline, size: 24), label: 'Sell'),
+            BottomNavigationBarItem(icon: Icon(Icons.favorite_border, size: 24), label: 'My Post'),
+            BottomNavigationBarItem(icon: Icon(Icons.person_outline, size: 24), label: 'Profile'),
           ],
         ),
       ),
@@ -181,7 +181,10 @@ class _HomePageState extends State<HomePage> {
                 child: Image.asset('assets/images/Group 1171278003.png', height: 20, width: 20),
               ),
               const SizedBox(width: 12),
-              Image.asset('assets/images/Vector (1).png', height: 20, width: 20),
+              GestureDetector(
+                onTap: () => Navigator.pushNamed(context, '/messages'),
+                child: Image.asset('assets/images/Vector (1).png', height: 20, width: 20),
+              ),
               const SizedBox(width: 12),
               GestureDetector(
                 onTap: () => Navigator.pushNamed(context, '/favorites'),
@@ -242,32 +245,6 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildHeaderIcon(IconData icon, {bool badge = false}) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 14),
-      child: Stack(
-        children: [
-          Icon(icon, color: Colors.white, size: 26),
-          if (badge)
-            Positioned(
-              right: 2,
-              top: 2,
-              child: Container(
-                padding: const EdgeInsets.all(3),
-                decoration: const BoxDecoration(
-                  color: Colors.red,
-                  shape: BoxShape.circle,
-                ),
-                constraints: const BoxConstraints(
-                  minWidth: 8,
-                  minHeight: 8,
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildPromoBanner() {
     return ClipRRect(
@@ -298,10 +275,10 @@ class _HomePageState extends State<HomePage> {
       padding: const EdgeInsets.only(right: 10),
       child: GestureDetector(
         onTap: () {
-          if (title == 'Accessories' || title == 'Spare Parts') {
+          if (title == 'Bikes' || title == 'Scooter') {
+            Navigator.pushNamed(context, '/select_category');
+          } else if (title == 'Accessories' || title == 'Spare Parts') {
             Navigator.pushNamed(context, '/filter_result', arguments: title);
-          } else if (title == 'Bikes') {
-            Navigator.pushNamed(context, '/filter_result', arguments: 'Bikes');
           } else {
             Navigator.pushNamed(context, '/select_category');
           }

@@ -211,15 +211,15 @@ class ListProductScreen extends StatelessWidget {
         backgroundColor: Colors.white,
         selectedItemColor: const Color(0xFF233A66),
         unselectedItemColor: Colors.grey.shade400,
-        selectedLabelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-        unselectedLabelStyle: const TextStyle(fontSize: 12),
+        selectedLabelStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+        unselectedLabelStyle: const TextStyle(fontSize: 11),
         items: const [
           BottomNavigationBarItem(
-              icon: Icon(Icons.home_outlined, size: 28), activeIcon: Icon(Icons.home, size: 28), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.directions_bike_outlined, size: 28), label: 'Buy'),
-          BottomNavigationBarItem(icon: Icon(Icons.add_circle_outline, size: 28), label: 'Sell'),
-          BottomNavigationBarItem(icon: Icon(Icons.favorite_border, size: 28), label: 'My Post'),
-          BottomNavigationBarItem(icon: Icon(Icons.person_outline, size: 28), label: 'Profile'),
+              icon: Icon(Icons.home_outlined, size: 24), activeIcon: Icon(Icons.home, size: 24), label: 'Home'),
+          BottomNavigationBarItem(icon: Icon(Icons.directions_bike_outlined, size: 24), label: 'Buy'),
+          BottomNavigationBarItem(icon: Icon(Icons.add_circle_outline, size: 24), label: 'Sell'),
+          BottomNavigationBarItem(icon: Icon(Icons.favorite_border, size: 24), label: 'My Post'),
+          BottomNavigationBarItem(icon: Icon(Icons.person_outline, size: 24), label: 'Profile'),
         ],
       ),
     );

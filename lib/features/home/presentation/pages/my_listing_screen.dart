@@ -242,6 +242,8 @@ class _MyListingScreenState extends State<MyListingScreen> {
       currentIndex: 3, // My Post tab active
       selectedItemColor: const Color(0xFF233A66),
       unselectedItemColor: Colors.grey,
+      selectedLabelStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+      unselectedLabelStyle: const TextStyle(fontSize: 11),
       onTap: (index) {
         if (index == 0) Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
         if (index == 1) Navigator.pushNamed(context, '/filter_result', arguments: 'Bikes');
@@ -249,11 +251,11 @@ class _MyListingScreenState extends State<MyListingScreen> {
         if (index == 4) Navigator.pushNamed(context, '/profile_overview');
       },
       items: const [
-        BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: 'Home'),
-        BottomNavigationBarItem(icon: Icon(Icons.directions_bike), label: 'Buy'),
-        BottomNavigationBarItem(icon: Icon(Icons.add_circle_outline), label: 'Sell'),
-        BottomNavigationBarItem(icon: Icon(Icons.favorite_border), label: 'My Post'),
-        BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: 'Profile'),
+        BottomNavigationBarItem(icon: Icon(Icons.home_outlined, size: 24), label: 'Home'),
+        BottomNavigationBarItem(icon: Icon(Icons.directions_bike, size: 24), label: 'Buy'),
+        BottomNavigationBarItem(icon: Icon(Icons.add_circle_outline, size: 24), label: 'Sell'),
+        BottomNavigationBarItem(icon: Icon(Icons.favorite_border, size: 24), label: 'My Post'),
+        BottomNavigationBarItem(icon: Icon(Icons.person_outline, size: 24), label: 'Profile'),
       ],
     );
   }

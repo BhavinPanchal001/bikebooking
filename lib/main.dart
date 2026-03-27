@@ -12,6 +12,8 @@ import 'features/home/presentation/pages/filter_screen.dart';
 import 'features/home/presentation/pages/filter_result_screen.dart';
 import 'features/home/presentation/pages/bike_detail_screen.dart';
 import 'features/chat/presentation/pages/chat_detail_screen.dart';
+import 'features/chat/presentation/pages/messages_screen.dart';
+
 import 'features/home/presentation/pages/list_product_screen.dart';
 import 'features/home/presentation/pages/product_images_screen.dart';
 import 'features/home/presentation/pages/bike_detail_form_screen.dart';
@@ -82,6 +84,9 @@ class MyApp extends StatelessWidget {
         }
         if (settings.name == '/chat_detail') {
           return MaterialPageRoute(builder: (context) => const ChatDetailScreen());
+        }
+        if (settings.name == '/messages') {
+          return MaterialPageRoute(builder: (context) => const MessagesScreen());
         }
         if (settings.name == '/list_product') {
           return MaterialPageRoute(builder: (context) => const ListProductScreen());

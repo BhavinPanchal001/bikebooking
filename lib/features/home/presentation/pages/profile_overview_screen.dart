@@ -152,7 +152,7 @@ class ProfileOverviewScreen extends StatelessWidget {
                     'Delete Account',
                     'Permanently Delete Account',
                     isDestructive: true,
-                    onTap: () => _showDeleteAccountDialog(context),
+                    onTap: () => _showDeleteAccountBottomSheet(context),
                   ),
                 ],
               ),
@@ -219,72 +219,105 @@ class ProfileOverviewScreen extends StatelessWidget {
     );
   }
 
-  void _showDeleteAccountDialog(BuildContext context) {
-    showDialog(
+  void _showDeleteAccountBottomSheet(BuildContext context) {
+    showModalBottomSheet<void>(
       context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       builder: (context) {
-        return Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: SafeArea(
+            top: false,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
-                  height: 200,
+                  height: 4,
+                  width: 44,
+                  margin: const EdgeInsets.only(bottom: 20),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFD8DEE8),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                Container(
+                  height: 170,
                   width: double.infinity,
                   decoration: BoxDecoration(
                     color: const Color(0xFFF9FBFF),
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Center(
-                    child: Icon(Icons.delete_sweep_outlined, size: 100, color: Colors.grey.shade400),
-                    // In real app, use Image.asset('assets/images/delete_illustration.png')
+                    child: Icon(Icons.delete_outline, size: 90, color: Colors.grey.shade400),
                   ),
                 ),
-                const SizedBox(height: 32),
+                const SizedBox(height: 24),
                 const Text(
                   'Delete Account',
                   style: TextStyle(
                     fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF233A66),
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF1D2330),
                   ),
                 ),
                 const SizedBox(height: 12),
                 const Text(
                   'You are about to permanently delete your account. Are you sure about this?',
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 14, color: Color(0xFF5E6E8C), height: 1.5),
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Color(0xFF6A7280),
+                    height: 1.5,
+                  ),
                 ),
-                const SizedBox(height: 40),
+                const SizedBox(height: 28),
                 Row(
                   children: [
                     Expanded(
                       child: OutlinedButton(
                         onPressed: () => Navigator.pop(context),
                         style: OutlinedButton.styleFrom(
-                          side: BorderSide(color: Colors.grey.shade200),
+                          side: const BorderSide(color: Color(0xFFE5E9F2)),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           padding: const EdgeInsets.symmetric(vertical: 16),
                         ),
-                        child: const Text('Cancel',
-                            style: TextStyle(color: Color(0xFF5E6E8C), fontWeight: FontWeight.bold)),
+                        child: const Text(
+                          'Cancel',
+                          style: TextStyle(
+                            color: Color(0xFF5E6E8C),
+                            fontWeight: FontWeight.w600,
+                            fontSize: 15,
+                          ),
+                        ),
                       ),
                     ),
-                    const SizedBox(width: 16),
+                    const SizedBox(width: 14),
                     Expanded(
                       child: ElevatedButton(
                         onPressed: () {
-                          // Perform delete logic
+                          // TODO: Wire actual delete account API flow.
                           Navigator.pop(context);
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF233A66),
+                          elevation: 0,
+                          backgroundColor: const Color(0xFF3E5481),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           padding: const EdgeInsets.symmetric(vertical: 16),
                         ),
-                        child: const Text('Delete', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                        child: const Text(
+                          'Delete',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 15,
+                          ),
+                        ),
                       ),
                     ),
                   ],
@@ -303,6 +336,8 @@ class ProfileOverviewScreen extends StatelessWidget {
       currentIndex: 4, // Profile tab active
       selectedItemColor: const Color(0xFF233A66),
       unselectedItemColor: Colors.grey,
+      selectedLabelStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+      unselectedLabelStyle: const TextStyle(fontSize: 11),
       onTap: (index) {
         if (index == 0) Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
         if (index == 1) Navigator.pushNamed(context, '/filter_result', arguments: 'Bikes');
@@ -310,12 +345,12 @@ class ProfileOverviewScreen extends StatelessWidget {
         if (index == 3) Navigator.pushNamed(context, '/my_listing');
       },
       items: const [
-        BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: 'Home'),
-        BottomNavigationBarItem(icon: Icon(Icons.directions_bike), label: 'Buy'),
-        BottomNavigationBarItem(icon: Icon(Icons.add_circle_outline), label: 'Sell'),
+        BottomNavigationBarItem(icon: Icon(Icons.home_outlined, size: 24), label: 'Home'),
+        BottomNavigationBarItem(icon: Icon(Icons.directions_bike, size: 24), label: 'Buy'),
+        BottomNavigationBarItem(icon: Icon(Icons.add_circle_outline, size: 24), label: 'Sell'),
         BottomNavigationBarItem(
-            icon: Icon(Icons.favorite_border), label: 'My Post'), // Favorites in current app context
-        BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: 'Profile'),
+            icon: Icon(Icons.favorite_border, size: 24), label: 'My Post'), // Favorites in current app context
+        BottomNavigationBarItem(icon: Icon(Icons.person_outline, size: 24), label: 'Profile'),
       ],
     );
   }

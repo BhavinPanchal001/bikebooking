@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:bikebooking/core/constants/global.dart';
 import 'package:bikebooking/core/widgets/custom_button.dart';
+import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 
 class OtpVerificationScreen extends StatefulWidget {
   final String phoneNumber;
@@ -12,11 +13,27 @@ class OtpVerificationScreen extends StatefulWidget {
 }
 
 class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
+  final PageController _pageController = PageController();
   final List<TextEditingController> _controllers = List.generate(4, (index) => TextEditingController());
   final List<FocusNode> _focusNodes = List.generate(4, (index) => FocusNode());
+  final List<Map<String, String>> _onboardingData = [
+    {
+      'image': 'assets/images/intro1.png',
+      'title': 'Find Your\nPerfect Bike',
+    },
+    {
+      'image': 'assets/images/intro22.png',
+      'title': 'Chat With\nSellers',
+    },
+    {
+      'image': 'assets/images/intro3.png',
+      'title': 'Sell Your\nBike Fast',
+    },
+  ];
 
   @override
   void dispose() {
+    _pageController.dispose();
     for (var controller in _controllers) {
       controller.dispose();
     }
@@ -38,65 +55,123 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.primary,
       body: Stack(
         children: [
-          // Background (Using same as login for consistency)
-          Stack(
-            fit: StackFit.expand,
-            children: [
-              Image.asset(
-                'assets/images/bike_1.png',
-                fit: BoxFit.cover,
-              ),
-              Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Colors.black.withOpacity(0.3),
-                      Colors.transparent,
-                      Colors.black.withOpacity(0.7),
-                    ],
+          // Same top structure as login screen
+          PageView.builder(
+            controller: _pageController,
+            itemCount: _onboardingData.length,
+            itemBuilder: (context, index) {
+              return Stack(
+                fit: StackFit.expand,
+                children: [
+                  Container(color: AppColors.primary),
+                  index == 0
+                      ? Positioned(
+                          top: 200,
+                          left: 0,
+                          right: 0,
+                          child: Image.asset(
+                            _onboardingData[index]['image']!,
+                            fit: BoxFit.cover,
+                            width: double.infinity,
+                            height: 350,
+                          ),
+                        )
+                      : index == 1
+                          ? Positioned(
+                              top: 200,
+                              left: 0,
+                              right: -100,
+                              child: Image.asset(
+                                _onboardingData[index]['image']!,
+                                width: double.infinity,
+                                height: 310,
+                              ),
+                            )
+                          : Positioned(
+                              top: 200,
+                              left: 0,
+                              right: -25,
+                              child: Image.asset(
+                                _onboardingData[index]['image']!,
+                                width: double.infinity,
+                                height: 280,
+                              ),
+                            ),
+                  if (index == 0)
+                    Positioned(
+                      top: 180,
+                      left: 0,
+                      right: 0,
+                      child: ClipPath(
+                        clipper: TopSlantClipper(),
+                        child: Container(
+                          height: 100,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ),
+                  if (index == 0)
+                    Positioned(
+                      top: 430,
+                      left: 0,
+                      right: 0,
+                      child: ClipPath(
+                        clipper: BottomSlantClipper(),
+                        child: Container(
+                          height: 120,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ),
+                  Positioned(
+                    top: 50,
+                    left: 24,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Image.asset('assets/images/logoWhite.png', width: 100, height: 70),
+                        const SizedBox(height: 10),
+                        Text(
+                          _onboardingData[index]['title']!,
+                          style: GoogleFonts.poppins(
+                            fontSize: 32,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                            height: 1.1,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
+                ],
+              );
+            },
+          ),
+          Positioned(
+            bottom: 355,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: SmoothPageIndicator(
+                controller: _pageController,
+                count: _onboardingData.length,
+                effect: const ExpandingDotsEffect(
+                  dotHeight: 4,
+                  dotWidth: 8,
+                  activeDotColor: Colors.white,
+                  dotColor: Colors.white54,
+                  spacing: 4,
                 ),
               ),
-            ],
-          ),
-
-          // Back Button
-          Positioned(
-            top: 50,
-            left: 20,
-            child: CircleAvatar(
-              backgroundColor: Colors.white,
-              child: IconButton(
-                icon: const Icon(Icons.arrow_back, color: Colors.black),
-                onPressed: () => Navigator.pop(context),
-              ),
             ),
           ),
-
-          // Logo and Text (Same as Login)
-          Positioned(
-            top: 100,
-            left: 24,
-            child: Text(
-              'Find Your\nPerfect Bike',
-              style: GoogleFonts.poppins(
-                fontSize: 40,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-                height: 1.1,
-              ),
-            ),
-          ),
-
-          // OTP Card
           Align(
             alignment: Alignment.bottomCenter,
             child: Container(
-              height: 350,
+              height: 340,
               width: double.infinity,
               decoration: const BoxDecoration(
                 color: AppColors.background,
@@ -105,7 +180,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                   topRight: Radius.circular(32),
                 ),
               ),
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -117,22 +192,24 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                       color: Colors.black,
                     ),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 12),
+                  const Divider(color: Color(0xFFEEEEEE), thickness: 1),
+                  const SizedBox(height: 16),
                   Text(
                     'Enter OTP sent to ${widget.phoneNumber}',
                     style: GoogleFonts.plusJakartaSans(
-                      fontSize: 12,
+                      fontSize: 13,
                       color: Colors.grey[600],
                     ),
                   ),
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 20),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: List.generate(
                       4,
                       (index) => SizedBox(
-                        width: 70,
-                        height: 60,
+                        width: 68,
+                        height: 56,
                         child: TextField(
                           controller: _controllers[index],
                           focusNode: _focusNodes[index],
@@ -141,8 +218,8 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                           keyboardType: TextInputType.number,
                           maxLength: 1,
                           style: GoogleFonts.poppins(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
+                            fontSize: 22,
+                            fontWeight: FontWeight.w600,
                           ),
                           decoration: InputDecoration(
                             counterText: '',
@@ -159,9 +236,8 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 14),
                   Row(
-                    // mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
                         "Didn't receive OTP? ",
@@ -186,7 +262,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 22),
                   CustomGradientButton(
                     text: 'Verify',
                     onPressed: () {
@@ -197,8 +273,50 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
               ),
             ),
           ),
+          Positioned(
+            top: 50,
+            left: 20,
+            child: CircleAvatar(
+              backgroundColor: Colors.white,
+              child: IconButton(
+                icon: const Icon(Icons.arrow_back, color: Colors.black),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
+}
+
+class TopSlantClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    final path = Path();
+    path.lineTo(0, size.height);
+    path.lineTo(size.width, size.height - 100);
+    path.lineTo(size.width, 0);
+    path.close();
+    return path;
+  }
+
+  @override
+  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
+}
+
+class BottomSlantClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    final path = Path();
+    path.lineTo(0, 0);
+    path.lineTo(size.width, 100);
+    path.lineTo(size.width, size.height);
+    path.lineTo(0, size.height);
+    path.close();
+    return path;
+  }
+
+  @override
+  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }
