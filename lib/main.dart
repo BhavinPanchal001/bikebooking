@@ -36,11 +36,7 @@ import 'features/home/presentation/pages/accessories_detail_form_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  try {
-    await Firebase.initializeApp();
-  } catch (_) {
-    // Firebase setup may still be pending in local environments.
-  }
+  await Firebase.initializeApp();
   runApp(const MyApp());
 }
 

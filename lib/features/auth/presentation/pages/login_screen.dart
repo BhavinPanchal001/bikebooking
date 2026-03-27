@@ -59,7 +59,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   // 2. Full-Width Background Image
                   index == 0
                       ? Positioned(
-                          top: 200, // Lowered starting point to avoid cutting the head
+                          top:
+                              200, // Lowered starting point to avoid cutting the head
                           left: 0,
                           right: 0,
                           child: Image.asset(
@@ -71,7 +72,8 @@ class _LoginScreenState extends State<LoginScreen> {
                         )
                       : index == 1
                           ? Positioned(
-                              top: 200, // Lowered starting point to avoid cutting the head
+                              top:
+                                  200, // Lowered starting point to avoid cutting the head
                               left: 0,
                               right: -100,
                               child: Image.asset(
@@ -82,7 +84,8 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                             )
                           : Positioned(
-                              top: 200, // Lowered starting point to avoid cutting the head
+                              top:
+                                  200, // Lowered starting point to avoid cutting the head
                               left: 0,
                               right: -25,
                               child: Image.asset(
@@ -131,7 +134,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         // Logo Row
-                        Image.asset('assets/images/logoWhite.png', width: 100, height: 70),
+                        Image.asset('assets/images/logoWhite.png',
+                            width: 100, height: 70),
                         const SizedBox(height: 10),
                         // Main Headline
                         Text(
@@ -186,7 +190,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       topRight: Radius.circular(32),
                     ),
                   ),
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -228,7 +233,8 @@ class _LoginScreenState extends State<LoginScreen> {
                               decoration: BoxDecoration(
                                 color: AppColors.background,
                                 borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: const Color(0xFFDDDDDD)),
+                                border:
+                                    Border.all(color: const Color(0xFFDDDDDD)),
                               ),
                               child: Center(
                                 child: Text(
@@ -248,7 +254,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                 decoration: BoxDecoration(
                                   color: AppColors.background,
                                   borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: const Color(0xFFDDDDDD)),
+                                  border: Border.all(
+                                      color: const Color(0xFFDDDDDD)),
                                 ),
                                 child: TextField(
                                   controller: controller.phoneController,
@@ -263,7 +270,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                     hintText: '1234567890',
                                     hintStyle: TextStyle(color: Colors.grey),
                                     border: InputBorder.none,
-                                    contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                    contentPadding: EdgeInsets.symmetric(
+                                        horizontal: 16, vertical: 14),
                                   ),
                                 ),
                               ),
@@ -278,8 +286,12 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       const SizedBox(height: 18),
                       CustomGradientButton(
-                        text: controller.isSendingOtp ? 'Sending OTP...' : 'Get OTP',
-                        onPressed: controller.isSendingOtp ? () {} : controller.sendOtp,
+                        text: controller.isSendingOtp
+                            ? 'Sending OTP...'
+                            : 'Get OTP',
+                        onPressed: controller.isSendingOtp
+                            ? () {}
+                            : controller.sendOtp,
                       ),
                       const Spacer(),
                       Center(
@@ -291,7 +303,8 @@ class _LoginScreenState extends State<LoginScreen> {
                               color: Colors.black45,
                             ),
                             children: [
-                              const TextSpan(text: "By continuing, you agree BIENEST's "),
+                              const TextSpan(
+                                  text: "By continuing, you agree BIENEST's "),
                               TextSpan(
                                 text: 'Terms of service',
                                 style: GoogleFonts.poppins(

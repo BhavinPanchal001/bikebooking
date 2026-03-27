@@ -17,3 +17,8 @@ class AppColors {
   static const Color titleBody = Color(0xFF262A36);
   static Color headerBackground = primary.withOpacity(0.98);
 }
+
+class AppConfig {
+  static const String googlePlacesApiKey =
+      'AIzaSyCtJJl_gKiow1JPiJiQCN7zl8EOWo1rEJQ';
+}
