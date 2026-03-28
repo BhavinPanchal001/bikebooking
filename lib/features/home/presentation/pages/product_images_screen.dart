@@ -12,7 +12,12 @@ class ProductImagesScreen extends StatelessWidget {
     final category =
         ModalRoute.of(context)?.settings.arguments as String? ?? 'Bikes';
 
-    final controller = Get.put(ListProductController());
+    final controller = Get.isRegistered<ListProductController>()
+        ? Get.find<ListProductController>()
+        : Get.put(ListProductController());
+    if (controller.isEditing) {
+      controller.resetForm();
+    }
     if (controller.category.isEmpty) {
       controller.setCategory(category);
     }

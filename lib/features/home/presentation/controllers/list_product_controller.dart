@@ -184,6 +184,10 @@ class ListProductController extends GetxController {
   String? get submissionErrorMessage => _submissionErrorMessage;
   String? _submissionSuccessMessage;
   String? get submissionSuccessMessage => _submissionSuccessMessage;
+  String? _editingProductId;
+  String? get editingProductId => _editingProductId;
+  bool get isEditing =>
+      _editingProductId != null && _editingProductId!.isNotEmpty;
 
   // ── Submit Product ──
   Future<bool> submitProduct() async {
@@ -220,6 +224,7 @@ class ListProductController extends GetxController {
       final uploadedImageUrls = await _resolveProductImageUrls(sellerId);
 
       final product = ProductModel(
+        id: _editingProductId,
         category: _category,
         title: titleController.text.trim(),
         brand: _brand,
@@ -241,11 +246,17 @@ class ListProductController extends GetxController {
         sellerType: _sellerType,
       );
 
-      await _firestoreService.addProduct(product);
+      if (isEditing) {
+        await _firestoreService.updateProduct(_editingProductId!, product);
+      } else {
+        await _firestoreService.addProduct(product);
+      }
 
       _isLoading = false;
       _submissionErrorMessage = null;
-      _submissionSuccessMessage ??= 'Your product has been posted!';
+      _submissionSuccessMessage ??= isEditing
+          ? 'Your product has been updated!'
+          : 'Your product has been posted!';
       update();
       return true;
     } on FirebaseAuthException catch (error, stackTrace) {
@@ -305,6 +316,7 @@ class ListProductController extends GetxController {
     _isFetchingCurrentLocation = false;
     _submissionErrorMessage = null;
     _submissionSuccessMessage = null;
+    _editingProductId = null;
     update();
   }
 
@@ -326,6 +338,35 @@ class ListProductController extends GetxController {
 
     _showValidationError(validationError);
     return false;
+  }
+
+  void loadProductForEditing(ProductModel product) {
+    _editingProductId = product.id;
+    _category = product.category;
+    titleController.text = product.title;
+    descriptionController.text = product.description;
+    kilometerController.text = product.kilometerDriven?.toString() ?? '';
+    priceController.text = product.price != null
+        ? (product.price == product.price!.roundToDouble()
+            ? product.price!.toInt().toString()
+            : product.price!.toString())
+        : '';
+    locationController.text = product.location ?? '';
+    _brand = product.brand;
+    _year = product.year;
+    _fuelType = product.fuelType;
+    _numberOfOwners = product.numberOfOwners;
+    _subCategory = product.subCategory;
+    _condition = product.condition;
+    _sellerType = product.sellerType;
+    _imageUrls = List<String>.from(product.imageUrls);
+    _pickedImages.clear();
+    _selectedImageIndex = 0;
+    _isLoading = false;
+    _isFetchingCurrentLocation = false;
+    _submissionErrorMessage = null;
+    _submissionSuccessMessage = null;
+    update();
   }
 
   bool validateAccessoryDetailsStep() {

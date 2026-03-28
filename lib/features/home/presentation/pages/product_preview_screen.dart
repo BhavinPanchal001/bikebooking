@@ -12,8 +12,18 @@ class ProductPreviewScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return GetBuilder<ListProductController>(
       builder: (controller) {
-        final isBikeOrScooter = controller.category == 'Bikes' || controller.category == 'Scooter';
-        final pageController = PageController(initialPage: controller.selectedImageIndex);
+        final isBikeOrScooter =
+            controller.category == 'Bikes' || controller.category == 'Scooter';
+        final previewImageUrls = controller.imageUrls
+            .where((url) => url.trim().isNotEmpty)
+            .toList(growable: false);
+        final showRemoteImages =
+            controller.pickedImages.isEmpty && previewImageUrls.isNotEmpty;
+        final previewImageCount = showRemoteImages
+            ? previewImageUrls.length
+            : controller.pickedImages.length;
+        final pageController =
+            PageController(initialPage: controller.selectedImageIndex);
 
         return Scaffold(
           backgroundColor: AppColors.background,
@@ -36,7 +46,8 @@ class ProductPreviewScreen extends StatelessWidget {
                     children: [
                       IconButton(
                         onPressed: () => Navigator.pop(context),
-                        icon: const Icon(Icons.arrow_back, color: Colors.white, size: 28),
+                        icon: const Icon(Icons.arrow_back,
+                            color: Colors.white, size: 28),
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(),
                       ),
@@ -63,12 +74,28 @@ class ProductPreviewScreen extends StatelessWidget {
                           child: Container(
                             height: 250,
                             padding: const EdgeInsets.symmetric(horizontal: 16),
-                            child: controller.pickedImages.isNotEmpty
+                            child: previewImageCount > 0
                                 ? PageView.builder(
                                     controller: pageController,
-                                    itemCount: controller.pickedImages.length,
-                                    onPageChanged: controller.selectProductImage,
+                                    itemCount: previewImageCount,
+                                    onPageChanged:
+                                        controller.selectProductImage,
                                     itemBuilder: (context, index) {
+                                      if (showRemoteImages) {
+                                        return Image.network(
+                                          previewImageUrls[index],
+                                          fit: BoxFit.contain,
+                                          errorBuilder:
+                                              (context, error, stackTrace) {
+                                            return Icon(
+                                              Icons.image_outlined,
+                                              size: 100,
+                                              color: Colors.grey.shade300,
+                                            );
+                                          },
+                                        );
+                                      }
+
                                       return Image.memory(
                                         controller.pickedImages[index].bytes,
                                         fit: BoxFit.contain,
@@ -91,23 +118,29 @@ class ProductPreviewScreen extends StatelessWidget {
                         const SizedBox(height: 8),
                         // Page Indicator
                         Center(
-                          child: controller.pickedImages.length > 1
+                          child: previewImageCount > 1
                               ? Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: List.generate(
-                                    controller.pickedImages.length,
+                                    previewImageCount,
                                     (index) {
-                                      final isSelected = controller.selectedImageIndex == index;
+                                      final isSelected =
+                                          controller.selectedImageIndex ==
+                                              index;
                                       return AnimatedContainer(
-                                        duration: const Duration(milliseconds: 220),
-                                        margin: const EdgeInsets.symmetric(horizontal: 3),
+                                        duration:
+                                            const Duration(milliseconds: 220),
+                                        margin: const EdgeInsets.symmetric(
+                                            horizontal: 3),
                                         width: isSelected ? 18 : 8,
                                         height: 8,
                                         decoration: BoxDecoration(
                                           color: isSelected
                                               ? const Color(0xFF233A66)
-                                              : const Color(0xFF233A66).withOpacity(0.25),
-                                          borderRadius: BorderRadius.circular(999),
+                                              : const Color(0xFF233A66)
+                                                  .withOpacity(0.25),
+                                          borderRadius:
+                                              BorderRadius.circular(999),
                                         ),
                                       );
                                     },
@@ -117,7 +150,8 @@ class ProductPreviewScreen extends StatelessWidget {
                                   width: 40,
                                   height: 4,
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFF233A66).withOpacity(0.8),
+                                    color: const Color(0xFF233A66)
+                                        .withOpacity(0.8),
                                     borderRadius: BorderRadius.circular(2),
                                   ),
                                 ),
@@ -135,7 +169,9 @@ class ProductPreviewScreen extends StatelessWidget {
                                     ? '${controller.year ?? ''} ${controller.brand} ${controller.titleController.text}'
                                     : 'No title provided',
                                 style: const TextStyle(
-                                    fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF2E3E5C)),
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF2E3E5C)),
                               ),
                               const SizedBox(height: 8),
                               Text(
@@ -143,21 +179,27 @@ class ProductPreviewScreen extends StatelessWidget {
                                     ? 'Rs.${controller.priceController.text}'
                                     : 'Price not set',
                                 style: const TextStyle(
-                                    fontSize: 24, fontWeight: FontWeight.w800, color: Color(0xFF233A66)),
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.w800,
+                                    color: Color(0xFF233A66)),
                               ),
                               const SizedBox(height: 8),
                               Row(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Icon(Icons.location_on_outlined, size: 16, color: Colors.grey.shade500),
+                                  Icon(Icons.location_on_outlined,
+                                      size: 16, color: Colors.grey.shade500),
                                   const SizedBox(width: 4),
                                   Expanded(
                                     child: Text(
-                                      controller.locationController.text.isNotEmpty
+                                      controller.locationController.text
+                                              .isNotEmpty
                                           ? controller.locationController.text
                                           : 'Location not set',
                                       softWrap: true,
-                                      style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+                                      style: TextStyle(
+                                          color: Colors.grey.shade500,
+                                          fontSize: 13),
                                     ),
                                   ),
                                 ],
@@ -175,34 +217,53 @@ class ProductPreviewScreen extends StatelessWidget {
                             children: [
                               const Text(
                                 'Item specifications',
-                                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF37474F)),
+                                style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                    color: Color(0xFF37474F)),
                               ),
                               const SizedBox(height: 12),
                               Container(
                                 padding: const EdgeInsets.all(16),
                                 decoration: BoxDecoration(
                                   borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: Colors.black.withOpacity(0.05)),
+                                  border: Border.all(
+                                      color: Colors.black.withOpacity(0.05)),
                                 ),
                                 child: Column(
                                   children: [
-                                    _buildSpecRow('Category', controller.category),
-                                    _buildSpecRow('Brand', controller.brand.isNotEmpty ? controller.brand : '—'),
-                                    _buildSpecRow('Year', controller.year?.toString() ?? '—'),
+                                    _buildSpecRow(
+                                        'Category', controller.category),
+                                    _buildSpecRow(
+                                        'Brand',
+                                        controller.brand.isNotEmpty
+                                            ? controller.brand
+                                            : '—'),
+                                    _buildSpecRow('Year',
+                                        controller.year?.toString() ?? '—'),
                                     if (isBikeOrScooter) ...[
-                                      _buildSpecRow('Fuel Type', controller.fuelType ?? '—'),
+                                      _buildSpecRow('Fuel Type',
+                                          controller.fuelType ?? '—'),
                                       _buildSpecRow(
                                           'Kilometers',
-                                          controller.kilometerController.text.isNotEmpty
-                                              ? controller.kilometerController.text
+                                          controller.kilometerController.text
+                                                  .isNotEmpty
+                                              ? controller
+                                                  .kilometerController.text
                                               : '—'),
-                                      _buildSpecRow('Owners',
-                                          controller.numberOfOwners != null ? '${controller.numberOfOwners}' : '—'),
+                                      _buildSpecRow(
+                                          'Owners',
+                                          controller.numberOfOwners != null
+                                              ? '${controller.numberOfOwners}'
+                                              : '—'),
                                     ],
                                     if (!isBikeOrScooter) ...[
-                                      _buildSpecRow('Sub Category', controller.subCategory ?? '—'),
-                                      _buildSpecRow('Condition', controller.condition ?? '—'),
-                                      _buildSpecRow('Seller Type', controller.sellerType ?? '—'),
+                                      _buildSpecRow('Sub Category',
+                                          controller.subCategory ?? '—'),
+                                      _buildSpecRow('Condition',
+                                          controller.condition ?? '—'),
+                                      _buildSpecRow('Seller Type',
+                                          controller.sellerType ?? '—'),
                                     ],
                                   ],
                                 ),
@@ -220,7 +281,10 @@ class ProductPreviewScreen extends StatelessWidget {
                             children: [
                               const Text(
                                 'Description',
-                                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF37474F)),
+                                style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                    color: Color(0xFF37474F)),
                               ),
                               const SizedBox(height: 12),
                               Container(
@@ -229,14 +293,19 @@ class ProductPreviewScreen extends StatelessWidget {
                                 padding: const EdgeInsets.all(16),
                                 decoration: BoxDecoration(
                                   borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: Colors.black.withOpacity(0.05)),
+                                  border: Border.all(
+                                      color: Colors.black.withOpacity(0.05)),
                                 ),
                                 child: SingleChildScrollView(
                                   child: Text(
-                                    controller.descriptionController.text.isNotEmpty
+                                    controller.descriptionController.text
+                                            .isNotEmpty
                                         ? controller.descriptionController.text
                                         : 'No description provided.',
-                                    style: const TextStyle(color: Color(0xFF5E6E8C), fontSize: 13, height: 1.5),
+                                    style: const TextStyle(
+                                        color: Color(0xFF5E6E8C),
+                                        fontSize: 13,
+                                        height: 1.5),
                                   ),
                                 ),
                               ),
@@ -259,13 +328,17 @@ class ProductPreviewScreen extends StatelessWidget {
                           onPressed: () => Navigator.pop(context),
                           style: OutlinedButton.styleFrom(
                             side: BorderSide(color: Colors.grey.shade200),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12)),
                             minimumSize: const Size(0, 56),
                             backgroundColor: Colors.white,
                           ),
                           child: const Text(
                             'Edit',
-                            style: TextStyle(color: Color(0xFF2E3E5C), fontSize: 16, fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                                color: Color(0xFF2E3E5C),
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold),
                           ),
                         ),
                       ),
@@ -274,13 +347,19 @@ class ProductPreviewScreen extends StatelessWidget {
                         child: controller.isLoading
                             ? const Center(child: CircularProgressIndicator())
                             : CustomGradientButton(
-                                text: 'Post',
+                                text: controller.isEditing ? 'Update' : 'Post',
                                 onPressed: () async {
-                                  final success = await controller.submitProduct();
+                                  final wasEditing = controller.isEditing;
+                                  final success =
+                                      await controller.submitProduct();
                                   if (success && context.mounted) {
-                                    AppSnackbar.show(
-                                      title: 'Success',
-                                      message: 'Your product has been posted!',
+                                    Get.snackbar(
+                                      'Success',
+                                      controller.submissionSuccessMessage ??
+                                          (wasEditing
+                                              ? 'Your product has been updated!'
+                                              : 'Your product has been posted!'),
+                                      snackPosition: SnackPosition.BOTTOM,
                                       backgroundColor: Colors.green.shade600,
                                     );
                                     controller.resetForm();
@@ -288,12 +367,17 @@ class ProductPreviewScreen extends StatelessWidget {
                                       context,
                                       '/my_listing',
                                       (route) => route.settings.name == '/home',
-                                      arguments: {'showBoost': true},
+                                      arguments: wasEditing
+                                          ? null
+                                          : {'showBoost': true},
                                     );
                                   } else if (context.mounted) {
                                     Get.snackbar(
                                       'Error',
-                                      controller.submissionErrorMessage ?? 'Failed to post product. Please try again.',
+                                      controller.submissionErrorMessage ??
+                                          (wasEditing
+                                              ? 'Failed to update product. Please try again.'
+                                              : 'Failed to post product. Please try again.'),
                                       snackPosition: SnackPosition.BOTTOM,
                                       backgroundColor: Colors.red.shade600,
                                     );
@@ -324,7 +408,10 @@ class ProductPreviewScreen extends StatelessWidget {
           ),
           Text(
             value,
-            style: const TextStyle(color: Color(0xFF2E3E5C), fontSize: 14, fontWeight: FontWeight.w600),
+            style: const TextStyle(
+                color: Color(0xFF2E3E5C),
+                fontSize: 14,
+                fontWeight: FontWeight.w600),
           ),
         ],
       ),

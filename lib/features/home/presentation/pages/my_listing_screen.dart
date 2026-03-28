@@ -1,6 +1,7 @@
 import 'package:bikebooking/core/constants/global.dart';
 import 'package:bikebooking/core/widgets/custom_button.dart';
 import 'package:bikebooking/features/home/data/models/product_model.dart';
+import 'package:bikebooking/features/home/presentation/controllers/list_product_controller.dart';
 import 'package:bikebooking/features/home/presentation/controllers/my_listing_controller.dart';
 import 'package:bikebooking/features/home/presentation/widgets/app_bottom_nav_bar.dart';
 import 'package:flutter/material.dart';
@@ -293,13 +294,7 @@ class _MyListingScreenState extends State<MyListingScreen>
                   child: CustomGradientButton(
                     height: 42,
                     text: 'Edit',
-                    onPressed: () {
-                      Get.snackbar(
-                        'Edit unavailable',
-                        'Editing a posted product is not wired up yet.',
-                        snackPosition: SnackPosition.BOTTOM,
-                      );
-                    },
+                    onPressed: () => _openEditProduct(context, product),
                   ),
                 ),
               ],
@@ -308,6 +303,22 @@ class _MyListingScreenState extends State<MyListingScreen>
         ],
       ),
     );
+  }
+
+  void _openEditProduct(BuildContext context, ProductModel product) {
+    final editController = Get.isRegistered<ListProductController>()
+        ? Get.find<ListProductController>()
+        : Get.put(ListProductController());
+
+    editController.loadProductForEditing(product);
+
+    final routeName = switch (product.category) {
+      'Spare Parts' => '/spare_parts_detail_form',
+      'Accessories' => '/accessories_detail_form',
+      _ => '/bike_detail_form',
+    };
+
+    Navigator.pushNamed(context, routeName);
   }
 
   Widget _buildImageFallback() {
