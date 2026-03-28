@@ -13,6 +13,8 @@ class ProductPreviewScreen extends StatelessWidget {
       builder: (controller) {
         final isBikeOrScooter =
             controller.category == 'Bikes' || controller.category == 'Scooter';
+        final pageController =
+            PageController(initialPage: controller.selectedImageIndex);
 
         return Scaffold(
           backgroundColor: AppColors.background,
@@ -63,10 +65,18 @@ class ProductPreviewScreen extends StatelessWidget {
                           child: Container(
                             height: 250,
                             padding: const EdgeInsets.symmetric(horizontal: 16),
-                            child: controller.selectedPreviewImage != null
-                                ? Image.memory(
-                                    controller.selectedPreviewImage!.bytes,
-                                    fit: BoxFit.contain,
+                            child: controller.pickedImages.isNotEmpty
+                                ? PageView.builder(
+                                    controller: pageController,
+                                    itemCount: controller.pickedImages.length,
+                                    onPageChanged:
+                                        controller.selectProductImage,
+                                    itemBuilder: (context, index) {
+                                      return Image.memory(
+                                        controller.pickedImages[index].bytes,
+                                        fit: BoxFit.contain,
+                                      );
+                                    },
                                   )
                                 : Image.asset(
                                     'assets/images/bike.png',
@@ -84,14 +94,43 @@ class ProductPreviewScreen extends StatelessWidget {
                         const SizedBox(height: 8),
                         // Page Indicator
                         Center(
-                          child: Container(
-                            width: 40,
-                            height: 4,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF233A66).withOpacity(0.8),
-                              borderRadius: BorderRadius.circular(2),
-                            ),
-                          ),
+                          child: controller.pickedImages.length > 1
+                              ? Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: List.generate(
+                                    controller.pickedImages.length,
+                                    (index) {
+                                      final isSelected =
+                                          controller.selectedImageIndex ==
+                                              index;
+                                      return AnimatedContainer(
+                                        duration:
+                                            const Duration(milliseconds: 220),
+                                        margin: const EdgeInsets.symmetric(
+                                            horizontal: 3),
+                                        width: isSelected ? 18 : 8,
+                                        height: 8,
+                                        decoration: BoxDecoration(
+                                          color: isSelected
+                                              ? const Color(0xFF233A66)
+                                              : const Color(0xFF233A66)
+                                                  .withOpacity(0.25),
+                                          borderRadius:
+                                              BorderRadius.circular(999),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                )
+                              : Container(
+                                  width: 40,
+                                  height: 4,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF233A66)
+                                        .withOpacity(0.8),
+                                    borderRadius: BorderRadius.circular(2),
+                                  ),
+                                ),
                         ),
                         const SizedBox(height: 24),
 
@@ -122,18 +161,22 @@ class ProductPreviewScreen extends StatelessWidget {
                               ),
                               const SizedBox(height: 8),
                               Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Icon(Icons.location_on_outlined,
                                       size: 16, color: Colors.grey.shade500),
                                   const SizedBox(width: 4),
-                                  Text(
-                                    controller
-                                            .locationController.text.isNotEmpty
-                                        ? controller.locationController.text
-                                        : 'Location not set',
-                                    style: TextStyle(
-                                        color: Colors.grey.shade500,
-                                        fontSize: 13),
+                                  Expanded(
+                                    child: Text(
+                                      controller.locationController.text
+                                              .isNotEmpty
+                                          ? controller.locationController.text
+                                          : 'Location not set',
+                                      softWrap: true,
+                                      style: TextStyle(
+                                          color: Colors.grey.shade500,
+                                          fontSize: 13),
+                                    ),
                                   ),
                                 ],
                               ),
@@ -221,21 +264,25 @@ class ProductPreviewScreen extends StatelessWidget {
                               ),
                               const SizedBox(height: 12),
                               Container(
+                                width: double.infinity,
+                                height: 150,
                                 padding: const EdgeInsets.all(16),
                                 decoration: BoxDecoration(
                                   borderRadius: BorderRadius.circular(12),
                                   border: Border.all(
                                       color: Colors.black.withOpacity(0.05)),
                                 ),
-                                child: Text(
-                                  controller
-                                          .descriptionController.text.isNotEmpty
-                                      ? controller.descriptionController.text
-                                      : 'No description provided.',
-                                  style: const TextStyle(
-                                      color: Color(0xFF5E6E8C),
-                                      fontSize: 13,
-                                      height: 1.5),
+                                child: SingleChildScrollView(
+                                  child: Text(
+                                    controller.descriptionController.text
+                                            .isNotEmpty
+                                        ? controller.descriptionController.text
+                                        : 'No description provided.',
+                                    style: const TextStyle(
+                                        color: Color(0xFF5E6E8C),
+                                        fontSize: 13,
+                                        height: 1.5),
+                                  ),
                                 ),
                               ),
                             ],
@@ -283,7 +330,8 @@ class ProductPreviewScreen extends StatelessWidget {
                                   if (success && context.mounted) {
                                     Get.snackbar(
                                       'Success',
-                                      'Your product has been posted!',
+                                      controller.submissionSuccessMessage ??
+                                          'Your product has been posted!',
                                       snackPosition: SnackPosition.BOTTOM,
                                       backgroundColor: Colors.green.shade600,
                                       colorText: Colors.white,
@@ -298,7 +346,8 @@ class ProductPreviewScreen extends StatelessWidget {
                                   } else if (context.mounted) {
                                     Get.snackbar(
                                       'Error',
-                                      'Failed to post product. Please try again.',
+                                      controller.submissionErrorMessage ??
+                                          'Failed to post product. Please try again.',
                                       snackPosition: SnackPosition.BOTTOM,
                                       backgroundColor: Colors.red.shade600,
                                       colorText: Colors.white,

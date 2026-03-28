@@ -75,7 +75,7 @@ class LoginController extends GetxController {
   final GetConnect _connect = GetConnect();
 
   static const int _minimumPlaceSearchLength = 2;
-  static const bool _bypassPhoneAuth = false;
+  static const bool _bypassPhoneAuth = true;
 
   final TextEditingController phoneController = TextEditingController();
   final TextEditingController fullNameController = TextEditingController();
@@ -177,6 +177,26 @@ class LoginController extends GetxController {
     try {
       await Future<void>.delayed(const Duration(seconds: 2));
 
+      if (_bypassPhoneAuth) {
+        final localUser = currentUserProfile;
+        if (localUser == null) {
+          _clearLocalSession();
+          Get.offAllNamed('/login');
+          return;
+        }
+
+        phoneNumber = localUser.phoneNumber;
+        _syncProfileControllers(localUser);
+
+        if (localUser.hasLocation) {
+          Get.offAllNamed('/home');
+          return;
+        }
+
+        Get.offAllNamed('/select_location');
+        return;
+      }
+
       final firebaseUser = _authService.currentUser;
       if (firebaseUser == null) {
         _clearLocalSession();
@@ -229,6 +249,12 @@ class LoginController extends GetxController {
       return;
     }
 
+    final authPhoneNumber = _formatPhoneNumberForAuth(phoneController.text);
+    if (authPhoneNumber == null) {
+      _setError('Enter a valid 10 digit phone number.');
+      return;
+    }
+
     isSendingOtp = true;
     phoneNumber = formattedPhoneNumber;
     errorMessage = null;
@@ -237,7 +263,7 @@ class LoginController extends GetxController {
 
     try {
       await _authService.verifyPhoneNumber(
-        phoneNumber: formattedPhoneNumber,
+        phoneNumber: authPhoneNumber,
         forceResendingToken: resendToken,
         verificationCompleted: (credential) async {
           try {
@@ -303,7 +329,7 @@ class LoginController extends GetxController {
       return;
     }
 
-    phoneController.text = phoneNumber!.replaceFirst('+91', '').trim();
+    phoneController.text = phoneNumber!.trim();
 
     if (_bypassPhoneAuth) {
       isSendingOtp = false;
@@ -318,15 +344,31 @@ class LoginController extends GetxController {
 
   Future<void> verifyOtp() async {
     if (_bypassPhoneAuth) {
-      if (otpCode.length != otpControllers.length) {
-        _setError('Enter any 6 digits to continue.');
+      final resolvedPhoneNumber = phoneNumber?.trim() ?? '';
+      if (resolvedPhoneNumber.isEmpty) {
+        _setError('Phone number is missing. Please restart the login flow.');
         return;
       }
+
+      if (otpCode.length != otpControllers.length) {
+        _setError('Enter the 6 digit OTP to continue.');
+        return;
+      }
+
+      final userProfile = await _ensureLocalUserDocument(
+        fallbackPhoneNumber: resolvedPhoneNumber,
+      );
 
       isVerifyingOtp = false;
       errorMessage = null;
       infoMessage = null;
       update();
+
+      if (userProfile.hasLocation) {
+        Get.offAllNamed('/home');
+        return;
+      }
+
       Get.offAllNamed('/select_location');
       return;
     }
@@ -685,10 +727,7 @@ class LoginController extends GetxController {
 
   Future<bool> saveProfile() async {
     final firebaseUser = _authService.currentUser;
-    if (firebaseUser == null) {
-      _setError('Your session expired. Please log in again.');
-      return false;
-    }
+    final shouldUseLocalSession = _bypassPhoneAuth || firebaseUser == null;
 
     final fullName = fullNameController.text.trim();
     final email = emailController.text.trim();
@@ -711,18 +750,39 @@ class LoginController extends GetxController {
     update();
 
     try {
-      final updatedUser = await _userFirestoreService.updateProfile(
-        userId: firebaseUser.uid,
-        fullName: fullName,
-        email: email,
-        registeredMobileNumber: formattedRegisteredMobile ?? '',
-      );
+      late final AppUserModel updatedUser;
 
-      currentUserProfile = updatedUser;
-      phoneNumber = updatedUser.phoneNumber;
-      _syncProfileControllers(updatedUser);
+      if (shouldUseLocalSession) {
+        final baseUser = await _ensureLocalUserDocument(
+          fallbackPhoneNumber: phoneNumber,
+        );
+        try {
+          updatedUser = await _userFirestoreService.updateProfile(
+            userId: baseUser.id,
+            fullName: fullName,
+            email: email,
+            registeredMobileNumber: formattedRegisteredMobile ?? '',
+          );
+        } catch (_) {
+          updatedUser = baseUser.copyWith(
+            fullName: fullName,
+            email: email,
+            registeredMobileNumber: formattedRegisteredMobile ?? '',
+            updatedAt: DateTime.now(),
+          );
+        }
+      } else {
+        updatedUser = await _userFirestoreService.updateProfile(
+          userId: firebaseUser.uid,
+          fullName: fullName,
+          email: email,
+          registeredMobileNumber: formattedRegisteredMobile ?? '',
+        );
+      }
 
-      if (fullName.isNotEmpty) {
+      _setCurrentUserProfile(updatedUser);
+
+      if (!shouldUseLocalSession && fullName.isNotEmpty) {
         try {
           await _authService.updateDisplayName(fullName);
         } catch (_) {
@@ -743,7 +803,20 @@ class LoginController extends GetxController {
 
   Future<void> refreshCurrentUserProfile() async {
     final firebaseUser = _authService.currentUser;
-    if (firebaseUser == null) {
+    if (_bypassPhoneAuth || firebaseUser == null) {
+      final localUser = currentUserProfile;
+      if (localUser == null) {
+        return;
+      }
+
+      try {
+        final storedUser =
+            await _userFirestoreService.getUserById(localUser.id);
+        _setCurrentUserProfile(storedUser ?? localUser);
+      } catch (_) {
+        _setCurrentUserProfile(localUser);
+      }
+      update();
       return;
     }
 
@@ -753,9 +826,7 @@ class LoginController extends GetxController {
       return;
     }
 
-    currentUserProfile = userProfile;
-    phoneNumber = userProfile.phoneNumber;
-    _syncProfileControllers(userProfile);
+    _setCurrentUserProfile(userProfile);
     update();
   }
 
@@ -802,6 +873,12 @@ class LoginController extends GetxController {
     User? firebaseUser, {
     String? fallbackPhoneNumber,
   }) async {
+    if (_bypassPhoneAuth) {
+      return _ensureLocalUserDocument(
+        fallbackPhoneNumber: fallbackPhoneNumber,
+      );
+    }
+
     if (firebaseUser == null) {
       throw StateError('Unable to find the signed-in user.');
     }
@@ -816,9 +893,7 @@ class LoginController extends GetxController {
       phoneNumber: resolvedPhoneNumber,
     );
 
-    currentUserProfile = userProfile;
-    phoneNumber = userProfile.phoneNumber;
-    _syncProfileControllers(userProfile);
+    _setCurrentUserProfile(userProfile);
     update();
 
     return userProfile;
@@ -827,8 +902,25 @@ class LoginController extends GetxController {
   Future<void> _persistLocationForCurrentUser(
       UserLocationModel location) async {
     final firebaseUser = _authService.currentUser;
-    if (firebaseUser == null) {
-      throw StateError('Your session expired. Please log in again.');
+    if (_bypassPhoneAuth || firebaseUser == null) {
+      final localUser = await _ensureLocalUserDocument(
+        fallbackPhoneNumber: phoneNumber,
+      );
+      try {
+        final updatedUser = await _userFirestoreService.updateLocation(
+          userId: localUser.id,
+          location: location,
+        );
+        _setCurrentUserProfile(updatedUser);
+      } catch (_) {
+        _setCurrentUserProfile(
+          localUser.copyWith(
+            location: location,
+            updatedAt: DateTime.now(),
+          ),
+        );
+      }
+      return;
     }
 
     final updatedUser = await _userFirestoreService.updateLocation(
@@ -836,9 +928,7 @@ class LoginController extends GetxController {
       location: location,
     );
 
-    currentUserProfile = updatedUser;
-    phoneNumber = updatedUser.phoneNumber;
-    _syncProfileControllers(updatedUser);
+    _setCurrentUserProfile(updatedUser);
   }
 
   Future<UserLocationModel> _resolveSelectedLocation(
@@ -916,6 +1006,73 @@ class LoginController extends GetxController {
         userProfile.registeredMobileNumber.isNotEmpty
             ? userProfile.registeredMobileNumber
             : userProfile.phoneNumber;
+  }
+
+  void _setCurrentUserProfile(AppUserModel userProfile) {
+    currentUserProfile = userProfile;
+    phoneNumber = userProfile.phoneNumber;
+    _syncProfileControllers(userProfile);
+  }
+
+  AppUserModel _createOrUpdateLocalSession({
+    String? fallbackPhoneNumber,
+  }) {
+    final resolvedPhoneNumber = _resolveStoredPhoneNumber(
+      fallbackPhoneNumber: fallbackPhoneNumber ?? phoneNumber,
+    );
+
+    if (resolvedPhoneNumber.trim().isEmpty) {
+      throw StateError('Unable to continue without a valid phone number.');
+    }
+
+    final existingUser = currentUserProfile;
+    final updatedUser = AppUserModel(
+      id: existingUser?.id ?? _localUserIdFromPhoneNumber(resolvedPhoneNumber),
+      phoneNumber: resolvedPhoneNumber,
+      fullName: existingUser?.fullName ?? '',
+      email: existingUser?.email ?? '',
+      registeredMobileNumber:
+          existingUser?.registeredMobileNumber.isNotEmpty == true
+              ? existingUser!.registeredMobileNumber
+              : resolvedPhoneNumber,
+      photoUrl: existingUser?.photoUrl ?? '',
+      location: existingUser?.location,
+      createdAt: existingUser?.createdAt ?? DateTime.now(),
+      updatedAt: DateTime.now(),
+    );
+
+    _setCurrentUserProfile(updatedUser);
+    return updatedUser;
+  }
+
+  Future<AppUserModel> _ensureLocalUserDocument({
+    String? fallbackPhoneNumber,
+  }) async {
+    final localUser = _createOrUpdateLocalSession(
+      fallbackPhoneNumber: fallbackPhoneNumber,
+    );
+
+    try {
+      final persistedUser = await _userFirestoreService.ensureUser(
+        userId: localUser.id,
+        phoneNumber: localUser.phoneNumber,
+      );
+
+      final mergedUser = persistedUser.copyWith(
+        fullName: localUser.fullName,
+        email: localUser.email,
+        registeredMobileNumber: localUser.registeredMobileNumber,
+        photoUrl: localUser.photoUrl,
+        location: localUser.location ?? persistedUser.location,
+        createdAt: persistedUser.createdAt ?? localUser.createdAt,
+        updatedAt: persistedUser.updatedAt ?? localUser.updatedAt,
+      );
+
+      _setCurrentUserProfile(mergedUser);
+      return mergedUser;
+    } catch (_) {
+      return localUser;
+    }
   }
 
   void _clearLocalSession() {
@@ -1060,15 +1217,20 @@ class LoginController extends GetxController {
   String? _formatPhoneNumber(String rawPhoneNumber) {
     final digitsOnly = rawPhoneNumber.replaceAll(RegExp(r'[^0-9]'), '');
     if (digitsOnly.length == 10) {
-      return '+91$digitsOnly';
+      return digitsOnly;
     }
     if (digitsOnly.length == 12 && digitsOnly.startsWith('91')) {
-      return '+$digitsOnly';
-    }
-    if (rawPhoneNumber.startsWith('+') && digitsOnly.length >= 10) {
-      return '+$digitsOnly';
+      return digitsOnly.substring(2);
     }
     return null;
+  }
+
+  String? _formatPhoneNumberForAuth(String rawPhoneNumber) {
+    final formattedPhoneNumber = _formatPhoneNumber(rawPhoneNumber);
+    if (formattedPhoneNumber == null) {
+      return null;
+    }
+    return '+91$formattedPhoneNumber';
   }
 
   String? _formatOptionalPhoneNumber(String rawPhoneNumber) {
@@ -1082,9 +1244,9 @@ class LoginController extends GetxController {
     String? authPhoneNumber,
     String? fallbackPhoneNumber,
   }) {
-    final trimmedAuthPhone = authPhoneNumber?.trim() ?? '';
-    if (trimmedAuthPhone.isNotEmpty) {
-      return trimmedAuthPhone;
+    final formattedAuthPhone = _formatPhoneNumber(authPhoneNumber ?? '');
+    if (formattedAuthPhone != null) {
+      return formattedAuthPhone;
     }
 
     final formattedFallback = _formatPhoneNumber(fallbackPhoneNumber ?? '');
@@ -1106,5 +1268,10 @@ class LoginController extends GetxController {
         .where((part) => part.isNotEmpty)
         .toSet()
         .join(', ');
+  }
+
+  static String _localUserIdFromPhoneNumber(String phoneNumber) {
+    final digitsOnly = phoneNumber.replaceAll(RegExp(r'[^0-9]'), '');
+    return 'local_$digitsOnly';
   }
 }

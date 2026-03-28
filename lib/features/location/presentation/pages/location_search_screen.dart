@@ -17,7 +17,12 @@ class _LocationSearchScreenState extends State<LocationSearchScreen> {
   @override
   void initState() {
     super.initState();
-    _loginController.initializeLocationSearch();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      _loginController.initializeLocationSearch();
+    });
   }
 
   @override

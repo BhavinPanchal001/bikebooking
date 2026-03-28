@@ -2,6 +2,7 @@ import 'package:bikebooking/core/constants/global.dart';
 import 'package:bikebooking/core/widgets/custom_button.dart';
 import 'package:bikebooking/features/home/presentation/controllers/list_product_controller.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
 class BikeDetailFormScreen extends StatelessWidget {
@@ -32,7 +33,8 @@ class BikeDetailFormScreen extends StatelessWidget {
                     children: [
                       IconButton(
                         onPressed: () => Navigator.pop(context),
-                        icon: const Icon(Icons.arrow_back, color: Colors.white, size: 28),
+                        icon: const Icon(Icons.arrow_back,
+                            color: Colors.white, size: 28),
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(),
                       ),
@@ -64,8 +66,11 @@ class BikeDetailFormScreen extends StatelessWidget {
                         const SizedBox(height: 16),
                         _buildLabel('Brand'),
                         _buildTextField(
-                          controller.brand.isEmpty ? 'Select a Brand' : controller.brand,
-                          onTap: () => _showBrandBottomSheet(context, controller),
+                          controller.brand.isEmpty
+                              ? 'Select a Brand'
+                              : controller.brand,
+                          onTap: () =>
+                              _showBrandBottomSheet(context, controller),
                           readOnly: true,
                         ),
                         const SizedBox(height: 16),
@@ -77,8 +82,11 @@ class BikeDetailFormScreen extends StatelessWidget {
                                 children: [
                                   _buildLabel('Year'),
                                   _buildTextField(
-                                    controller.year == null ? 'Select a year' : controller.year.toString(),
-                                    onTap: () => _showYearBottomSheet(context, controller),
+                                    controller.year == null
+                                        ? 'Select a year'
+                                        : controller.year.toString(),
+                                    onTap: () => _showYearBottomSheet(
+                                        context, controller),
                                     readOnly: true,
                                   ),
                                 ],
@@ -92,7 +100,8 @@ class BikeDetailFormScreen extends StatelessWidget {
                                   _buildLabel('Fuel Type'),
                                   _buildTextField(
                                     controller.fuelType ?? 'Select Fuel Type',
-                                    onTap: () => _showFuelTypeBottomSheet(context, controller),
+                                    onTap: () => _showFuelTypeBottomSheet(
+                                        context, controller),
                                     readOnly: true,
                                   ),
                                 ],
@@ -112,6 +121,9 @@ class BikeDetailFormScreen extends StatelessWidget {
                                     'Enter KM driven',
                                     controller: controller.kilometerController,
                                     keyboardType: TextInputType.number,
+                                    inputFormatters: [
+                                      FilteringTextInputFormatter.digitsOnly
+                                    ],
                                   ),
                                 ],
                               ),
@@ -126,7 +138,8 @@ class BikeDetailFormScreen extends StatelessWidget {
                                     controller.numberOfOwners == null
                                         ? 'Select owner'
                                         : '${controller.numberOfOwners} owner',
-                                    onTap: () => _showOwnersBottomSheet(context, controller),
+                                    onTap: () => _showOwnersBottomSheet(
+                                        context, controller),
                                     readOnly: true,
                                   ),
                                 ],
@@ -163,12 +176,15 @@ class BikeDetailFormScreen extends StatelessWidget {
                           onPressed: () => Navigator.pop(context),
                           style: OutlinedButton.styleFrom(
                             side: BorderSide(color: Colors.grey.shade200),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12)),
                             minimumSize: const Size(0, 54),
                           ),
                           child: const Text(
                             'Previous',
-                            style: TextStyle(color: Color(0xFF2E3E5C), fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                                color: Color(0xFF2E3E5C),
+                                fontWeight: FontWeight.bold),
                           ),
                         ),
                       ),
@@ -177,7 +193,11 @@ class BikeDetailFormScreen extends StatelessWidget {
                         child: CustomGradientButton(
                           text: 'Next',
                           onPressed: () {
-                            Navigator.pushNamed(context, '/bike_price_location');
+                            if (!controller.validateBikeDetailsStep()) {
+                              return;
+                            }
+                            Navigator.pushNamed(
+                                context, '/bike_price_location');
                           },
                         ),
                       ),
@@ -199,7 +219,8 @@ class BikeDetailFormScreen extends StatelessWidget {
           controller: controller.descriptionController,
           maxLines: 5,
           maxLength: 1000,
-          buildCounter: (context, {required currentLength, required isFocused, maxLength}) {
+          buildCounter: (context,
+              {required currentLength, required isFocused, maxLength}) {
             return Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -217,7 +238,8 @@ class BikeDetailFormScreen extends StatelessWidget {
           decoration: InputDecoration(
             hintText: 'Describe your product in detail...',
             hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: const BorderSide(color: Color(0xFFDDDDDD)),
@@ -258,7 +280,8 @@ class BikeDetailFormScreen extends StatelessWidget {
     );
   }
 
-  void _showBrandBottomSheet(BuildContext context, ListProductController controller) {
+  void _showBrandBottomSheet(
+      BuildContext context, ListProductController controller) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -299,9 +322,12 @@ class BikeDetailFormScreen extends StatelessWidget {
               TextField(
                 decoration: InputDecoration(
                   hintText: 'Search Brand',
-                  hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
-                  prefixIcon: Icon(Icons.search, color: Colors.grey.shade400, size: 24),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  hintStyle:
+                      TextStyle(color: Colors.grey.shade400, fontSize: 14),
+                  prefixIcon:
+                      Icon(Icons.search, color: Colors.grey.shade400, size: 24),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide(color: Colors.grey.shade200),
@@ -326,13 +352,20 @@ class BikeDetailFormScreen extends StatelessWidget {
                 child: ListView(
                   physics: const BouncingScrollPhysics(),
                   children: [
-                    _buildBrandItem('Aprilia', 'assets/brands/aprilia.png', context, controller),
-                    _buildBrandItem('TVS', 'assets/brands/tvs.png', context, controller),
-                    _buildBrandItem('Bajaj', 'assets/brands/bajaj.png', context, controller),
-                    _buildBrandItem('Beneli', 'assets/brands/beneli.png', context, controller),
-                    _buildBrandItem('BSA', 'assets/brands/bsa.png', context, controller),
-                    _buildBrandItem('Ducati', 'assets/brands/ducati.png', context, controller),
-                    _buildBrandItem('Eider', 'assets/brands/eider.png', context, controller),
+                    _buildBrandItem('Aprilia', 'assets/brands/aprilia.png',
+                        context, controller),
+                    _buildBrandItem(
+                        'TVS', 'assets/brands/tvs.png', context, controller),
+                    _buildBrandItem('Bajaj', 'assets/brands/bajaj.png', context,
+                        controller),
+                    _buildBrandItem('Beneli', 'assets/brands/beneli.png',
+                        context, controller),
+                    _buildBrandItem(
+                        'BSA', 'assets/brands/bsa.png', context, controller),
+                    _buildBrandItem('Ducati', 'assets/brands/ducati.png',
+                        context, controller),
+                    _buildBrandItem('Eider', 'assets/brands/eider.png', context,
+                        controller),
                   ],
                 ),
               ),
@@ -343,7 +376,8 @@ class BikeDetailFormScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildBrandItem(String name, String logoPath, BuildContext context, ListProductController controller) {
+  Widget _buildBrandItem(String name, String logoPath, BuildContext context,
+      ListProductController controller) {
     return GestureDetector(
       onTap: () {
         controller.setBrand(name);
@@ -370,7 +404,8 @@ class BikeDetailFormScreen extends StatelessWidget {
               child: Image.asset(
                 logoPath,
                 fit: BoxFit.contain,
-                errorBuilder: (context, error, stackTrace) => const Icon(Icons.directions_bike, color: Colors.grey),
+                errorBuilder: (context, error, stackTrace) =>
+                    const Icon(Icons.directions_bike, color: Colors.grey),
               ),
             ),
             const SizedBox(width: 16),
@@ -388,7 +423,8 @@ class BikeDetailFormScreen extends StatelessWidget {
     );
   }
 
-  void _showFuelTypeBottomSheet(BuildContext context, ListProductController controller) {
+  void _showFuelTypeBottomSheet(
+      BuildContext context, ListProductController controller) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -425,10 +461,14 @@ class BikeDetailFormScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 16),
-              _buildFuelItem('Petrol', Icons.local_gas_station, Colors.green, context, controller),
-              _buildFuelItem('Electric', Icons.electric_bike, Colors.orange, context, controller),
-              _buildFuelItem('Hybrid', Icons.eco, Colors.green.shade700, context, controller),
-              _buildFuelItem('CNG', Icons.gas_meter, Colors.blue, context, controller),
+              _buildFuelItem('Petrol', Icons.local_gas_station, Colors.green,
+                  context, controller),
+              _buildFuelItem('Electric', Icons.electric_bike, Colors.orange,
+                  context, controller),
+              _buildFuelItem('Hybrid', Icons.eco, Colors.green.shade700,
+                  context, controller),
+              _buildFuelItem(
+                  'CNG', Icons.gas_meter, Colors.blue, context, controller),
             ],
           ),
         );
@@ -436,7 +476,8 @@ class BikeDetailFormScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildFuelItem(String name, IconData icon, Color iconColor, BuildContext context, ListProductController controller) {
+  Widget _buildFuelItem(String name, IconData icon, Color iconColor,
+      BuildContext context, ListProductController controller) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
@@ -462,7 +503,8 @@ class BikeDetailFormScreen extends StatelessWidget {
     );
   }
 
-  void _showOwnersBottomSheet(BuildContext context, ListProductController controller) {
+  void _showOwnersBottomSheet(
+      BuildContext context, ListProductController controller) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -522,7 +564,8 @@ class BikeDetailFormScreen extends StatelessWidget {
     );
   }
 
-  void _showYearBottomSheet(BuildContext context, ListProductController controller) {
+  void _showYearBottomSheet(
+      BuildContext context, ListProductController controller) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -609,6 +652,7 @@ class BikeDetailFormScreen extends StatelessWidget {
     bool readOnly = false,
     TextEditingController? controller,
     TextInputType? keyboardType,
+    List<TextInputFormatter>? inputFormatters,
   }) {
     return TextField(
       maxLines: maxLines,
@@ -616,11 +660,15 @@ class BikeDetailFormScreen extends StatelessWidget {
       readOnly: readOnly,
       controller: controller,
       keyboardType: keyboardType,
+      inputFormatters: inputFormatters,
       decoration: InputDecoration(
         hintText: hint,
         hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        suffixIcon: onTap != null ? Icon(Icons.keyboard_arrow_down, color: Colors.grey.shade400) : null,
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        suffixIcon: onTap != null
+            ? Icon(Icons.keyboard_arrow_down, color: Colors.grey.shade400)
+            : null,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: Color(0xFFDDDDDD)),

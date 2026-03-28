@@ -59,6 +59,16 @@ class FirebaseAuthService {
 
   User? get currentUser => _authOrNull?.currentUser;
 
+  Future<User?> ensureSignedInAnonymously() async {
+    final currentUser = _authOrNull?.currentUser;
+    if (currentUser != null) {
+      return currentUser;
+    }
+
+    final userCredential = await _auth.signInAnonymously();
+    return userCredential.user;
+  }
+
   Future<void> updateDisplayName(String displayName) async {
     final user = _auth.currentUser;
     if (user == null) {

@@ -1,5 +1,6 @@
 import 'package:bikebooking/core/constants/global.dart';
 import 'package:bikebooking/features/auth/presentation/controllers/login_controller.dart';
+import 'package:bikebooking/features/home/presentation/widgets/app_bottom_nav_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -268,7 +269,7 @@ class ProfileOverviewScreen extends StatelessWidget {
               ],
             ),
           ),
-          bottomNavigationBar: _buildBottomNav(context),
+          bottomNavigationBar: const AppBottomNavBar(currentIndex: 4),
         );
       },
     );
@@ -433,45 +434,6 @@ class ProfileOverviewScreen extends StatelessWidget {
           ),
         );
       },
-    );
-  }
-
-  Widget _buildBottomNav(BuildContext context) {
-    return BottomNavigationBar(
-      currentIndex: 4,
-      onTap: (index) {
-        if (index == 0) {
-          Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
-        } else if (index == 1) {
-          Navigator.pushNamed(context, '/favorites');
-        } else if (index == 2) {
-          Navigator.pushNamed(context, '/list_product');
-        } else if (index == 3) {
-          Navigator.pushNamed(context, '/messages');
-        }
-      },
-      type: BottomNavigationBarType.fixed,
-      selectedItemColor: AppColors.primary,
-      unselectedItemColor: Colors.grey,
-      items: const [
-        BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: 'Home'),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.favorite_border),
-          label: 'Favorites',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.add_box_outlined),
-          label: 'Sell',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.chat_bubble_outline),
-          label: 'Messages',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.person_outline),
-          label: 'Profile',
-        ),
-      ],
     );
   }
 }

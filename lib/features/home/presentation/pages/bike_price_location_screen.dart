@@ -2,6 +2,7 @@ import 'package:bikebooking/core/constants/global.dart';
 import 'package:bikebooking/core/widgets/custom_button.dart';
 import 'package:bikebooking/features/home/presentation/controllers/list_product_controller.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
 class BikePriceLocationScreen extends StatelessWidget {
@@ -32,7 +33,8 @@ class BikePriceLocationScreen extends StatelessWidget {
                     children: [
                       IconButton(
                         onPressed: () => Navigator.pop(context),
-                        icon: const Icon(Icons.arrow_back, color: Colors.white, size: 28),
+                        icon: const Icon(Icons.arrow_back,
+                            color: Colors.white, size: 28),
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(),
                       ),
@@ -60,9 +62,11 @@ class BikePriceLocationScreen extends StatelessWidget {
                           'Enter bike price',
                           controller: controller.priceController,
                           keyboardType: TextInputType.number,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly
+                          ],
                         ),
                         const SizedBox(height: 24),
-
                         _buildLabel('Location'),
                         _buildTextField(
                           'Select location',
@@ -74,21 +78,41 @@ class BikePriceLocationScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 12),
                         GestureDetector(
-                          onTap: () {
-                            // Use current location
-                          },
+                          onTap: controller.useCurrentLocationForProduct,
                           child: Row(
                             children: [
-                              Icon(Icons.my_location, color: const Color(0xFF4A6495).withOpacity(0.8), size: 18),
+                              Icon(Icons.my_location,
+                                  color:
+                                      const Color(0xFF4A6495).withOpacity(0.8),
+                                  size: 18),
                               const SizedBox(width: 8),
-                              const Text(
-                                'Use current location',
-                                style: TextStyle(
-                                  color: Color(0xFF2E4475),
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w500,
+                              if (controller.isFetchingCurrentLocation)
+                                const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child:
+                                      CircularProgressIndicator(strokeWidth: 2),
+                                )
+                              else
+                                const Text(
+                                  'Use current location',
+                                  style: TextStyle(
+                                    color: Color(0xFF2E4475),
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                  ),
                                 ),
-                              ),
+                              if (controller.isFetchingCurrentLocation) ...[
+                                const SizedBox(width: 8),
+                                const Text(
+                                  'Fetching current location...',
+                                  style: TextStyle(
+                                    color: Color(0xFF2E4475),
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
                             ],
                           ),
                         ),
@@ -107,12 +131,16 @@ class BikePriceLocationScreen extends StatelessWidget {
                           onPressed: () => Navigator.pop(context),
                           style: OutlinedButton.styleFrom(
                             side: BorderSide(color: Colors.grey.shade200),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12)),
                             minimumSize: const Size(0, 56),
                           ),
                           child: const Text(
                             'Previous',
-                            style: TextStyle(color: Color(0xFF2E3E5C), fontSize: 16, fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                                color: Color(0xFF2E3E5C),
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold),
                           ),
                         ),
                       ),
@@ -121,6 +149,9 @@ class BikePriceLocationScreen extends StatelessWidget {
                         child: CustomGradientButton(
                           text: 'Post',
                           onPressed: () {
+                            if (!controller.validatePriceAndLocationStep()) {
+                              return;
+                            }
                             Navigator.pushNamed(context, '/product_preview');
                           },
                         ),
@@ -164,16 +195,19 @@ class BikePriceLocationScreen extends StatelessWidget {
     bool readOnly = false,
     TextEditingController? controller,
     TextInputType? keyboardType,
+    List<TextInputFormatter>? inputFormatters,
   }) {
     return TextField(
       onTap: onTap,
       readOnly: readOnly,
       controller: controller,
       keyboardType: keyboardType,
+      inputFormatters: inputFormatters,
       decoration: InputDecoration(
         hintText: hint,
         hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 15),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: Color(0xFFDDDDDD)),

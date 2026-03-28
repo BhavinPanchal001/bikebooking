@@ -1,6 +1,7 @@
 import 'package:bikebooking/core/constants/global.dart';
 import 'package:flutter/material.dart';
 import '../widgets/bike_card.dart';
+import '../widgets/app_bottom_nav_bar.dart';
 import '../widgets/custom_drawer.dart';
 
 class HomePage extends StatefulWidget {
@@ -12,7 +13,6 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-  int _selectedIndex = 0;
 
   @override
   Widget build(BuildContext context) {
@@ -48,13 +48,22 @@ class _HomePageState extends State<HomePage> {
                         physics: const BouncingScrollPhysics(),
                         child: Row(
                           children: [
-                            _buildCategoryItem('Bikes', 'assets/images/Group 1171278014.png', const Color(0xFFD4E7C5)),
                             _buildCategoryItem(
-                                'Scooter', 'assets/images/Group 1171278014.png', const Color(0xFFFFD1A5)),
+                                'Bikes',
+                                'assets/images/Group 1171278014.png',
+                                const Color(0xFFD4E7C5)),
                             _buildCategoryItem(
-                                'Accessories', 'assets/images/Group 1171278014.png', const Color(0xFFC9C9EB)),
+                                'Scooter',
+                                'assets/images/Group 1171278014.png',
+                                const Color(0xFFFFD1A5)),
                             _buildCategoryItem(
-                                'Spare Parts', 'assets/images/Group 1171278014.png', const Color(0xFFB9E5F3)),
+                                'Accessories',
+                                'assets/images/Group 1171278014.png',
+                                const Color(0xFFC9C9EB)),
+                            _buildCategoryItem(
+                                'Spare Parts',
+                                'assets/images/Group 1171278014.png',
+                                const Color(0xFFB9E5F3)),
                           ],
                         ),
                       ),
@@ -63,13 +72,13 @@ class _HomePageState extends State<HomePage> {
                       // Recently Viewed Items
                       _buildSectionHeader('Recently Viewed Items'),
                       const SizedBox(height: 12),
-                      SingleChildScrollView(
+                      const SingleChildScrollView(
                         scrollDirection: Axis.horizontal,
-                        physics: const BouncingScrollPhysics(),
+                        physics: BouncingScrollPhysics(),
                         child: Row(
                           children: [
-                            const BikeCard(),
-                            const BikeCard(),
+                            BikeCard(),
+                            BikeCard(),
                           ],
                         ),
                       ),
@@ -78,13 +87,13 @@ class _HomePageState extends State<HomePage> {
                       // Just Added
                       _buildSectionHeader('Just Added'),
                       const SizedBox(height: 12),
-                      SingleChildScrollView(
+                      const SingleChildScrollView(
                         scrollDirection: Axis.horizontal,
-                        physics: const BouncingScrollPhysics(),
+                        physics: BouncingScrollPhysics(),
                         child: Row(
                           children: [
-                            const BikeCard(),
-                            const BikeCard(),
+                            BikeCard(),
+                            BikeCard(),
                           ],
                         ),
                       ),
@@ -97,49 +106,7 @@ class _HomePageState extends State<HomePage> {
           ],
         ),
       ),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 10,
-              offset: const Offset(0, -5),
-            ),
-          ],
-        ),
-        child: BottomNavigationBar(
-          currentIndex: _selectedIndex,
-          onTap: (index) {
-            if (index == 1) {
-              Navigator.pushNamed(context, '/filter_result', arguments: 'Bikes');
-              return;
-            } else if (index == 2) {
-              Navigator.pushNamed(context, '/list_product');
-            } else if (index == 3) {
-              Navigator.pushNamed(context, '/my_listing');
-            } else if (index == 4) {
-              Navigator.pushNamed(context, '/profile_overview');
-            }
-            setState(() {
-              _selectedIndex = index;
-            });
-          },
-          type: BottomNavigationBarType.fixed,
-          backgroundColor: Colors.white,
-          selectedItemColor: const Color(0xFF233A66),
-          unselectedItemColor: Colors.grey.shade400,
-          selectedLabelStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
-          unselectedLabelStyle: const TextStyle(fontSize: 11),
-          items: const [
-            BottomNavigationBarItem(
-                icon: Icon(Icons.home_outlined, size: 24), activeIcon: Icon(Icons.home, size: 24), label: 'Home'),
-            BottomNavigationBarItem(icon: Icon(Icons.directions_bike_outlined, size: 24), label: 'Buy'),
-            BottomNavigationBarItem(icon: Icon(Icons.add_circle_outline, size: 24), label: 'Sell'),
-            BottomNavigationBarItem(icon: Icon(Icons.favorite_border, size: 24), label: 'My Post'),
-            BottomNavigationBarItem(icon: Icon(Icons.person_outline, size: 24), label: 'Profile'),
-          ],
-        ),
-      ),
+      bottomNavigationBar: const AppBottomNavBar(currentIndex: 0),
     );
   }
 
@@ -167,9 +134,11 @@ class _HomePageState extends State<HomePage> {
               // Placeholder for Bikenest Logo
               Row(
                 children: [
-                  Image.asset('assets/images/homebike.png', height: 25, width: 25),
+                  Image.asset('assets/images/homebike.png',
+                      height: 25, width: 25),
                   const SizedBox(width: 1),
-                  Image.asset('assets/images/bokenestimage.png', height: 30, width: 100),
+                  Image.asset('assets/images/bokenestimage.png',
+                      height: 30, width: 100),
                 ],
               ),
               const Spacer(),
@@ -178,17 +147,20 @@ class _HomePageState extends State<HomePage> {
               // _buildHeaderIcon(Icons.favorite_border),
               GestureDetector(
                 onTap: () => Navigator.pushNamed(context, '/notifications'),
-                child: Image.asset('assets/images/Group 1171278003.png', height: 20, width: 20),
+                child: Image.asset('assets/images/Group 1171278003.png',
+                    height: 20, width: 20),
               ),
               const SizedBox(width: 12),
               GestureDetector(
                 onTap: () => Navigator.pushNamed(context, '/messages'),
-                child: Image.asset('assets/images/Vector (1).png', height: 20, width: 20),
+                child: Image.asset('assets/images/Vector (1).png',
+                    height: 20, width: 20),
               ),
               const SizedBox(width: 12),
               GestureDetector(
                 onTap: () => Navigator.pushNamed(context, '/favorites'),
-                child: Image.asset('assets/images/Vector (2).png', height: 20, width: 20),
+                child: Image.asset('assets/images/Vector (2).png',
+                    height: 20, width: 20),
               ),
               const SizedBox(width: 12),
               GestureDetector(
@@ -232,9 +204,13 @@ class _HomePageState extends State<HomePage> {
                     width: 15,
                   ),
                   const SizedBox(width: 12),
-                  Text(
+                  const Text(
                     'search',
-                    style: TextStyle(color: Color(0xFFB3B3B3), fontSize: 15, fontFamily: 'Neue Montreal'),
+                    style: TextStyle(
+                      color: Color(0xFFB3B3B3),
+                      fontSize: 15,
+                      fontFamily: 'Neue Montreal',
+                    ),
                   ),
                 ],
               ),
@@ -245,11 +221,11 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-
   Widget _buildPromoBanner() {
     return ClipRRect(
       borderRadius: BorderRadius.circular(16),
-      child: Image.asset('assets/images/Group 1171278220.png', fit: BoxFit.cover),
+      child:
+          Image.asset('assets/images/Group 1171278220.png', fit: BoxFit.cover),
     );
   }
 
@@ -285,7 +261,7 @@ class _HomePageState extends State<HomePage> {
         },
         child: Column(
           children: [
-            Container(
+            SizedBox(
               width: 80,
               height: 90,
               // decoration: BoxDecoration(
@@ -302,11 +278,14 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
             const SizedBox(height: 8),
-            Text(title, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF262A36))),
+            Text(title,
+                style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF262A36))),
           ],
         ),
       ),
     );
   }
-
 }

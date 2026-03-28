@@ -5,7 +5,6 @@ import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import 'package:bikebooking/core/constants/global.dart';
 import 'package:bikebooking/core/widgets/custom_button.dart';
 import 'package:bikebooking/features/auth/presentation/controllers/login_controller.dart';
-import 'package:bikebooking/features/auth/presentation/widgets/auth_feedback_banner.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -279,7 +278,6 @@ class _LoginScreenState extends State<LoginScreen> {
                           ],
                         ),
                       ),
-
                       const SizedBox(height: 18),
                       CustomGradientButton(
                         text: controller.isSendingOtp
@@ -362,4 +360,3 @@ class BottomSlantClipper extends CustomClipper<Path> {
   @override
   bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }
-

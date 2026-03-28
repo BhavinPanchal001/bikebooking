@@ -1,4 +1,5 @@
 import 'package:bikebooking/core/constants/global.dart';
+import 'package:bikebooking/features/home/presentation/widgets/app_bottom_nav_bar.dart';
 import 'package:flutter/material.dart';
 
 class FilterResultScreen extends StatelessWidget {
@@ -6,7 +7,8 @@ class FilterResultScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final category = ModalRoute.of(context)?.settings.arguments as String? ?? 'Accessories';
+    final category =
+        ModalRoute.of(context)?.settings.arguments as String? ?? 'Accessories';
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -30,7 +32,8 @@ class FilterResultScreen extends StatelessWidget {
                     children: [
                       IconButton(
                         onPressed: () => Navigator.pop(context),
-                        icon: const Icon(Icons.arrow_back, color: Colors.white, size: 28),
+                        icon: const Icon(Icons.arrow_back,
+                            color: Colors.white, size: 28),
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(),
                       ),
@@ -69,12 +72,17 @@ class FilterResultScreen extends StatelessWidget {
                                   'assets/images/Group 1171276172.png',
                                   height: 15,
                                   width: 15,
-                                  errorBuilder: (c, e, s) => const Icon(Icons.search, size: 15, color: Colors.grey),
+                                  errorBuilder: (c, e, s) => const Icon(
+                                      Icons.search,
+                                      size: 15,
+                                      color: Colors.grey),
                                 ),
                                 const SizedBox(width: 12),
                                 Text(
                                   'search',
-                                  style: TextStyle(color: Colors.grey.shade400, fontSize: 14),
+                                  style: TextStyle(
+                                      color: Colors.grey.shade400,
+                                      fontSize: 14),
                                 ),
                               ],
                             ),
@@ -85,7 +93,8 @@ class FilterResultScreen extends StatelessWidget {
                       // Filter Button
                       GestureDetector(
                         onTap: () {
-                          Navigator.pushNamed(context, '/filter', arguments: category);
+                          Navigator.pushNamed(context, '/filter',
+                              arguments: category);
                         },
                         child: Container(
                           height: 43,
@@ -99,7 +108,8 @@ class FilterResultScreen extends StatelessWidget {
                               'assets/images/Group.png',
                               height: 17,
                               width: 17,
-                              errorBuilder: (c, e, s) => const Icon(Icons.tune, size: 17, color: Colors.grey),
+                              errorBuilder: (c, e, s) => const Icon(Icons.tune,
+                                  size: 17, color: Colors.grey),
                             ),
                           ),
                         ),
@@ -134,7 +144,10 @@ class FilterResultScreen extends StatelessWidget {
                 children: [
                   Text(
                     '83 Used bikes are available in Pune',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Colors.grey.shade600),
+                    style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.grey.shade600),
                   ),
                 ],
               ),
@@ -194,7 +207,8 @@ class FilterResultScreen extends StatelessWidget {
                     },
                   ];
 
-                  final items = category == 'Accessories' ? accessories : spareParts;
+                  final items =
+                      category == 'Accessories' ? accessories : spareParts;
                   return _buildItemCard(
                     items[index]['name']!,
                     items[index]['price']!,
@@ -206,49 +220,7 @@ class FilterResultScreen extends StatelessWidget {
           ],
         ),
       ),
-      bottomNavigationBar: _buildBottomNav(context),
-    );
-  }
-
-  Widget _buildBottomNav(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, -5),
-          ),
-        ],
-      ),
-      child: BottomNavigationBar(
-        currentIndex: 1, // Buy is selected
-        onTap: (index) {
-          if (index == 0) {
-            Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
-          } else if (index == 2) {
-            Navigator.pushNamed(context, '/list_product');
-          } else if (index == 3) {
-            Navigator.pushNamed(context, '/my_listing');
-          } else if (index == 4) {
-            Navigator.pushNamed(context, '/profile_overview');
-          }
-        },
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: Colors.white,
-        selectedItemColor: const Color(0xFF233A66),
-        unselectedItemColor: Colors.grey.shade400,
-        selectedLabelStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
-        unselectedLabelStyle: const TextStyle(fontSize: 11),
-        items: const [
-          BottomNavigationBarItem(
-              icon: Icon(Icons.home_outlined, size: 24), activeIcon: Icon(Icons.home, size: 24), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.directions_bike_outlined, size: 24), label: 'Buy'),
-          BottomNavigationBarItem(icon: Icon(Icons.add_circle_outline, size: 24), label: 'Sell'),
-          BottomNavigationBarItem(icon: Icon(Icons.favorite_border, size: 24), label: 'My Post'),
-          BottomNavigationBarItem(icon: Icon(Icons.person_outline, size: 24), label: 'Profile'),
-        ],
-      ),
+      bottomNavigationBar: const AppBottomNavBar(currentIndex: 1),
     );
   }
 
@@ -264,7 +236,9 @@ class FilterResultScreen extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+          Text(label,
+              style:
+                  const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
           if (hasDropdown) ...[
             const SizedBox(width: 4),
             const Icon(Icons.keyboard_arrow_down, size: 18),
@@ -305,7 +279,8 @@ class FilterResultScreen extends StatelessWidget {
                   imagePath,
                   width: 80,
                   fit: BoxFit.contain,
-                  errorBuilder: (c, e, s) => const Icon(Icons.shopping_bag, color: Colors.grey, size: 40),
+                  errorBuilder: (c, e, s) => const Icon(Icons.shopping_bag,
+                      color: Colors.grey, size: 40),
                 ),
               ),
             ),
@@ -320,19 +295,23 @@ class FilterResultScreen extends StatelessWidget {
                       Expanded(
                         child: Text(
                           name,
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF0C0E1B)),
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                              color: Color(0xFF0C0E1B)),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      SizedBox(width: 20),
+                      const SizedBox(width: 20),
                       Container(
                         padding: const EdgeInsets.all(7),
                         decoration: const BoxDecoration(
                           color: Color(0xFFF5F5F5),
                           shape: BoxShape.circle,
                         ),
-                        child: Image.asset('assets/images/Path 3392.png', height: 14, width: 14),
+                        child: Image.asset('assets/images/Path 3392.png',
+                            height: 14, width: 14),
                       ),
                     ],
                   ),
@@ -349,11 +328,15 @@ class FilterResultScreen extends StatelessWidget {
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      Icon(Icons.location_on_outlined, size: 12, color: Colors.grey.shade400),
+                      Icon(Icons.location_on_outlined,
+                          size: 12, color: Colors.grey.shade400),
                       const SizedBox(width: 2),
-                      Text(
+                      const Text(
                         'Madhya Pradesh 458468',
-                        style: const TextStyle(color: Color(0xFF262A36), fontSize: 9),
+                        style: TextStyle(
+                          color: Color(0xFF262A36),
+                          fontSize: 9,
+                        ),
                       ),
                     ],
                   ),
@@ -363,9 +346,18 @@ class FilterResultScreen extends StatelessWidget {
                     children: [
                       Text(
                         price,
-                        style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: Color(0xFF2E4475)),
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 15,
+                            color: Color(0xFF2E4475)),
                       ),
-                      Text('10 days ago', style: TextStyle(color: Color(0xFF9F9F9F), fontSize: 9)),
+                      const Text(
+                        '10 days ago',
+                        style: TextStyle(
+                          color: Color(0xFF9F9F9F),
+                          fontSize: 9,
+                        ),
+                      ),
                     ],
                   ),
                 ],
@@ -384,7 +376,11 @@ class FilterResultScreen extends StatelessWidget {
         color: const Color(0xFFF3F5F7),
         borderRadius: BorderRadius.circular(6),
       ),
-      child: Text(text, style: TextStyle(color: Colors.grey.shade600, fontSize: 9, fontWeight: FontWeight.w500)),
+      child: Text(text,
+          style: TextStyle(
+              color: Colors.grey.shade600,
+              fontSize: 9,
+              fontWeight: FontWeight.w500)),
     );
   }
 }

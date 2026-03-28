@@ -2,11 +2,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:bikebooking/features/home/data/models/product_model.dart';
 
 class ProductFirestoreService {
-  ProductFirestoreService({FirebaseFirestore? firestore}) : _firestore = firestore ?? FirebaseFirestore.instance;
+  ProductFirestoreService({FirebaseFirestore? firestore})
+      : _firestore = firestore ?? FirebaseFirestore.instance;
 
   final FirebaseFirestore _firestore;
 
-  CollectionReference<Map<String, dynamic>> get _productsRef => _firestore.collection('products');
+  CollectionReference<Map<String, dynamic>> get _productsRef =>
+      _firestore.collection('products');
 
   /// Creates a new product document and returns the document ID.
   Future<String> addProduct(ProductModel product) async {
@@ -16,14 +18,17 @@ class ProductFirestoreService {
 
   /// Fetches all products, optionally filtered by category.
   Future<List<ProductModel>> getProducts({String? category}) async {
-    Query<Map<String, dynamic>> query = _productsRef.orderBy('createdAt', descending: true);
+    Query<Map<String, dynamic>> query =
+        _productsRef.orderBy('createdAt', descending: true);
 
     if (category != null && category.isNotEmpty) {
       query = query.where('category', isEqualTo: category);
     }
 
     final snapshot = await query.get();
-    return snapshot.docs.map((doc) => ProductModel.fromMap(doc.data(), doc.id)).toList();
+    return snapshot.docs
+        .map((doc) => ProductModel.fromMap(doc.data(), doc.id))
+        .toList();
   }
 
   /// Fetches a single product by its document ID.
@@ -35,10 +40,37 @@ class ProductFirestoreService {
 
   /// Fetches all products by a specific seller.
   Future<List<ProductModel>> getUserProducts(String userId) async {
-    final snapshot =
-        await _productsRef.where('sellerId', isEqualTo: userId).orderBy('createdAt', descending: true).get();
+    try {
+      final snapshot = await _productsRef
+          .where('sellerId', isEqualTo: userId)
+          .orderBy('createdAt', descending: true)
+          .get();
 
-    return snapshot.docs.map((doc) => ProductModel.fromMap(doc.data(), doc.id)).toList();
+      return snapshot.docs
+          .map((doc) => ProductModel.fromMap(doc.data(), doc.id))
+          .toList();
+    } on FirebaseException catch (error) {
+      // Firestore can require an index for this query in some projects.
+      if (error.code != 'failed-precondition') {
+        rethrow;
+      }
+
+      final fallbackSnapshot =
+          await _productsRef.where('sellerId', isEqualTo: userId).get();
+      final products = fallbackSnapshot.docs
+          .map((doc) => ProductModel.fromMap(doc.data(), doc.id))
+          .toList();
+
+      products.sort((first, second) {
+        final firstCreatedAt =
+            first.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+        final secondCreatedAt =
+            second.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+        return secondCreatedAt.compareTo(firstCreatedAt);
+      });
+
+      return products;
+    }
   }
 
   /// Updates an existing product document.

@@ -31,7 +31,8 @@ class AccessoriesDetailFormScreen extends StatelessWidget {
                     children: [
                       IconButton(
                         onPressed: () => Navigator.pop(context),
-                        icon: const Icon(Icons.arrow_back, color: Colors.white, size: 28),
+                        icon: const Icon(Icons.arrow_back,
+                            color: Colors.white, size: 28),
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(),
                       ),
@@ -64,8 +65,11 @@ class AccessoriesDetailFormScreen extends StatelessWidget {
 
                         _buildLabel('Brand'),
                         _buildTextField(
-                          controller.brand.isEmpty ? 'Select a Brand' : controller.brand,
-                          onTap: () => _showBrandBottomSheet(context, controller),
+                          controller.brand.isEmpty
+                              ? 'Select a Brand'
+                              : controller.brand,
+                          onTap: () =>
+                              _showBrandBottomSheet(context, controller),
                           readOnly: true,
                         ),
                         const SizedBox(height: 16),
@@ -78,8 +82,11 @@ class AccessoriesDetailFormScreen extends StatelessWidget {
                                 children: [
                                   _buildLabel('Year'),
                                   _buildTextField(
-                                    controller.year == null ? 'Select a year' : controller.year.toString(),
-                                    onTap: () => _showYearBottomSheet(context, controller),
+                                    controller.year == null
+                                        ? 'Select a year'
+                                        : controller.year.toString(),
+                                    onTap: () => _showYearBottomSheet(
+                                        context, controller),
                                     readOnly: true,
                                   ),
                                 ],
@@ -92,8 +99,10 @@ class AccessoriesDetailFormScreen extends StatelessWidget {
                                 children: [
                                   _buildLabel('Accessories'),
                                   _buildTextField(
-                                    controller.subCategory ?? 'Select a Category',
-                                    onTap: () => _showCategoryBottomSheet(context, controller),
+                                    controller.subCategory ??
+                                        'Select a Category',
+                                    onTap: () => _showCategoryBottomSheet(
+                                        context, controller),
                                     readOnly: true,
                                   ),
                                 ],
@@ -112,7 +121,8 @@ class AccessoriesDetailFormScreen extends StatelessWidget {
                                   _buildLabel('Condition'),
                                   _buildTextField(
                                     controller.condition ?? 'Select Condition',
-                                    onTap: () => _showConditionBottomSheet(context, controller),
+                                    onTap: () => _showConditionBottomSheet(
+                                        context, controller),
                                     readOnly: true,
                                   ),
                                 ],
@@ -125,8 +135,10 @@ class AccessoriesDetailFormScreen extends StatelessWidget {
                                 children: [
                                   _buildLabel('Seller Type'),
                                   _buildTextField(
-                                    controller.sellerType ?? 'Select a Seller Type',
-                                    onTap: () => _showSellerTypeBottomSheet(context, controller),
+                                    controller.sellerType ??
+                                        'Select a Seller Type',
+                                    onTap: () => _showSellerTypeBottomSheet(
+                                        context, controller),
                                     readOnly: true,
                                   ),
                                 ],
@@ -148,12 +160,15 @@ class AccessoriesDetailFormScreen extends StatelessWidget {
                                 onPressed: () => Navigator.pop(context),
                                 style: OutlinedButton.styleFrom(
                                   side: BorderSide(color: Colors.grey.shade200),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12)),
                                   minimumSize: const Size(0, 54),
                                 ),
                                 child: const Text(
                                   'Previous',
-                                  style: TextStyle(color: Color(0xFF2E3E5C), fontWeight: FontWeight.bold),
+                                  style: TextStyle(
+                                      color: Color(0xFF2E3E5C),
+                                      fontWeight: FontWeight.bold),
                                 ),
                               ),
                             ),
@@ -161,16 +176,24 @@ class AccessoriesDetailFormScreen extends StatelessWidget {
                             Expanded(
                               child: ElevatedButton(
                                 onPressed: () {
-                                  Navigator.pushNamed(context, '/bike_price_location');
+                                  if (!controller
+                                      .validateAccessoryDetailsStep()) {
+                                    return;
+                                  }
+                                  Navigator.pushNamed(
+                                      context, '/bike_price_location');
                                 },
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: const Color(0xFF4A6495),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12)),
                                   minimumSize: const Size(0, 54),
                                 ),
                                 child: const Text(
                                   'Next',
-                                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                                  style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold),
                                 ),
                               ),
                             ),
@@ -193,7 +216,8 @@ class AccessoriesDetailFormScreen extends StatelessWidget {
       controller: controller.descriptionController,
       maxLines: 5,
       maxLength: 1000,
-      buildCounter: (context, {required currentLength, required isFocused, maxLength}) {
+      buildCounter: (context,
+          {required currentLength, required isFocused, maxLength}) {
         return Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -211,7 +235,8 @@ class AccessoriesDetailFormScreen extends StatelessWidget {
       decoration: InputDecoration(
         hintText: 'Describe your product in detail...',
         hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: Colors.grey.shade200),
@@ -250,7 +275,11 @@ class AccessoriesDetailFormScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildTextField(String hint, {int maxLines = 1, VoidCallback? onTap, bool readOnly = false, TextEditingController? controller}) {
+  Widget _buildTextField(String hint,
+      {int maxLines = 1,
+      VoidCallback? onTap,
+      bool readOnly = false,
+      TextEditingController? controller}) {
     return TextField(
       maxLines: maxLines,
       onTap: onTap,
@@ -259,8 +288,11 @@ class AccessoriesDetailFormScreen extends StatelessWidget {
       decoration: InputDecoration(
         hintText: hint,
         hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        suffixIcon: onTap != null ? Icon(Icons.keyboard_arrow_down, color: Colors.grey.shade400) : null,
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        suffixIcon: onTap != null
+            ? Icon(Icons.keyboard_arrow_down, color: Colors.grey.shade400)
+            : null,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: Colors.grey.shade200),
@@ -277,7 +309,8 @@ class AccessoriesDetailFormScreen extends StatelessWidget {
     );
   }
 
-  void _showBrandBottomSheet(BuildContext context, ListProductController controller) {
+  void _showBrandBottomSheet(
+      BuildContext context, ListProductController controller) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -306,7 +339,8 @@ class AccessoriesDetailFormScreen extends StatelessWidget {
     );
   }
 
-  void _showYearBottomSheet(BuildContext context, ListProductController controller) {
+  void _showYearBottomSheet(
+      BuildContext context, ListProductController controller) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -329,7 +363,8 @@ class AccessoriesDetailFormScreen extends StatelessWidget {
     );
   }
 
-  void _showCategoryBottomSheet(BuildContext context, ListProductController controller) {
+  void _showCategoryBottomSheet(
+      BuildContext context, ListProductController controller) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -341,23 +376,54 @@ class AccessoriesDetailFormScreen extends StatelessWidget {
         child: ListView(
           physics: const BouncingScrollPhysics(),
           children: [
-            _buildSimpleListItem('Arm Sleeves', () { controller.setSubCategory('Arm Sleeves'); Navigator.pop(context); }),
-            _buildSimpleListItem('Helmet', () { controller.setSubCategory('Helmet'); Navigator.pop(context); }),
-            _buildSimpleListItem('Riding Shoe', () { controller.setSubCategory('Riding Shoe'); Navigator.pop(context); }),
-            _buildSimpleListItem('Riding Gloves', () { controller.setSubCategory('Riding Gloves'); Navigator.pop(context); }),
-            _buildSimpleListItem('Rider Protective Pants', () { controller.setSubCategory('Rider Protective Pants'); Navigator.pop(context); }),
-            _buildSimpleListItem('Rider Jacket', () { controller.setSubCategory('Rider Jacket'); Navigator.pop(context); }),
-            _buildSimpleListItem('Rider Face Masks', () { controller.setSubCategory('Rider Face Masks'); Navigator.pop(context); }),
-            _buildSimpleListItem('Phone Holder', () { controller.setSubCategory('Phone Holder'); Navigator.pop(context); }),
-            _buildSimpleListItem('Knee & Elbow Guards', () { controller.setSubCategory('Knee & Elbow Guards'); Navigator.pop(context); }),
-            _buildSimpleListItem('Saddle Bag', () { controller.setSubCategory('Saddle Bag'); Navigator.pop(context); }),
+            _buildSimpleListItem('Arm Sleeves', () {
+              controller.setSubCategory('Arm Sleeves');
+              Navigator.pop(context);
+            }),
+            _buildSimpleListItem('Helmet', () {
+              controller.setSubCategory('Helmet');
+              Navigator.pop(context);
+            }),
+            _buildSimpleListItem('Riding Shoe', () {
+              controller.setSubCategory('Riding Shoe');
+              Navigator.pop(context);
+            }),
+            _buildSimpleListItem('Riding Gloves', () {
+              controller.setSubCategory('Riding Gloves');
+              Navigator.pop(context);
+            }),
+            _buildSimpleListItem('Rider Protective Pants', () {
+              controller.setSubCategory('Rider Protective Pants');
+              Navigator.pop(context);
+            }),
+            _buildSimpleListItem('Rider Jacket', () {
+              controller.setSubCategory('Rider Jacket');
+              Navigator.pop(context);
+            }),
+            _buildSimpleListItem('Rider Face Masks', () {
+              controller.setSubCategory('Rider Face Masks');
+              Navigator.pop(context);
+            }),
+            _buildSimpleListItem('Phone Holder', () {
+              controller.setSubCategory('Phone Holder');
+              Navigator.pop(context);
+            }),
+            _buildSimpleListItem('Knee & Elbow Guards', () {
+              controller.setSubCategory('Knee & Elbow Guards');
+              Navigator.pop(context);
+            }),
+            _buildSimpleListItem('Saddle Bag', () {
+              controller.setSubCategory('Saddle Bag');
+              Navigator.pop(context);
+            }),
           ],
         ),
       ),
     );
   }
 
-  void _showConditionBottomSheet(BuildContext context, ListProductController controller) {
+  void _showConditionBottomSheet(
+      BuildContext context, ListProductController controller) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -367,16 +433,26 @@ class AccessoriesDetailFormScreen extends StatelessWidget {
         'Choose a Seller Type',
         child: Column(
           children: [
-            _buildSimpleListItem('New', () { controller.setCondition('New'); Navigator.pop(context); }),
-            _buildSimpleListItem('Used', () { controller.setCondition('Used'); Navigator.pop(context); }),
-            _buildSimpleListItem('Refurbished', () { controller.setCondition('Refurbished'); Navigator.pop(context); }),
+            _buildSimpleListItem('New', () {
+              controller.setCondition('New');
+              Navigator.pop(context);
+            }),
+            _buildSimpleListItem('Used', () {
+              controller.setCondition('Used');
+              Navigator.pop(context);
+            }),
+            _buildSimpleListItem('Refurbished', () {
+              controller.setCondition('Refurbished');
+              Navigator.pop(context);
+            }),
           ],
         ),
       ),
     );
   }
 
-  void _showSellerTypeBottomSheet(BuildContext context, ListProductController controller) {
+  void _showSellerTypeBottomSheet(
+      BuildContext context, ListProductController controller) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -386,15 +462,22 @@ class AccessoriesDetailFormScreen extends StatelessWidget {
         'Choose a year below',
         child: Column(
           children: [
-            _buildSimpleListItem('Individual', () { controller.setSellerType('Individual'); Navigator.pop(context); }),
-            _buildSimpleListItem('Dealer', () { controller.setSellerType('Dealer'); Navigator.pop(context); }),
+            _buildSimpleListItem('Individual', () {
+              controller.setSellerType('Individual');
+              Navigator.pop(context);
+            }),
+            _buildSimpleListItem('Dealer', () {
+              controller.setSellerType('Dealer');
+              Navigator.pop(context);
+            }),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildBottomSheet(BuildContext context, String title, {String? searchHint, required Widget child}) {
+  Widget _buildBottomSheet(BuildContext context, String title,
+      {String? searchHint, required Widget child}) {
     return Container(
       height: MediaQuery.of(context).size.height * 0.7,
       decoration: const BoxDecoration(
@@ -431,8 +514,10 @@ class AccessoriesDetailFormScreen extends StatelessWidget {
               decoration: InputDecoration(
                 hintText: searchHint,
                 hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
-                prefixIcon: Icon(Icons.search, color: Colors.grey.shade400, size: 24),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                prefixIcon:
+                    Icon(Icons.search, color: Colors.grey.shade400, size: 24),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide(color: Colors.grey.shade200),
@@ -451,7 +536,8 @@ class AccessoriesDetailFormScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildListItem(String name, String logoPath, BuildContext context, ListProductController controller) {
+  Widget _buildListItem(String name, String logoPath, BuildContext context,
+      ListProductController controller) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
@@ -468,12 +554,14 @@ class AccessoriesDetailFormScreen extends StatelessWidget {
             color: Colors.white,
             borderRadius: BorderRadius.circular(8),
           ),
-          child: logoPath.isNotEmpty ? Image.asset(
-            logoPath,
-            fit: BoxFit.contain,
-            errorBuilder: (context, error, stackTrace) =>
-                const Icon(Icons.shopping_bag, color: Colors.grey),
-          ) : const Icon(Icons.shopping_bag, color: Colors.grey),
+          child: logoPath.isNotEmpty
+              ? Image.asset(
+                  logoPath,
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) =>
+                      const Icon(Icons.shopping_bag, color: Colors.grey),
+                )
+              : const Icon(Icons.shopping_bag, color: Colors.grey),
         ),
         title: Text(
           name,

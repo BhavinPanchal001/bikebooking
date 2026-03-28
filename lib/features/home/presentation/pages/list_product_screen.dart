@@ -1,4 +1,5 @@
 import 'package:bikebooking/core/constants/global.dart';
+import 'package:bikebooking/features/home/presentation/widgets/app_bottom_nav_bar.dart';
 import 'package:flutter/material.dart';
 
 class ListProductScreen extends StatelessWidget {
@@ -27,7 +28,8 @@ class ListProductScreen extends StatelessWidget {
                 children: [
                   IconButton(
                     onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.arrow_back, color: Colors.white, size: 28),
+                    icon: const Icon(Icons.arrow_back,
+                        color: Colors.white, size: 28),
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
                   ),
@@ -104,11 +106,12 @@ class ListProductScreen extends StatelessWidget {
           ],
         ),
       ),
-      bottomNavigationBar: _buildBottomNav(context),
+      bottomNavigationBar: const AppBottomNavBar(currentIndex: 2),
     );
   }
 
-  Widget _buildCategoryCard(BuildContext context, String title, Color bgColor, String imagePath) {
+  Widget _buildCategoryCard(
+      BuildContext context, String title, Color bgColor, String imagePath) {
     return GestureDetector(
       onTap: () {
         Navigator.pushNamed(context, '/product_images', arguments: title);
@@ -181,47 +184,5 @@ class ListProductScreen extends StatelessWidget {
       default:
         return Icons.category;
     }
-  }
-
-  Widget _buildBottomNav(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, -5),
-          ),
-        ],
-      ),
-      child: BottomNavigationBar(
-        currentIndex: 2, // Sell is selected
-        onTap: (index) {
-          if (index == 0) {
-            Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
-          } else if (index == 1) {
-            Navigator.pushNamed(context, '/filter_result', arguments: 'Bikes');
-          } else if (index == 3) {
-            Navigator.pushNamed(context, '/my_listing');
-          } else if (index == 4) {
-            Navigator.pushNamed(context, '/profile_overview');
-          }
-        },
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: Colors.white,
-        selectedItemColor: const Color(0xFF233A66),
-        unselectedItemColor: Colors.grey.shade400,
-        selectedLabelStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
-        unselectedLabelStyle: const TextStyle(fontSize: 11),
-        items: const [
-          BottomNavigationBarItem(
-              icon: Icon(Icons.home_outlined, size: 24), activeIcon: Icon(Icons.home, size: 24), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.directions_bike_outlined, size: 24), label: 'Buy'),
-          BottomNavigationBarItem(icon: Icon(Icons.add_circle_outline, size: 24), label: 'Sell'),
-          BottomNavigationBarItem(icon: Icon(Icons.favorite_border, size: 24), label: 'My Post'),
-          BottomNavigationBarItem(icon: Icon(Icons.person_outline, size: 24), label: 'Profile'),
-        ],
-      ),
-    );
   }
 }

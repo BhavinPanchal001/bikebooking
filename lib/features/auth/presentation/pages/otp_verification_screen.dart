@@ -3,7 +3,6 @@ import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:bikebooking/core/constants/global.dart';
 import 'package:bikebooking/core/widgets/custom_button.dart';
-import 'package:bikebooking/features/auth/presentation/widgets/auth_feedback_banner.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import 'package:bikebooking/features/auth/presentation/controllers/login_controller.dart';
 
@@ -125,7 +124,8 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Image.asset('assets/images/logoWhite.png', width: 100, height: 70),
+                        Image.asset('assets/images/logoWhite.png',
+                            width: 100, height: 70),
                         const SizedBox(height: 10),
                         Text(
                           _onboardingData[index]['title']!,
@@ -175,7 +175,8 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                       topRight: Radius.circular(32),
                     ),
                   ),
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -208,7 +209,8 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                             child: TextField(
                               controller: controller.otpControllers[index],
                               focusNode: controller.otpFocusNodes[index],
-                              onChanged: (value) => controller.updateOtpDigit(index, value),
+                              onChanged: (value) =>
+                                  controller.updateOtpDigit(index, value),
                               textAlign: TextAlign.center,
                               keyboardType: TextInputType.number,
                               maxLength: 1,
@@ -220,18 +222,19 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                                 counterText: '',
                                 enabledBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
-                                  borderSide: BorderSide(color: Colors.grey[300]!),
+                                  borderSide:
+                                      BorderSide(color: Colors.grey[300]!),
                                 ),
                                 focusedBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
-                                  borderSide: const BorderSide(color: AppColors.primary, width: 2),
+                                  borderSide: const BorderSide(
+                                      color: AppColors.primary, width: 2),
                                 ),
                               ),
                             ),
                           ),
                         ),
                       ),
-
                       const SizedBox(height: 14),
                       Row(
                         children: [
@@ -243,9 +246,13 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                             ),
                           ),
                           GestureDetector(
-                            onTap: controller.isSendingOtp ? null : controller.resendOtp,
+                            onTap: controller.isSendingOtp
+                                ? null
+                                : controller.resendOtp,
                             child: Text(
-                              controller.isSendingOtp ? 'Sending...' : 'Resend OTP',
+                              controller.isSendingOtp
+                                  ? 'Sending...'
+                                  : 'Resend OTP',
                               style: GoogleFonts.poppins(
                                 fontSize: 12,
                                 fontWeight: FontWeight.bold,
@@ -258,8 +265,12 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                       ),
                       const SizedBox(height: 22),
                       CustomGradientButton(
-                        text: controller.isVerifyingOtp ? 'Verifying...' : 'Verify',
-                        onPressed: controller.isVerifyingOtp ? () {} : controller.verifyOtp,
+                        text: controller.isVerifyingOtp
+                            ? 'Verifying...'
+                            : 'Verify',
+                        onPressed: controller.isVerifyingOtp
+                            ? () {}
+                            : controller.verifyOtp,
                       ),
                     ],
                   ),
@@ -314,4 +325,3 @@ class BottomSlantClipper extends CustomClipper<Path> {
   @override
   bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }
-
