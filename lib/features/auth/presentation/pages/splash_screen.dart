@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:bikebooking/core/constants/global.dart';
+import 'package:bikebooking/features/auth/presentation/controllers/login_controller.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -13,8 +15,8 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    Timer(const Duration(seconds: 2), () {
-      Navigator.pushReplacementNamed(context, '/login');
+    scheduleMicrotask(() {
+      Get.find<LoginController>().handleSplashNavigation();
     });
   }
 

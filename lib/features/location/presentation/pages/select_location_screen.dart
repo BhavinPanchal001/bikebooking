@@ -63,20 +63,6 @@ class _SelectLocationScreenState extends State<SelectLocationScreen> {
                   color: Colors.grey[600],
                 ),
               ),
-              if (controller.placeSearchError != null) ...[
-                const SizedBox(height: 20),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: Text(
-                    controller.placeSearchError!,
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.poppins(
-                      fontSize: 12,
-                      color: Colors.red.shade700,
-                    ),
-                  ),
-                ),
-              ],
               const SizedBox(height: 40),
               Padding(
                 padding: const EdgeInsets.only(
@@ -90,9 +76,12 @@ class _SelectLocationScreenState extends State<SelectLocationScreen> {
                     _buildLocationOption(
                       title: controller.isFetchingCurrentLocation
                           ? 'Detecting Current Location...'
-                          : 'Use Current Location',
+                          : controller.isSavingLocation
+                              ? 'Saving Location...'
+                              : 'Use Current Location',
                       subtitle: 'Enable GPS to detect your location',
-                      onTap: controller.isFetchingCurrentLocation
+                      onTap: controller.isFetchingCurrentLocation ||
+                              controller.isSavingLocation
                           ? null
                           : controller.useCurrentLocation,
                       leading: Image.asset(
@@ -105,9 +94,11 @@ class _SelectLocationScreenState extends State<SelectLocationScreen> {
                     _buildLocationOption(
                       title: 'Add New Address',
                       subtitle: '',
-                      onTap: () {
-                        Navigator.pushNamed(context, '/location_search');
-                      },
+                      onTap: controller.isSavingLocation
+                          ? null
+                          : () {
+                              Navigator.pushNamed(context, '/location_search');
+                            },
                       leading: Image.asset(
                         'assets/images/currentLocation2.png',
                         height: 18,

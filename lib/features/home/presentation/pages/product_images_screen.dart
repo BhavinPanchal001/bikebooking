@@ -9,170 +9,207 @@ class ProductImagesScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final category = ModalRoute.of(context)?.settings.arguments as String? ?? 'Bikes';
+    final category =
+        ModalRoute.of(context)?.settings.arguments as String? ?? 'Bikes';
 
-    // Initialize the controller at the start of the flow
     final controller = Get.put(ListProductController());
-    // Store selected category
     if (controller.category.isEmpty) {
       controller.setCategory(category);
     }
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Header (Same as ListProductScreen)
-            Container(
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: AppColors.headerBackground,
-                borderRadius: const BorderRadius.only(
-                  bottomLeft: Radius.circular(15),
-                  bottomRight: Radius.circular(15),
-                ),
-              ),
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  IconButton(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.arrow_back, color: Colors.white, size: 28),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                  ),
-                  const SizedBox(height: 20),
-                  const Text(
-                    'List Product',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
+    return GetBuilder<ListProductController>(
+      builder: (controller) {
+        return Scaffold(
+          backgroundColor: AppColors.background,
+          body: SafeArea(
+            child: Column(
+              children: [
+                Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: AppColors.headerBackground,
+                    borderRadius: const BorderRadius.only(
+                      bottomLeft: Radius.circular(15),
+                      bottomRight: Radius.circular(15),
                     ),
                   ),
-                ],
-              ),
-            ),
-
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    RichText(
-                      text: const TextSpan(
-                        text: 'Product Images',
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      IconButton(
+                        onPressed: () => Navigator.pop(context),
+                        icon: const Icon(Icons.arrow_back,
+                            color: Colors.white, size: 28),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                      ),
+                      const SizedBox(height: 20),
+                      const Text(
+                        'List Product',
                         style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF2E3E5C),
-                        ),
-                        children: [
-                          TextSpan(
-                            text: '*',
-                            style: TextStyle(color: Colors.red),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Main Image Preview
-                    Container(
-                      width: double.infinity,
-                      height: 300,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: Colors.grey.shade200),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.02),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: Center(
-                        child: Image.asset(
-                          'assets/images/bike.png', // Placeholder
-                          fit: BoxFit.contain,
-                          errorBuilder: (context, error, stackTrace) {
-                            return Icon(Icons.image_outlined, size: 100, color: Colors.grey.shade300);
-                          },
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Thumbnails
-                    SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      physics: const BouncingScrollPhysics(),
-                      child: Row(
-                        children: [
-                          _buildThumbnail('assets/images/bike.png'),
-                          _buildThumbnail('assets/images/bike.png'),
-                          _buildThumbnail('assets/images/bike.png'),
-                          _buildThumbnail('assets/images/bike.png'),
-                          _buildThumbnail('assets/images/bike.png'),
-                          _buildAddThumbnail(),
-                        ],
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        RichText(
+                          text: const TextSpan(
+                            text: 'Product Images',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF2E3E5C),
+                            ),
+                            children: [
+                              TextSpan(
+                                text: '*',
+                                style: TextStyle(color: Colors.red),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Container(
+                          width: double.infinity,
+                          height: 300,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: Colors.grey.shade200),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.02),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: _buildMainPreview(controller),
+                        ),
+                        const SizedBox(height: 16),
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          physics: const BouncingScrollPhysics(),
+                          child: Row(
+                            children: [
+                              for (var index = 0;
+                                  index < controller.pickedImages.length;
+                                  index++)
+                                _buildThumbnail(controller, index),
+                              if (controller.pickedImages.length < 6)
+                                _buildAddThumbnail(controller),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: CustomGradientButton(
+                    text: 'Next',
+                    onPressed: () {
+                      if (!controller.hasPickedImages) {
+                        Get.snackbar(
+                          'Images required',
+                          'Please upload at least one product image.',
+                          snackPosition: SnackPosition.BOTTOM,
+                        );
+                        return;
+                      }
 
-            // Next Button
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: CustomGradientButton(
-                text: 'Next',
-                onPressed: () {
-                  if (category == 'Spare Parts') {
-                    Navigator.pushNamed(context, '/spare_parts_detail_form');
-                  } else if (category == 'Accessories') {
-                    Navigator.pushNamed(context, '/accessories_detail_form');
-                  } else {
-                    Navigator.pushNamed(context, '/bike_detail_form');
-                  }
-                },
-              ),
+                      if (category == 'Spare Parts') {
+                        Navigator.pushNamed(
+                            context, '/spare_parts_detail_form');
+                      } else if (category == 'Accessories') {
+                        Navigator.pushNamed(
+                            context, '/accessories_detail_form');
+                      } else {
+                        Navigator.pushNamed(context, '/bike_detail_form');
+                      }
+                    },
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildMainPreview(ListProductController controller) {
+    final previewImage = controller.selectedPreviewImage;
+    if (previewImage == null) {
+      return Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.image_outlined, size: 100, color: Colors.grey.shade300),
+          const SizedBox(height: 12),
+          Text(
+            'Upload product images',
+            style: TextStyle(
+              color: Colors.grey.shade500,
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      );
+    }
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(20),
+      child: Image.memory(
+        previewImage.bytes,
+        width: double.infinity,
+        fit: BoxFit.cover,
+      ),
+    );
+  }
+
+  Widget _buildThumbnail(ListProductController controller, int index) {
+    final image = controller.pickedImages[index];
+
+    return GestureDetector(
+      onTap: () => controller.selectProductImage(index),
+      child: Container(
+        width: 60,
+        height: 60,
+        margin: const EdgeInsets.only(right: 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: controller.selectedImageIndex == index
+                ? AppColors.primary
+                : Colors.grey.shade200,
+            width: controller.selectedImageIndex == index ? 1.5 : 1,
+          ),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(11),
+          child: Image.memory(
+            image.bytes,
+            fit: BoxFit.cover,
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildThumbnail(String imagePath) {
-    return Container(
-      width: 60,
-      height: 60,
-      margin: const EdgeInsets.only(right: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Center(
-        child: Image.asset(
-          imagePath,
-          fit: BoxFit.contain,
-          errorBuilder: (context, error, stackTrace) {
-            return Icon(Icons.image_outlined, size: 30, color: Colors.grey.shade300);
-          },
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAddThumbnail() {
+  Widget _buildAddThumbnail(ListProductController controller) {
     return Container(
       width: 60,
       height: 60,
@@ -180,7 +217,18 @@ class ProductImagesScreen extends StatelessWidget {
         color: const Color(0xFF7E7E7E),
         borderRadius: BorderRadius.circular(12),
       ),
-      child: const Icon(Icons.add_a_photo_outlined, color: Colors.white, size: 24),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: controller.pickProductImages,
+          borderRadius: BorderRadius.circular(12),
+          child: const Icon(
+            Icons.add_a_photo_outlined,
+            color: Colors.white,
+            size: 24,
+          ),
+        ),
+      ),
     );
   }
 }

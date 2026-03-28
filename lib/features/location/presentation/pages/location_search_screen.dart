@@ -124,7 +124,9 @@ class _LocationSearchScreenState extends State<LocationSearchScreen> {
                     ),
                   ),
                   child: ElevatedButton(
-                    onPressed: controller.confirmSelectedLocation,
+                    onPressed: controller.isSavingLocation
+                        ? null
+                        : controller.confirmSelectedLocation,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.transparent,
                       shadowColor: Colors.transparent,
@@ -133,7 +135,9 @@ class _LocationSearchScreenState extends State<LocationSearchScreen> {
                       ),
                     ),
                     child: Text(
-                      'Confirm Location',
+                      controller.isSavingLocation
+                          ? 'Saving Location...'
+                          : 'Confirm Location',
                       style: GoogleFonts.poppins(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,

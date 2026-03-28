@@ -1,11 +1,27 @@
+import 'dart:typed_data';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:bikebooking/features/auth/presentation/controllers/login_controller.dart';
 import 'package:bikebooking/features/home/data/models/product_model.dart';
 import 'package:bikebooking/features/home/data/services/product_firestore_service.dart';
 
+class PickedProductImage {
+  const PickedProductImage({
+    required this.file,
+    required this.bytes,
+  });
+
+  final XFile file;
+  final Uint8List bytes;
+}
+
 class ListProductController extends GetxController {
   final ProductFirestoreService _firestoreService = ProductFirestoreService();
+  final ImagePicker _imagePicker = ImagePicker();
+  static const int _maxProductImages = 6;
 
   // ── Step 1: Category ──
   String _category = '';
@@ -19,9 +35,65 @@ class ListProductController extends GetxController {
   // ── Step 2: Images (URLs — placeholder for now) ──
   List<String> _imageUrls = [];
   List<String> get imageUrls => _imageUrls;
+  final List<PickedProductImage> _pickedImages = [];
+  List<PickedProductImage> get pickedImages => List.unmodifiable(_pickedImages);
+  int _selectedImageIndex = 0;
+  int get selectedImageIndex => _selectedImageIndex;
+  bool get hasPickedImages => _pickedImages.isNotEmpty;
+  PickedProductImage? get selectedPreviewImage =>
+      _pickedImages.isEmpty ? null : _pickedImages[_selectedImageIndex];
 
   void setImageUrls(List<String> urls) {
     _imageUrls = urls;
+    update();
+  }
+
+  Future<void> pickProductImages() async {
+    try {
+      final remainingSlots = _maxProductImages - _pickedImages.length;
+      if (remainingSlots <= 0) {
+        Get.snackbar(
+          'Limit reached',
+          'You can upload up to $_maxProductImages images.',
+          snackPosition: SnackPosition.BOTTOM,
+        );
+        return;
+      }
+
+      final pickedFiles = await _imagePicker.pickMultiImage(
+        imageQuality: 85,
+      );
+      if (pickedFiles.isEmpty) {
+        return;
+      }
+
+      final filesToAdd = pickedFiles.take(remainingSlots).toList();
+      final newImages = <PickedProductImage>[];
+      for (final file in filesToAdd) {
+        final bytes = await file.readAsBytes();
+        newImages.add(PickedProductImage(file: file, bytes: bytes));
+      }
+
+      _pickedImages.addAll(newImages);
+      if (_pickedImages.length == newImages.length) {
+        _selectedImageIndex = 0;
+      }
+      update();
+    } catch (error) {
+      Get.snackbar(
+        'Image upload failed',
+        'Unable to pick images right now. Please try again.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      debugPrint('Error picking product images: $error');
+    }
+  }
+
+  void selectProductImage(int index) {
+    if (index < 0 || index >= _pickedImages.length) {
+      return;
+    }
+    _selectedImageIndex = index;
     update();
   }
 
@@ -102,6 +174,15 @@ class ListProductController extends GetxController {
 
     try {
       final user = FirebaseAuth.instance.currentUser;
+      final loginController = Get.isRegistered<LoginController>()
+          ? Get.find<LoginController>()
+          : null;
+      final sellerId =
+          user?.uid ?? loginController?.currentUserProfile?.id ?? '';
+      final sellerName =
+          loginController?.currentUserProfile?.displayName.isNotEmpty == true
+              ? loginController!.currentUserProfile!.displayName
+              : (user?.displayName ?? '');
 
       final product = ProductModel(
         category: _category,
@@ -112,8 +193,8 @@ class ListProductController extends GetxController {
         price: double.tryParse(priceController.text.trim()),
         location: locationController.text.trim(),
         imageUrls: _imageUrls,
-        sellerId: user?.uid ?? '',
-        sellerName: user?.displayName ?? '',
+        sellerId: sellerId,
+        sellerName: sellerName,
         status: 'active',
         // Bike / Scooter fields
         fuelType: _fuelType,
@@ -154,6 +235,8 @@ class ListProductController extends GetxController {
     _condition = null;
     _sellerType = null;
     _imageUrls = [];
+    _pickedImages.clear();
+    _selectedImageIndex = 0;
     _isLoading = false;
     update();
   }

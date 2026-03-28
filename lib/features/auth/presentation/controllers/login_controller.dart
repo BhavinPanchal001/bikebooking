@@ -1,11 +1,13 @@
 import 'dart:async';
 
 import 'package:bikebooking/core/constants/global.dart';
-import 'package:geocoding/geocoding.dart';
-import 'package:geolocator/geolocator.dart';
+import 'package:bikebooking/features/auth/data/models/app_user_model.dart';
 import 'package:bikebooking/features/auth/data/services/firebase_auth_service.dart';
+import 'package:bikebooking/features/auth/data/services/user_firestore_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:geocoding/geocoding.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
 
 class PlaceSuggestion {
@@ -14,38 +16,74 @@ class PlaceSuggestion {
     required this.title,
     required this.subtitle,
     required this.description,
+    this.latitude,
+    this.longitude,
+    this.address,
   });
 
   final String placeId;
   final String title;
   final String subtitle;
   final String description;
+  final double? latitude;
+  final double? longitude;
+  final String? address;
 
   factory PlaceSuggestion.fromJson(Map<String, dynamic> json) {
-    final structuredFormatting = json['structured_formatting'] as Map<String, dynamic>?;
+    final structuredFormatting =
+        json['structured_formatting'] as Map<String, dynamic>?;
     final description = (json['description']?.toString() ?? '').trim();
     final title = (structuredFormatting?['main_text']?.toString() ?? '').trim();
-    final subtitle = (structuredFormatting?['secondary_text']?.toString() ?? '').trim();
+    final subtitle =
+        (structuredFormatting?['secondary_text']?.toString() ?? '').trim();
 
     return PlaceSuggestion(
       placeId: (json['place_id']?.toString() ?? description).trim(),
       title: title.isNotEmpty ? title : description,
       subtitle: subtitle.isNotEmpty ? subtitle : description,
       description: description,
+      address: description,
+    );
+  }
+
+  PlaceSuggestion copyWith({
+    String? placeId,
+    String? title,
+    String? subtitle,
+    String? description,
+    double? latitude,
+    double? longitude,
+    String? address,
+  }) {
+    return PlaceSuggestion(
+      placeId: placeId ?? this.placeId,
+      title: title ?? this.title,
+      subtitle: subtitle ?? this.subtitle,
+      description: description ?? this.description,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
+      address: address ?? this.address,
     );
   }
 }
 
 class LoginController extends GetxController {
-  LoginController(this._authService);
+  LoginController(this._authService, this._userFirestoreService);
 
   final FirebaseAuthService _authService;
+  final UserFirestoreService _userFirestoreService;
   final GetConnect _connect = GetConnect();
+
   static const int _minimumPlaceSearchLength = 2;
-  static const bool _bypassPhoneAuth = true;
+  static const bool _bypassPhoneAuth = false;
 
   final TextEditingController phoneController = TextEditingController();
-  final TextEditingController locationSearchController = TextEditingController();
+  final TextEditingController fullNameController = TextEditingController();
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController registeredMobileNumberController =
+      TextEditingController();
+  final TextEditingController locationSearchController =
+      TextEditingController();
   final List<TextEditingController> otpControllers = List.generate(
     6,
     (_) => TextEditingController(),
@@ -57,27 +95,37 @@ class LoginController extends GetxController {
 
   bool isSendingOtp = false;
   bool isVerifyingOtp = false;
+  bool isLoadingProfile = false;
+  bool isSavingProfile = false;
+  bool isSearchingPlaces = false;
+  bool isFetchingCurrentLocation = false;
+  bool isSavingLocation = false;
+  bool _isHandlingSplashNavigation = false;
+
   String? verificationId;
   int? resendToken;
   String? phoneNumber;
   String? errorMessage;
   String? infoMessage;
-  bool isSearchingPlaces = false;
-  bool isFetchingCurrentLocation = false;
   String? placeSearchError;
   String? placeSearchInfo = 'Type at least 2 characters to search.';
   PlaceSuggestion? selectedPlace;
   List<PlaceSuggestion> placeSuggestions = [];
+  AppUserModel? currentUserProfile;
 
   Timer? _placeSearchDebounce;
   int _placeSearchRequestId = 0;
   String _placeSearchSessionToken = _createPlaceSearchSessionToken();
 
-  String get otpCode => otpControllers.map((controller) => controller.text).join();
+  String get otpCode =>
+      otpControllers.map((controller) => controller.text).join();
 
   @override
   void onClose() {
     phoneController.dispose();
+    fullNameController.dispose();
+    emailController.dispose();
+    registeredMobileNumberController.dispose();
     locationSearchController.dispose();
     for (final controller in otpControllers) {
       controller.dispose();
@@ -117,6 +165,47 @@ class LoginController extends GetxController {
     update();
   }
 
+  Future<void> handleSplashNavigation() async {
+    if (_isHandlingSplashNavigation) {
+      return;
+    }
+
+    _isHandlingSplashNavigation = true;
+    isLoadingProfile = true;
+    update();
+
+    try {
+      await Future<void>.delayed(const Duration(seconds: 2));
+
+      final firebaseUser = _authService.currentUser;
+      if (firebaseUser == null) {
+        _clearLocalSession();
+        Get.offAllNamed('/login');
+        return;
+      }
+
+      final userProfile = await _ensureUserDocument(
+        firebaseUser,
+        fallbackPhoneNumber: firebaseUser.phoneNumber,
+      );
+
+      if (userProfile.hasLocation) {
+        Get.offAllNamed('/home');
+        return;
+      }
+
+      Get.offAllNamed('/select_location');
+    } catch (_) {
+      await _safeSignOut();
+      _clearLocalSession();
+      Get.offAllNamed('/login');
+    } finally {
+      _isHandlingSplashNavigation = false;
+      isLoadingProfile = false;
+      update();
+    }
+  }
+
   Future<void> sendOtp() async {
     final formattedPhoneNumber = _formatPhoneNumber(phoneController.text);
     if (formattedPhoneNumber == null) {
@@ -129,16 +218,21 @@ class LoginController extends GetxController {
       isSendingOtp = false;
       errorMessage = null;
       _clearOtpFields();
-      infoMessage = 'Demo mode: enter any 6 digits to continue.';
-      update();
+      _showInfo('Demo mode: enter any 6 digits to continue.');
       if (Get.currentRoute != '/otp') {
         Get.toNamed('/otp', arguments: formattedPhoneNumber);
       }
       return;
     }
 
+    if (!_ensureFirebaseConfigured()) {
+      return;
+    }
+
     isSendingOtp = true;
     phoneNumber = formattedPhoneNumber;
+    errorMessage = null;
+    infoMessage = null;
     update();
 
     try {
@@ -147,22 +241,32 @@ class LoginController extends GetxController {
         forceResendingToken: resendToken,
         verificationCompleted: (credential) async {
           try {
-            await _authService.signInWithCredential(credential);
-            Get.offAllNamed('/select_location');
+            final userCredential =
+                await _authService.signInWithCredential(credential);
+            await _handleSuccessfulSignIn(
+              userCredential.user,
+              fallbackPhoneNumber: formattedPhoneNumber,
+            );
           } on FirebaseAuthException catch (exception) {
             _setFirebaseError(
               exception,
-              fallback: 'Auto verification failed. Please enter the OTP manually.',
+              fallback:
+                  'Auto verification failed. Please enter the OTP manually.',
             );
           } on StateError catch (exception) {
             _setError(exception.message);
           } catch (_) {
-            _setError('Auto verification failed. Please enter the OTP manually.');
+            _setError(
+              'Auto verification failed. Please enter the OTP manually.',
+            );
           }
         },
         verificationFailed: (exception) {
           isSendingOtp = false;
-          _setFirebaseError(exception, fallback: 'Unable to send OTP right now.');
+          _setFirebaseError(
+            exception,
+            fallback: 'Unable to send OTP right now.',
+          );
         },
         codeSent: (receivedVerificationId, receivedResendToken) {
           verificationId = receivedVerificationId;
@@ -204,9 +308,8 @@ class LoginController extends GetxController {
     if (_bypassPhoneAuth) {
       isSendingOtp = false;
       errorMessage = null;
-      infoMessage = 'Demo mode: enter any 6 digits to continue.';
       _clearOtpFields();
-      update();
+      _showInfo('Demo mode: enter any 6 digits to continue.');
       return;
     }
 
@@ -246,13 +349,15 @@ class LoginController extends GetxController {
     update();
 
     try {
-      await _authService.signInWithOtp(
+      final userCredential = await _authService.signInWithOtp(
         verificationId: verificationId!,
         smsCode: otpCode,
       );
       isVerifyingOtp = false;
-      update();
-      Get.offAllNamed('/select_location');
+      await _handleSuccessfulSignIn(
+        userCredential.user,
+        fallbackPhoneNumber: phoneNumber,
+      );
     } on FirebaseAuthException catch (exception) {
       isVerifyingOtp = false;
       _setFirebaseError(exception, fallback: 'Invalid OTP. Please try again.');
@@ -298,31 +403,48 @@ class LoginController extends GetxController {
         ),
       );
 
-      final placemarks = await placemarkFromCoordinates(
-        position.latitude,
-        position.longitude,
-      );
+      var title = 'Current Location';
+      var description =
+          '${position.latitude.toStringAsFixed(5)}, ${position.longitude.toStringAsFixed(5)}';
 
-      final placemark = placemarks.isNotEmpty ? placemarks.first : null;
-      final title = _joinAddressParts([
-        placemark?.locality,
-        placemark?.subAdministrativeArea,
-        placemark?.administrativeArea,
-      ]);
-      final description = _joinAddressParts([
-        placemark?.street,
-        placemark?.subLocality,
-        placemark?.locality,
-        placemark?.administrativeArea,
-        placemark?.postalCode,
-        placemark?.country,
-      ]);
+      try {
+        final placemarks = await placemarkFromCoordinates(
+          position.latitude,
+          position.longitude,
+        );
+        final placemark = placemarks.isNotEmpty ? placemarks.first : null;
+        final resolvedTitle = _joinAddressParts([
+          placemark?.locality,
+          placemark?.subAdministrativeArea,
+          placemark?.administrativeArea,
+        ]);
+        final resolvedDescription = _joinAddressParts([
+          placemark?.street,
+          placemark?.subLocality,
+          placemark?.locality,
+          placemark?.administrativeArea,
+          placemark?.postalCode,
+          placemark?.country,
+        ]);
+
+        if (resolvedTitle.isNotEmpty) {
+          title = resolvedTitle;
+        }
+        if (resolvedDescription.isNotEmpty) {
+          description = resolvedDescription;
+        }
+      } catch (_) {
+        // If reverse geocoding fails, keep the coordinates fallback.
+      }
 
       final currentPlace = PlaceSuggestion(
         placeId: '${position.latitude},${position.longitude}',
-        title: title.isNotEmpty ? title : 'Current Location',
-        subtitle: description.isNotEmpty ? description : 'Current Location',
-        description: description.isNotEmpty ? description : 'Current Location',
+        title: title,
+        subtitle: description,
+        description: description,
+        latitude: position.latitude,
+        longitude: position.longitude,
+        address: description,
       );
 
       selectedPlace = currentPlace;
@@ -333,10 +455,29 @@ class LoginController extends GetxController {
         ),
       );
       placeSuggestions = [];
-      placeSearchInfo = 'Using your current location.';
+
+      await _persistLocationForCurrentUser(
+        UserLocationModel(
+          address: description,
+          latitude: position.latitude,
+          longitude: position.longitude,
+          label: title,
+        ),
+      );
+
+      placeSearchInfo = 'Location saved successfully.';
       Get.offAllNamed('/home');
     } catch (error) {
-      placeSearchError = error.toString().replaceFirst('Exception: ', '');
+      final message = error.toString().replaceFirst('Exception: ', '');
+      placeSearchError = message;
+      Get.snackbar(
+        'Location Error',
+        message,
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.shade700,
+        colorText: Colors.white,
+        margin: const EdgeInsets.all(16),
+      );
     } finally {
       isFetchingCurrentLocation = false;
       update();
@@ -348,6 +489,7 @@ class LoginController extends GetxController {
     _placeSearchRequestId++;
     _placeSearchSessionToken = _createPlaceSearchSessionToken();
     isSearchingPlaces = false;
+    isSavingLocation = false;
     placeSearchError = null;
     placeSearchInfo = 'Type at least 2 characters to search.';
     selectedPlace = null;
@@ -438,19 +580,24 @@ class LoginController extends GetxController {
         final predictions = (responseMap['predictions'] as List<dynamic>? ?? [])
             .whereType<Map>()
             .map(
-              (prediction) => PlaceSuggestion.fromJson(Map<String, dynamic>.from(prediction)),
+              (prediction) => PlaceSuggestion.fromJson(
+                Map<String, dynamic>.from(prediction),
+              ),
             )
             .toList();
 
         placeSuggestions = predictions;
-        placeSearchInfo = predictions.isEmpty ? 'No places found for "$trimmedQuery".' : null;
+        placeSearchInfo =
+            predictions.isEmpty ? 'No places found for "$trimmedQuery".' : null;
       } else if (status == 'ZERO_RESULTS') {
         placeSuggestions = [];
         placeSearchInfo = 'No places found for "$trimmedQuery".';
       } else {
         final apiErrorMessage = responseMap['error_message']?.toString();
         throw Exception(
-          apiErrorMessage?.isNotEmpty == true ? apiErrorMessage : 'Google Places returned $status.',
+          apiErrorMessage?.isNotEmpty == true
+              ? apiErrorMessage
+              : 'Google Places returned $status.',
         );
       }
     } catch (_) {
@@ -458,7 +605,8 @@ class LoginController extends GetxController {
         return;
       }
       placeSuggestions = [];
-      placeSearchError = 'Unable to fetch places right now. Check the API key and internet access.';
+      placeSearchError =
+          'Unable to fetch places right now. Check the API key and internet access.';
     } finally {
       if (requestId == _placeSearchRequestId) {
         isSearchingPlaces = false;
@@ -487,6 +635,7 @@ class LoginController extends GetxController {
     _placeSearchRequestId++;
     _placeSearchSessionToken = _createPlaceSearchSessionToken();
     isSearchingPlaces = false;
+    isSavingLocation = false;
     selectedPlace = null;
     placeSuggestions = [];
     placeSearchError = null;
@@ -495,16 +644,126 @@ class LoginController extends GetxController {
     update();
   }
 
-  void confirmSelectedLocation() {
+  Future<void> confirmSelectedLocation() async {
     if (selectedPlace == null) {
       placeSearchError = 'Select a place from the search results to continue.';
       update();
       return;
     }
 
+    isSavingLocation = true;
     placeSearchError = null;
+    placeSearchInfo = null;
     update();
-    Get.offAllNamed('/home');
+
+    try {
+      final resolvedLocation = await _resolveSelectedLocation(selectedPlace!);
+      selectedPlace = selectedPlace!.copyWith(
+        description: resolvedLocation.address,
+        subtitle: resolvedLocation.address,
+        address: resolvedLocation.address,
+        latitude: resolvedLocation.latitude,
+        longitude: resolvedLocation.longitude,
+      );
+
+      await _persistLocationForCurrentUser(resolvedLocation);
+
+      placeSearchInfo = 'Location saved successfully.';
+      Get.offAllNamed('/home');
+    } catch (error) {
+      placeSearchError = error.toString().replaceFirst('Exception: ', '');
+      _showSnackbar(
+        title: 'Location Error',
+        message: placeSearchError!,
+        backgroundColor: const Color(0xFFC62828),
+      );
+    } finally {
+      isSavingLocation = false;
+      update();
+    }
+  }
+
+  Future<bool> saveProfile() async {
+    final firebaseUser = _authService.currentUser;
+    if (firebaseUser == null) {
+      _setError('Your session expired. Please log in again.');
+      return false;
+    }
+
+    final fullName = fullNameController.text.trim();
+    final email = emailController.text.trim();
+    final registeredMobileNumber = registeredMobileNumberController.text.trim();
+
+    if (email.isNotEmpty && !GetUtils.isEmail(email)) {
+      _setError('Enter a valid email address.');
+      return false;
+    }
+
+    final formattedRegisteredMobile =
+        _formatOptionalPhoneNumber(registeredMobileNumber);
+    if (registeredMobileNumber.isNotEmpty &&
+        formattedRegisteredMobile == null) {
+      _setError('Enter a valid registered mobile number.');
+      return false;
+    }
+
+    isSavingProfile = true;
+    update();
+
+    try {
+      final updatedUser = await _userFirestoreService.updateProfile(
+        userId: firebaseUser.uid,
+        fullName: fullName,
+        email: email,
+        registeredMobileNumber: formattedRegisteredMobile ?? '',
+      );
+
+      currentUserProfile = updatedUser;
+      phoneNumber = updatedUser.phoneNumber;
+      _syncProfileControllers(updatedUser);
+
+      if (fullName.isNotEmpty) {
+        try {
+          await _authService.updateDisplayName(fullName);
+        } catch (_) {
+          // The Firestore profile remains the source of truth.
+        }
+      }
+
+      _showInfo('Profile updated successfully.');
+      return true;
+    } catch (_) {
+      _setError('Unable to update profile right now. Please try again.');
+      return false;
+    } finally {
+      isSavingProfile = false;
+      update();
+    }
+  }
+
+  Future<void> refreshCurrentUserProfile() async {
+    final firebaseUser = _authService.currentUser;
+    if (firebaseUser == null) {
+      return;
+    }
+
+    final userProfile =
+        await _userFirestoreService.getUserById(firebaseUser.uid);
+    if (userProfile == null) {
+      return;
+    }
+
+    currentUserProfile = userProfile;
+    phoneNumber = userProfile.phoneNumber;
+    _syncProfileControllers(userProfile);
+    update();
+  }
+
+  Future<void> logout() async {
+    await _safeSignOut();
+    _clearLocalSession();
+    update();
+    Get.offAllNamed('/login');
   }
 
   void clearFeedback() {
@@ -514,6 +773,182 @@ class LoginController extends GetxController {
     errorMessage = null;
     infoMessage = null;
     update();
+  }
+
+  Future<void> _handleSuccessfulSignIn(
+    User? firebaseUser, {
+    String? fallbackPhoneNumber,
+  }) async {
+    final userProfile = await _ensureUserDocument(
+      firebaseUser,
+      fallbackPhoneNumber: fallbackPhoneNumber,
+    );
+
+    isSendingOtp = false;
+    isVerifyingOtp = false;
+    errorMessage = null;
+    infoMessage = null;
+    update();
+
+    if (userProfile.hasLocation) {
+      Get.offAllNamed('/home');
+      return;
+    }
+
+    Get.offAllNamed('/select_location');
+  }
+
+  Future<AppUserModel> _ensureUserDocument(
+    User? firebaseUser, {
+    String? fallbackPhoneNumber,
+  }) async {
+    if (firebaseUser == null) {
+      throw StateError('Unable to find the signed-in user.');
+    }
+
+    final resolvedPhoneNumber = _resolveStoredPhoneNumber(
+      authPhoneNumber: firebaseUser.phoneNumber,
+      fallbackPhoneNumber: fallbackPhoneNumber ?? phoneNumber,
+    );
+
+    final userProfile = await _userFirestoreService.ensureUser(
+      userId: firebaseUser.uid,
+      phoneNumber: resolvedPhoneNumber,
+    );
+
+    currentUserProfile = userProfile;
+    phoneNumber = userProfile.phoneNumber;
+    _syncProfileControllers(userProfile);
+    update();
+
+    return userProfile;
+  }
+
+  Future<void> _persistLocationForCurrentUser(
+      UserLocationModel location) async {
+    final firebaseUser = _authService.currentUser;
+    if (firebaseUser == null) {
+      throw StateError('Your session expired. Please log in again.');
+    }
+
+    final updatedUser = await _userFirestoreService.updateLocation(
+      userId: firebaseUser.uid,
+      location: location,
+    );
+
+    currentUserProfile = updatedUser;
+    phoneNumber = updatedUser.phoneNumber;
+    _syncProfileControllers(updatedUser);
+  }
+
+  Future<UserLocationModel> _resolveSelectedLocation(
+    PlaceSuggestion suggestion,
+  ) async {
+    if (suggestion.latitude != null && suggestion.longitude != null) {
+      return UserLocationModel(
+        address: suggestion.address ?? suggestion.description,
+        latitude: suggestion.latitude!,
+        longitude: suggestion.longitude!,
+        label: suggestion.title,
+      );
+    }
+
+    final uri = Uri.https(
+      'maps.googleapis.com',
+      '/maps/api/place/details/json',
+      {
+        'place_id': suggestion.placeId,
+        'fields': 'formatted_address,geometry/location,name',
+        'key': AppConfig.googlePlacesApiKey,
+        'language': 'en',
+        'sessiontoken': _placeSearchSessionToken,
+      },
+    );
+
+    final response = await _connect.get(uri.toString());
+    final body = response.body;
+    if (!response.isOk || body is! Map) {
+      throw Exception('Unable to fetch place details.');
+    }
+
+    final responseMap = Map<String, dynamic>.from(body);
+    final status = responseMap['status']?.toString() ?? 'UNKNOWN_ERROR';
+    if (status != 'OK') {
+      final apiErrorMessage = responseMap['error_message']?.toString();
+      throw Exception(
+        apiErrorMessage?.isNotEmpty == true
+            ? apiErrorMessage
+            : 'Google Places returned $status.',
+      );
+    }
+
+    final result = responseMap['result'];
+    if (result is! Map) {
+      throw Exception('Place details are missing.');
+    }
+
+    final resultMap = Map<String, dynamic>.from(result);
+    final geometry = resultMap['geometry'];
+    final locationMap = geometry is Map
+        ? Map<String, dynamic>.from(geometry['location'] as Map? ?? {})
+        : <String, dynamic>{};
+
+    final latitude = (locationMap['lat'] as num?)?.toDouble();
+    final longitude = (locationMap['lng'] as num?)?.toDouble();
+    if (latitude == null || longitude == null) {
+      throw Exception('Unable to read the selected place coordinates.');
+    }
+
+    return UserLocationModel(
+      address: resultMap['formatted_address']?.toString() ??
+          suggestion.address ??
+          suggestion.description,
+      latitude: latitude,
+      longitude: longitude,
+      label: resultMap['name']?.toString() ?? suggestion.title,
+    );
+  }
+
+  void _syncProfileControllers(AppUserModel userProfile) {
+    fullNameController.text = userProfile.fullName;
+    emailController.text = userProfile.email;
+    registeredMobileNumberController.text =
+        userProfile.registeredMobileNumber.isNotEmpty
+            ? userProfile.registeredMobileNumber
+            : userProfile.phoneNumber;
+  }
+
+  void _clearLocalSession() {
+    verificationId = null;
+    resendToken = null;
+    phoneNumber = null;
+    errorMessage = null;
+    infoMessage = null;
+    currentUserProfile = null;
+    selectedPlace = null;
+    placeSuggestions = [];
+    placeSearchError = null;
+    placeSearchInfo = 'Type at least 2 characters to search.';
+    isSendingOtp = false;
+    isVerifyingOtp = false;
+    isSavingProfile = false;
+    isSavingLocation = false;
+    isFetchingCurrentLocation = false;
+    isSearchingPlaces = false;
+    phoneController.clear();
+    fullNameController.clear();
+    emailController.clear();
+    registeredMobileNumberController.clear();
+    locationSearchController.clear();
+    _clearOtpFields();
+  }
+
+  Future<void> _safeSignOut() async {
+    try {
+      await _authService.signOut();
+    } catch (_) {
+      // Ignore sign-out issues while clearing local session state.
+    }
   }
 
   void _clearOtpFields() {
@@ -533,6 +968,8 @@ class LoginController extends GetxController {
   }
 
   void _setError(String message) {
+    errorMessage = message;
+    infoMessage = null;
     update();
     _showSnackbar(
       title: 'Something went wrong',
@@ -555,6 +992,9 @@ class LoginController extends GetxController {
   }
 
   void _showInfo(String message) {
+    errorMessage = null;
+    infoMessage = message;
+    update();
     _showSnackbar(
       title: 'Success',
       message: message,
@@ -597,7 +1037,8 @@ class LoginController extends GetxController {
     if (normalizedCode == 'invalid-phone-number') {
       return 'Enter a valid phone number.';
     }
-    if (normalizedCode == 'too-many-requests' || normalizedCode == 'quota-exceeded') {
+    if (normalizedCode == 'too-many-requests' ||
+        normalizedCode == 'quota-exceeded') {
       return 'Too many attempts. Please wait a bit and try again.';
     }
     if (normalizedCode == 'invalid-verification-code') {
@@ -630,11 +1071,40 @@ class LoginController extends GetxController {
     return null;
   }
 
+  String? _formatOptionalPhoneNumber(String rawPhoneNumber) {
+    if (rawPhoneNumber.trim().isEmpty) {
+      return '';
+    }
+    return _formatPhoneNumber(rawPhoneNumber);
+  }
+
+  String _resolveStoredPhoneNumber({
+    String? authPhoneNumber,
+    String? fallbackPhoneNumber,
+  }) {
+    final trimmedAuthPhone = authPhoneNumber?.trim() ?? '';
+    if (trimmedAuthPhone.isNotEmpty) {
+      return trimmedAuthPhone;
+    }
+
+    final formattedFallback = _formatPhoneNumber(fallbackPhoneNumber ?? '');
+    if (formattedFallback != null) {
+      return formattedFallback;
+    }
+
+    return (fallbackPhoneNumber ?? '').trim();
+  }
+
   static String _createPlaceSearchSessionToken() {
     return DateTime.now().microsecondsSinceEpoch.toString();
   }
 
   static String _joinAddressParts(List<String?> parts) {
-    return parts.whereType<String>().map((part) => part.trim()).where((part) => part.isNotEmpty).toSet().join(', ');
+    return parts
+        .whereType<String>()
+        .map((part) => part.trim())
+        .where((part) => part.isNotEmpty)
+        .toSet()
+        .join(', ');
   }
 }
