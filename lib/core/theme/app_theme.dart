@@ -21,6 +21,13 @@ class AppTheme {
       colorScheme: ColorScheme.fromSeed(seedColor: AppColors.primary),
       useMaterial3: true,
       scaffoldBackgroundColor: const Color(0xFFF9FBFF),
+      snackBarTheme: SnackBarThemeData(
+        contentTextStyle: GoogleFonts.poppins(
+          fontSize: 13,
+          fontWeight: FontWeight.w500,
+          color: Colors.white,
+        ),
+      ),
       textTheme: GoogleFonts.poppinsTextTheme().copyWith(
         titleLarge: sectionTitle, // mapping sectionTitle to titleLarge or similar
         labelLarge: viewAllStyle,

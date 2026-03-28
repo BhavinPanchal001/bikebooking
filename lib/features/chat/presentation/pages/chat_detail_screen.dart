@@ -283,7 +283,12 @@ class _ReportBottomSheetState extends State<_ReportBottomSheet> {
               onPressed: () {
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Report submitted successfully')),
+                  const SnackBar(
+                    content: Text(
+                      'Report submitted successfully',
+                      textScaler: TextScaler.noScaling,
+                    ),
+                  ),
                 );
               },
             ),
@@ -359,3 +364,4 @@ class _ReportBottomSheetState extends State<_ReportBottomSheet> {
     );
   }
 }
+
