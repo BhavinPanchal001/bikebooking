@@ -1,6 +1,6 @@
+import 'package:bikebooking/core/constants/product_categories.dart';
 import 'package:bikebooking/core/widgets/custom_button.dart';
 import 'package:bikebooking/core/constants/global.dart';
-import 'package:bikebooking/core/widgets/app_snackbar.dart';
 import 'package:bikebooking/features/home/presentation/controllers/list_product_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -12,8 +12,9 @@ class ProductPreviewScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return GetBuilder<ListProductController>(
       builder: (controller) {
-        final isBikeOrScooter =
-            controller.category == 'Bikes' || controller.category == 'Scooter';
+        final isBikeOrScooter = ProductCategoryCatalog.isVehicleCategory(
+          controller.category,
+        );
         final previewImageUrls = controller.imageUrls
             .where((url) => url.trim().isNotEmpty)
             .toList(growable: false);
@@ -233,7 +234,13 @@ class ProductPreviewScreen extends StatelessWidget {
                                 child: Column(
                                   children: [
                                     _buildSpecRow(
-                                        'Category', controller.category),
+                                      'Category',
+                                      isBikeOrScooter
+                                          ? ProductCategoryCatalog
+                                              .baseCategoryFor(
+                                                  controller.category)
+                                          : controller.category,
+                                    ),
                                     _buildSpecRow(
                                         'Brand',
                                         controller.brand.isNotEmpty
@@ -242,6 +249,10 @@ class ProductPreviewScreen extends StatelessWidget {
                                     _buildSpecRow('Year',
                                         controller.year?.toString() ?? '—'),
                                     if (isBikeOrScooter) ...[
+                                      _buildSpecRow(
+                                        'Sub Category',
+                                        controller.subCategory ?? '—',
+                                      ),
                                       _buildSpecRow('Fuel Type',
                                           controller.fuelType ?? '—'),
                                       _buildSpecRow(

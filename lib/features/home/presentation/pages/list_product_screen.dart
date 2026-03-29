@@ -1,6 +1,8 @@
 import 'package:bikebooking/core/constants/global.dart';
+import 'package:bikebooking/features/home/presentation/controllers/list_product_controller.dart';
 import 'package:bikebooking/features/home/presentation/widgets/app_bottom_nav_bar.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
 class ListProductScreen extends StatelessWidget {
   const ListProductScreen({super.key});
@@ -114,6 +116,13 @@ class ListProductScreen extends StatelessWidget {
       BuildContext context, String title, Color bgColor, String imagePath) {
     return GestureDetector(
       onTap: () {
+        final controller = Get.isRegistered<ListProductController>()
+            ? Get.find<ListProductController>()
+            : Get.put(ListProductController());
+        if (controller.isEditing) {
+          controller.resetForm();
+        }
+        controller.setCategory(title);
         Navigator.pushNamed(context, '/product_images', arguments: title);
       },
       child: Container(

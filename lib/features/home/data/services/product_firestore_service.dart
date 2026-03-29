@@ -16,19 +16,54 @@ class ProductFirestoreService {
     return docRef.id;
   }
 
-  /// Fetches all products, optionally filtered by category.
-  Future<List<ProductModel>> getProducts({String? category}) async {
-    Query<Map<String, dynamic>> query =
-        _productsRef.orderBy('createdAt', descending: true);
+  /// Fetches all products, optionally filtered by one or more categories.
+  Future<List<ProductModel>> getProducts({
+    String? category,
+    List<String>? categories,
+  }) async {
+    final normalizedCategory = category?.trim() ?? '';
+    final normalizedCategories = _normalizeCategories(categories);
+    final query = _buildCategoryQuery(
+      category: normalizedCategory,
+      categories: normalizedCategories,
+      orderByCreatedAt: true,
+    );
 
-    if (category != null && category.isNotEmpty) {
-      query = query.where('category', isEqualTo: category);
+    try {
+      final snapshot = await query.get();
+      return _mapProducts(snapshot.docs);
+    } on FirebaseException catch (error) {
+      if (error.code != 'failed-precondition') {
+        rethrow;
+      }
+
+      final fallbackQuery = _buildCategoryQuery(
+        category: normalizedCategory,
+        categories: normalizedCategories,
+        orderByCreatedAt: false,
+      );
+      final fallbackSnapshot = await fallbackQuery.get();
+      return _sortByCreatedAtDesc(_mapProducts(fallbackSnapshot.docs));
     }
+  }
 
-    final snapshot = await query.get();
-    return snapshot.docs
-        .map((doc) => ProductModel.fromMap(doc.data(), doc.id))
-        .toList();
+  Stream<List<ProductModel>> watchProducts({
+    String? category,
+    List<String>? categories,
+  }) {
+    final normalizedCategory = category?.trim() ?? '';
+    final normalizedCategories = _normalizeCategories(categories);
+    final query = _buildCategoryQuery(
+      category: normalizedCategory,
+      categories: normalizedCategories,
+      orderByCreatedAt: true,
+    );
+
+    return query.snapshots().map(
+          (snapshot) => snapshot.docs
+              .map((doc) => ProductModel.fromMap(doc.data(), doc.id))
+              .toList(growable: false),
+        );
   }
 
   /// Fetches a single product by its document ID.
@@ -46,9 +81,7 @@ class ProductFirestoreService {
           .orderBy('createdAt', descending: true)
           .get();
 
-      return snapshot.docs
-          .map((doc) => ProductModel.fromMap(doc.data(), doc.id))
-          .toList();
+      return _mapProducts(snapshot.docs);
     } on FirebaseException catch (error) {
       // Firestore can require an index for this query in some projects.
       if (error.code != 'failed-precondition') {
@@ -57,19 +90,7 @@ class ProductFirestoreService {
 
       final fallbackSnapshot =
           await _productsRef.where('sellerId', isEqualTo: userId).get();
-      final products = fallbackSnapshot.docs
-          .map((doc) => ProductModel.fromMap(doc.data(), doc.id))
-          .toList();
-
-      products.sort((first, second) {
-        final firstCreatedAt =
-            first.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
-        final secondCreatedAt =
-            second.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
-        return secondCreatedAt.compareTo(firstCreatedAt);
-      });
-
-      return products;
+      return _sortByCreatedAtDesc(_mapProducts(fallbackSnapshot.docs));
     }
   }
 
@@ -81,5 +102,78 @@ class ProductFirestoreService {
   /// Deletes a product by its document ID.
   Future<void> deleteProduct(String id) async {
     await _productsRef.doc(id).delete();
+  }
+
+  Future<void> deleteProductsBySeller(String sellerId) async {
+    final trimmedSellerId = sellerId.trim();
+    if (trimmedSellerId.isEmpty) {
+      return;
+    }
+
+    final snapshot =
+        await _productsRef.where('sellerId', isEqualTo: trimmedSellerId).get();
+    if (snapshot.docs.isEmpty) {
+      return;
+    }
+
+    for (var index = 0; index < snapshot.docs.length; index += 450) {
+      final batch = _firestore.batch();
+      final chunk = snapshot.docs.skip(index).take(450);
+      for (final doc in chunk) {
+        batch.delete(doc.reference);
+      }
+      await batch.commit();
+    }
+  }
+
+  List<ProductModel> _mapProducts(
+    Iterable<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
+  ) {
+    return docs.map((doc) => ProductModel.fromMap(doc.data(), doc.id)).toList();
+  }
+
+  List<ProductModel> _sortByCreatedAtDesc(List<ProductModel> products) {
+    products.sort((first, second) {
+      final firstCreatedAt =
+          first.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+      final secondCreatedAt =
+          second.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+      return secondCreatedAt.compareTo(firstCreatedAt);
+    });
+    return products;
+  }
+
+  List<String> _normalizeCategories(List<String>? categories) {
+    if (categories == null) {
+      return const <String>[];
+    }
+
+    return categories
+        .map((value) => value.trim())
+        .where((value) => value.isNotEmpty)
+        .toSet()
+        .toList(growable: false);
+  }
+
+  Query<Map<String, dynamic>> _buildCategoryQuery({
+    required String category,
+    required List<String> categories,
+    required bool orderByCreatedAt,
+  }) {
+    Query<Map<String, dynamic>> query = _productsRef;
+
+    if (categories.length > 1) {
+      query = query.where('category', whereIn: categories.take(10).toList());
+    } else if (categories.length == 1) {
+      query = query.where('category', isEqualTo: categories.first);
+    } else if (category.isNotEmpty) {
+      query = query.where('category', isEqualTo: category);
+    }
+
+    if (orderByCreatedAt) {
+      query = query.orderBy('createdAt', descending: true);
+    }
+
+    return query;
   }
 }

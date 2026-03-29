@@ -27,6 +27,10 @@ class _LocationSearchScreenState extends State<LocationSearchScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final routeArguments =
+        ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+    final returnOnSave = routeArguments?['returnOnSave'] == true;
+
     return Scaffold(
       backgroundColor: AppColors.background, // Lighter premium grey background
       appBar: AppBar(
@@ -131,7 +135,15 @@ class _LocationSearchScreenState extends State<LocationSearchScreen> {
                   child: ElevatedButton(
                     onPressed: controller.isSavingLocation
                         ? null
-                        : controller.confirmSelectedLocation,
+                        : () async {
+                            final saved =
+                                await controller.confirmSelectedLocation(
+                              navigateToHome: !returnOnSave,
+                            );
+                            if (saved && returnOnSave && context.mounted) {
+                              Navigator.pop(context, true);
+                            }
+                          },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.transparent,
                       shadowColor: Colors.transparent,

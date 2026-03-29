@@ -173,83 +173,87 @@ class _MyListingScreenState extends State<MyListingScreen>
       ),
       child: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.all(12.0),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Container(
-                    width: 110,
-                    height: 90,
-                    color: Colors.white,
-                    child: primaryImage != null
-                        ? Image.network(
-                            primaryImage,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) =>
-                                _buildImageFallback(),
-                          )
-                        : _buildImageFallback(),
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => _openProductDetails(context, product),
+            child: Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      width: 110,
+                      height: 90,
+                      color: Colors.white,
+                      child: primaryImage != null
+                          ? Image.network(
+                              primaryImage,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) =>
+                                  _buildImageFallback(),
+                            )
+                          : _buildImageFallback(),
+                    ),
                   ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        _buildTitle(product),
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                          color: Color(0xFF5E6E8C),
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        _buildPrice(product),
-                        style: const TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF151314),
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        _buildStats(product),
-                        style: const TextStyle(
-                          fontSize: 10,
-                          color: Color(0xFF37474F),
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          const Icon(Icons.location_on_outlined,
-                              size: 12, color: Color(0xFF37474F)),
-                          const SizedBox(width: 4),
-                          Expanded(
-                            child: Text(
-                              _buildLocation(product),
-                              style: const TextStyle(
-                                fontSize: 11,
-                                color: Color(0xFF37474F),
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _buildTitle(product),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: Color(0xFF5E6E8C),
                           ),
-                        ],
-                      ),
-                    ],
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          _buildPrice(product),
+                          style: const TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF151314),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          _buildStats(product),
+                          style: const TextStyle(
+                            fontSize: 10,
+                            color: Color(0xFF37474F),
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            const Icon(Icons.location_on_outlined,
+                                size: 12, color: Color(0xFF37474F)),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: Text(
+                                _buildLocation(product),
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  color: Color(0xFF37474F),
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
           Padding(
@@ -319,6 +323,14 @@ class _MyListingScreenState extends State<MyListingScreen>
     };
 
     Navigator.pushNamed(context, routeName);
+  }
+
+  void _openProductDetails(BuildContext context, ProductModel product) {
+    Navigator.pushNamed(
+      context,
+      '/bike_detail',
+      arguments: product,
+    );
   }
 
   Widget _buildImageFallback() {

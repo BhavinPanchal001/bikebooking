@@ -4,12 +4,17 @@ import 'package:bikebooking/core/constants/global.dart';
 import 'package:bikebooking/core/widgets/app_snackbar.dart';
 import 'package:bikebooking/features/auth/data/models/app_user_model.dart';
 import 'package:bikebooking/features/auth/data/services/firebase_auth_service.dart';
+import 'package:bikebooking/features/auth/data/services/profile_photo_storage_service.dart';
 import 'package:bikebooking/features/auth/data/services/user_firestore_service.dart';
+import 'package:bikebooking/features/chat/data/services/chat_firestore_service.dart';
+import 'package:bikebooking/features/home/data/services/product_firestore_service.dart';
+import 'package:bikebooking/features/home/presentation/controllers/favorites_controller.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
+import 'package:image_picker/image_picker.dart';
 
 class PlaceSuggestion {
   const PlaceSuggestion({
@@ -31,10 +36,12 @@ class PlaceSuggestion {
   final String? address;
 
   factory PlaceSuggestion.fromJson(Map<String, dynamic> json) {
-    final structuredFormatting = json['structured_formatting'] as Map<String, dynamic>?;
+    final structuredFormatting =
+        json['structured_formatting'] as Map<String, dynamic>?;
     final description = (json['description']?.toString() ?? '').trim();
     final title = (structuredFormatting?['main_text']?.toString() ?? '').trim();
-    final subtitle = (structuredFormatting?['secondary_text']?.toString() ?? '').trim();
+    final subtitle =
+        (structuredFormatting?['secondary_text']?.toString() ?? '').trim();
 
     return PlaceSuggestion(
       placeId: (json['place_id']?.toString() ?? description).trim(),
@@ -67,10 +74,23 @@ class PlaceSuggestion {
 }
 
 class LoginController extends GetxController {
-  LoginController(this._authService, this._userFirestoreService);
+  LoginController(
+    this._authService,
+    this._userFirestoreService, {
+    ProfilePhotoStorageService? profilePhotoStorageService,
+    ProductFirestoreService? productFirestoreService,
+    ImagePicker? imagePicker,
+  })  : _profilePhotoStorageService =
+            profilePhotoStorageService ?? ProfilePhotoStorageService(),
+        _productFirestoreService =
+            productFirestoreService ?? ProductFirestoreService(),
+        _imagePicker = imagePicker ?? ImagePicker();
 
   final FirebaseAuthService _authService;
   final UserFirestoreService _userFirestoreService;
+  final ProfilePhotoStorageService _profilePhotoStorageService;
+  final ProductFirestoreService _productFirestoreService;
+  final ImagePicker _imagePicker;
   final GetConnect _connect = GetConnect();
 
   static const int _minimumPlaceSearchLength = 2;
@@ -79,8 +99,10 @@ class LoginController extends GetxController {
   final TextEditingController phoneController = TextEditingController();
   final TextEditingController fullNameController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
-  final TextEditingController registeredMobileNumberController = TextEditingController();
-  final TextEditingController locationSearchController = TextEditingController();
+  final TextEditingController registeredMobileNumberController =
+      TextEditingController();
+  final TextEditingController locationSearchController =
+      TextEditingController();
   final List<TextEditingController> otpControllers = List.generate(
     6,
     (_) => TextEditingController(),
@@ -94,10 +116,14 @@ class LoginController extends GetxController {
   bool isVerifyingOtp = false;
   bool isLoadingProfile = false;
   bool isSavingProfile = false;
+  bool isUploadingProfilePhoto = false;
   bool isSearchingPlaces = false;
   bool isFetchingCurrentLocation = false;
   bool isSavingLocation = false;
+  bool isDeletingAccount = false;
   bool _isHandlingSplashNavigation = false;
+  bool _isVerificationLoaderVisible = false;
+  String? _firestoreSessionErrorMessage;
 
   String? verificationId;
   int? resendToken;
@@ -114,7 +140,8 @@ class LoginController extends GetxController {
   int _placeSearchRequestId = 0;
   String _placeSearchSessionToken = _createPlaceSearchSessionToken();
 
-  String get otpCode => otpControllers.map((controller) => controller.text).join();
+  String get otpCode =>
+      otpControllers.map((controller) => controller.text).join();
 
   @override
   void onClose() {
@@ -134,9 +161,12 @@ class LoginController extends GetxController {
   }
 
   void updatePhoneNumber(String value) {
+    final digitsOnly = value.replaceAll(RegExp(r'[^0-9]'), '');
+    final sanitizedValue =
+        digitsOnly.length > 10 ? digitsOnly.substring(0, 10) : digitsOnly;
     phoneController.value = phoneController.value.copyWith(
-      text: value,
-      selection: TextSelection.collapsed(offset: value.length),
+      text: sanitizedValue,
+      selection: TextSelection.collapsed(offset: sanitizedValue.length),
     );
     update();
   }
@@ -146,7 +176,9 @@ class LoginController extends GetxController {
   }
 
   void updateOtpDigit(int index, String value) {
-    final sanitizedValue = value.replaceAll(RegExp(r'[^0-9]'), '');
+    final digitsOnly = value.replaceAll(RegExp(r'[^0-9]'), '');
+    final sanitizedValue =
+        digitsOnly.isEmpty ? '' : digitsOnly.substring(digitsOnly.length - 1);
     otpControllers[index].value = otpControllers[index].value.copyWith(
           text: sanitizedValue,
           selection: TextSelection.collapsed(offset: sanitizedValue.length),
@@ -159,6 +191,13 @@ class LoginController extends GetxController {
     }
 
     update();
+
+    if (sanitizedValue.isNotEmpty &&
+        index == otpControllers.length - 1 &&
+        otpCode.length == otpControllers.length &&
+        !isVerifyingOtp) {
+      Future<void>.microtask(verifyOtp);
+    }
   }
 
   Future<void> handleSplashNavigation() async {
@@ -233,8 +272,8 @@ class LoginController extends GetxController {
       phoneNumber = formattedPhoneNumber;
       isSendingOtp = false;
       errorMessage = null;
+      infoMessage = null;
       _clearOtpFields();
-      _showInfo('Demo mode: enter any 6 digits to continue.');
       if (Get.currentRoute != '/otp') {
         Get.toNamed('/otp', arguments: formattedPhoneNumber);
       }
@@ -263,7 +302,8 @@ class LoginController extends GetxController {
         forceResendingToken: resendToken,
         verificationCompleted: (credential) async {
           try {
-            final userCredential = await _authService.signInWithCredential(credential);
+            final userCredential =
+                await _authService.signInWithCredential(credential);
             await _handleSuccessfulSignIn(
               userCredential.user,
               fallbackPhoneNumber: formattedPhoneNumber,
@@ -271,7 +311,8 @@ class LoginController extends GetxController {
           } on FirebaseAuthException catch (exception) {
             _setFirebaseError(
               exception,
-              fallback: 'Auto verification failed. Please enter the OTP manually.',
+              fallback:
+                  'Auto verification failed. Please enter the OTP manually.',
             );
           } on StateError catch (exception) {
             _setError(exception.message);
@@ -328,8 +369,8 @@ class LoginController extends GetxController {
     if (_bypassPhoneAuth) {
       isSendingOtp = false;
       errorMessage = null;
+      infoMessage = null;
       _clearOtpFields();
-      _showInfo('Demo mode: enter any 6 digits to continue.');
       return;
     }
 
@@ -337,6 +378,10 @@ class LoginController extends GetxController {
   }
 
   Future<void> verifyOtp() async {
+    if (isVerifyingOtp) {
+      return;
+    }
+
     if (_bypassPhoneAuth) {
       final resolvedPhoneNumber = phoneNumber?.trim() ?? '';
       if (resolvedPhoneNumber.isEmpty) {
@@ -349,22 +394,27 @@ class LoginController extends GetxController {
         return;
       }
 
-      final userProfile = await _ensureLocalUserDocument(
-        fallbackPhoneNumber: resolvedPhoneNumber,
-      );
+      _beginOtpVerification();
 
-      isVerifyingOtp = false;
-      errorMessage = null;
-      infoMessage = null;
-      update();
+      try {
+        final userProfile = await _ensureLocalUserDocument(
+          fallbackPhoneNumber: resolvedPhoneNumber,
+        );
 
-      if (userProfile.hasLocation) {
-        Get.offAllNamed('/home');
+        _completeOtpVerification();
+
+        if (userProfile.hasLocation) {
+          Get.offAllNamed('/home');
+          return;
+        }
+
+        Get.offAllNamed('/select_location');
+        return;
+      } catch (_) {
+        _completeOtpVerification();
+        _setError('Unable to verify OTP right now. Please try again.');
         return;
       }
-
-      Get.offAllNamed('/select_location');
-      return;
     }
 
     if (verificationId == null || verificationId!.isEmpty) {
@@ -381,32 +431,34 @@ class LoginController extends GetxController {
       return;
     }
 
-    isVerifyingOtp = true;
-    update();
+    _beginOtpVerification();
 
     try {
       final userCredential = await _authService.signInWithOtp(
         verificationId: verificationId!,
         smsCode: otpCode,
       );
-      isVerifyingOtp = false;
+      _completeOtpVerification();
       await _handleSuccessfulSignIn(
         userCredential.user,
         fallbackPhoneNumber: phoneNumber,
       );
     } on FirebaseAuthException catch (exception) {
-      isVerifyingOtp = false;
+      _completeOtpVerification();
       _setFirebaseError(exception, fallback: 'Invalid OTP. Please try again.');
     } on StateError catch (exception) {
-      isVerifyingOtp = false;
+      _completeOtpVerification();
       _setError(exception.message);
     } catch (_) {
-      isVerifyingOtp = false;
+      _completeOtpVerification();
       _setError('OTP verification failed. Please try again.');
     }
   }
 
-  Future<void> useCurrentLocation() async {
+  Future<UserLocationModel?> useCurrentLocation({
+    bool navigateToHome = true,
+    bool showSuccessSnackbar = false,
+  }) async {
     isFetchingCurrentLocation = true;
     placeSearchError = null;
     placeSearchInfo = null;
@@ -440,7 +492,8 @@ class LoginController extends GetxController {
       );
 
       var title = 'Current Location';
-      var description = '${position.latitude.toStringAsFixed(5)}, ${position.longitude.toStringAsFixed(5)}';
+      var description =
+          '${position.latitude.toStringAsFixed(5)}, ${position.longitude.toStringAsFixed(5)}';
 
       try {
         final placemarks = await placemarkFromCoordinates(
@@ -501,7 +554,22 @@ class LoginController extends GetxController {
       );
 
       placeSearchInfo = 'Location saved successfully.';
-      Get.offAllNamed('/home');
+      if (showSuccessSnackbar) {
+        _showSnackbar(
+          title: 'Location Saved',
+          message: description,
+          backgroundColor: const Color(0xFF2E7D32),
+        );
+      }
+      if (navigateToHome) {
+        Get.offAllNamed('/home');
+      }
+      return UserLocationModel(
+        address: description,
+        latitude: position.latitude,
+        longitude: position.longitude,
+        label: title,
+      );
     } catch (error) {
       final message = error.toString().replaceFirst('Exception: ', '');
       placeSearchError = message;
@@ -513,6 +581,7 @@ class LoginController extends GetxController {
         colorText: Colors.white,
         margin: const EdgeInsets.all(16),
       );
+      return null;
     } finally {
       isFetchingCurrentLocation = false;
       update();
@@ -622,14 +691,17 @@ class LoginController extends GetxController {
             .toList();
 
         placeSuggestions = predictions;
-        placeSearchInfo = predictions.isEmpty ? 'No places found for "$trimmedQuery".' : null;
+        placeSearchInfo =
+            predictions.isEmpty ? 'No places found for "$trimmedQuery".' : null;
       } else if (status == 'ZERO_RESULTS') {
         placeSuggestions = [];
         placeSearchInfo = 'No places found for "$trimmedQuery".';
       } else {
         final apiErrorMessage = responseMap['error_message']?.toString();
         throw Exception(
-          apiErrorMessage?.isNotEmpty == true ? apiErrorMessage : 'Google Places returned $status.',
+          apiErrorMessage?.isNotEmpty == true
+              ? apiErrorMessage
+              : 'Google Places returned $status.',
         );
       }
     } catch (_) {
@@ -637,7 +709,8 @@ class LoginController extends GetxController {
         return;
       }
       placeSuggestions = [];
-      placeSearchError = 'Unable to fetch places right now. Check the API key and internet access.';
+      placeSearchError =
+          'Unable to fetch places right now. Check the API key and internet access.';
     } finally {
       if (requestId == _placeSearchRequestId) {
         isSearchingPlaces = false;
@@ -675,11 +748,11 @@ class LoginController extends GetxController {
     update();
   }
 
-  Future<void> confirmSelectedLocation() async {
+  Future<bool> confirmSelectedLocation({bool navigateToHome = true}) async {
     if (selectedPlace == null) {
       placeSearchError = 'Select a place from the search results to continue.';
       update();
-      return;
+      return false;
     }
 
     isSavingLocation = true;
@@ -700,7 +773,10 @@ class LoginController extends GetxController {
       await _persistLocationForCurrentUser(resolvedLocation);
 
       placeSearchInfo = 'Location saved successfully.';
-      Get.offAllNamed('/home');
+      if (navigateToHome) {
+        Get.offAllNamed('/home');
+      }
+      return true;
     } catch (error) {
       placeSearchError = error.toString().replaceFirst('Exception: ', '');
       _showSnackbar(
@@ -708,6 +784,7 @@ class LoginController extends GetxController {
         message: placeSearchError!,
         backgroundColor: const Color(0xFFC62828),
       );
+      return false;
     } finally {
       isSavingLocation = false;
       update();
@@ -727,8 +804,10 @@ class LoginController extends GetxController {
       return false;
     }
 
-    final formattedRegisteredMobile = _formatOptionalPhoneNumber(registeredMobileNumber);
-    if (registeredMobileNumber.isNotEmpty && formattedRegisteredMobile == null) {
+    final formattedRegisteredMobile =
+        _formatOptionalPhoneNumber(registeredMobileNumber);
+    if (registeredMobileNumber.isNotEmpty &&
+        formattedRegisteredMobile == null) {
       _setError('Enter a valid registered mobile number.');
       return false;
     }
@@ -788,6 +867,129 @@ class LoginController extends GetxController {
     }
   }
 
+  Future<bool> uploadProfilePhoto(ImageSource source) async {
+    if (isUploadingProfilePhoto) {
+      return false;
+    }
+
+    final resolvedUserId = _resolveCurrentUserId();
+    if (resolvedUserId.isEmpty) {
+      _setError('Unable to find your profile. Please sign in again.');
+      return false;
+    }
+
+    try {
+      final pickedFile = await _imagePicker.pickImage(
+        source: source,
+        imageQuality: 85,
+        maxWidth: 1400,
+      );
+      if (pickedFile == null) {
+        return false;
+      }
+
+      isUploadingProfilePhoto = true;
+      update();
+
+      final uploadedPhotoUrl =
+          await _profilePhotoStorageService.uploadProfilePhoto(
+        userId: resolvedUserId,
+        imageFile: pickedFile,
+      );
+
+      final updatedUser = await _persistProfilePhoto(uploadedPhotoUrl);
+      _setCurrentUserProfile(updatedUser);
+      _showInfo('Profile photo updated successfully.');
+      return true;
+    } on FirebaseException catch (error) {
+      _setError(
+        _friendlyProfilePhotoError(
+          code: error.code,
+          message: error.message,
+          fallback: 'Unable to upload your profile photo right now.',
+        ),
+      );
+      return false;
+    } catch (_) {
+      _setError('Unable to upload your profile photo right now.');
+      return false;
+    } finally {
+      isUploadingProfilePhoto = false;
+      update();
+    }
+  }
+
+  Future<bool> deleteAccount() async {
+    if (isDeletingAccount) {
+      return false;
+    }
+
+    final resolvedUserId = _resolveCurrentUserId();
+    if (resolvedUserId.isEmpty) {
+      _setError('Unable to find your account details. Please sign in again.');
+      return false;
+    }
+
+    isDeletingAccount = true;
+    update();
+
+    final userProfile = currentUserProfile;
+    try {
+      await _productFirestoreService.deleteProductsBySeller(resolvedUserId);
+      await _userFirestoreService.deleteUserAccountData(resolvedUserId);
+
+      if (userProfile?.photoUrl.trim().isNotEmpty == true) {
+        try {
+          await _profilePhotoStorageService.deleteProfilePhoto(
+            userProfile!.photoUrl,
+          );
+        } catch (_) {
+          // Best-effort cleanup so account deletion is not blocked by storage.
+        }
+      }
+
+      final firebaseUser = _authService.currentUser;
+      if (firebaseUser != null) {
+        await _authService.deleteCurrentUser();
+      } else {
+        await _safeSignOut();
+      }
+
+      if (Get.isRegistered<FavoritesController>()) {
+        Get.find<FavoritesController>().clearFavorites();
+      }
+
+      _clearLocalSession();
+      update();
+      Get.offAllNamed('/login');
+      return true;
+    } on FirebaseAuthException catch (error) {
+      _setError(
+        _friendlyDeleteAccountError(
+          code: error.code,
+          message: error.message,
+          fallback: 'Unable to delete your account right now.',
+        ),
+      );
+      return false;
+    } on FirebaseException catch (error) {
+      _setError(
+        _friendlyDeleteAccountError(
+          code: error.code,
+          message: error.message,
+          fallback: 'Unable to delete your account right now.',
+        ),
+      );
+      return false;
+    } catch (_) {
+      _setError('Unable to delete your account right now.');
+      return false;
+    } finally {
+      isDeletingAccount = false;
+      update();
+    }
+  }
+
   Future<void> refreshCurrentUserProfile() async {
     final firebaseUser = _authService.currentUser;
     if (_bypassPhoneAuth || firebaseUser == null) {
@@ -797,7 +999,8 @@ class LoginController extends GetxController {
       }
 
       try {
-        final storedUser = await _userFirestoreService.getUserById(localUser.id);
+        final storedUser =
+            await _userFirestoreService.getUserById(localUser.id);
         _setCurrentUserProfile(storedUser ?? localUser);
       } catch (_) {
         _setCurrentUserProfile(localUser);
@@ -806,7 +1009,8 @@ class LoginController extends GetxController {
       return;
     }
 
-    final userProfile = await _userFirestoreService.getUserById(firebaseUser.uid);
+    final userProfile =
+        await _userFirestoreService.getUserById(firebaseUser.uid);
     if (userProfile == null) {
       return;
     }
@@ -815,7 +1019,113 @@ class LoginController extends GetxController {
     update();
   }
 
+  String get resolvedCurrentUserId => _resolveCurrentUserId();
+
+  String get chatUserId {
+    if (_bypassPhoneAuth) {
+      final profileUserId = currentUserProfile?.id.trim() ?? '';
+      if (profileUserId.isNotEmpty) {
+        return profileUserId;
+      }
+    }
+
+    final firebaseUserId = _authService.currentUser?.uid.trim() ?? '';
+    if (firebaseUserId.isNotEmpty) {
+      return firebaseUserId;
+    }
+
+    return _resolveCurrentUserId();
+  }
+
+  bool get hasFirebaseSession => _authService.currentUser != null;
+  String? get firestoreSessionErrorMessage => _firestoreSessionErrorMessage;
+
+  Future<bool> ensureFirestoreSession() async {
+    if (_authService.currentUser != null) {
+      _firestoreSessionErrorMessage = null;
+      return true;
+    }
+
+    if (!_authService.isConfigured || !_bypassPhoneAuth) {
+      _firestoreSessionErrorMessage =
+          'Firebase Authentication is not configured for this build.';
+      return false;
+    }
+
+    try {
+      final firebaseUser = await _authService.ensureSignedInAnonymously();
+      _firestoreSessionErrorMessage = null;
+      return firebaseUser != null;
+    } on FirebaseAuthException catch (error) {
+      _firestoreSessionErrorMessage = _friendlyFirestoreSessionError(
+        code: error.code,
+        message: error.message,
+      );
+      return false;
+    } catch (_) {
+      _firestoreSessionErrorMessage =
+          'Unable to start a Firebase session for chat right now.';
+      return false;
+    }
+  }
+
+  String _resolveCurrentUserId() {
+    final profileUserId = currentUserProfile?.id.trim() ?? '';
+    if (profileUserId.isNotEmpty) {
+      return profileUserId;
+    }
+
+    final firebaseUserId = _authService.currentUser?.uid.trim() ?? '';
+    if (firebaseUserId.isNotEmpty) {
+      return firebaseUserId;
+    }
+
+    return '';
+  }
+
+  Future<AppUserModel> _persistProfilePhoto(String photoUrl) async {
+    final firebaseUser = _authService.currentUser;
+    final shouldUseLocalSession = _bypassPhoneAuth || firebaseUser == null;
+
+    if (shouldUseLocalSession) {
+      final baseUser = await _ensureLocalUserDocument(
+        fallbackPhoneNumber: phoneNumber,
+      );
+
+      try {
+        return await _userFirestoreService.updatePhotoUrl(
+          userId: baseUser.id,
+          photoUrl: photoUrl,
+        );
+      } catch (_) {
+        return baseUser.copyWith(
+          photoUrl: photoUrl,
+          updatedAt: DateTime.now(),
+        );
+      }
+    }
+
+    return _userFirestoreService.updatePhotoUrl(
+      userId: firebaseUser.uid,
+      photoUrl: photoUrl,
+    );
+  }
+
   Future<void> logout() async {
+    // Set user offline before signing out.
+    final userId = currentUserProfile?.id;
+    if (userId != null && userId.isNotEmpty) {
+      try {
+        final chatService = ChatFirestoreService();
+        await chatService.updateUserOnlineStatus(
+          userId: userId,
+          isOnline: false,
+        );
+      } catch (_) {
+        // Non-critical.
+      }
+    }
+
     await _safeSignOut();
     _clearLocalSession();
     update();
@@ -845,6 +1155,17 @@ class LoginController extends GetxController {
     errorMessage = null;
     infoMessage = null;
     update();
+
+    // Set user online status.
+    try {
+      final chatService = ChatFirestoreService();
+      await chatService.updateUserOnlineStatus(
+        userId: userProfile.id,
+        isOnline: true,
+      );
+    } catch (_) {
+      // Non-critical — ignore failures.
+    }
 
     if (userProfile.hasLocation) {
       Get.offAllNamed('/home');
@@ -884,7 +1205,8 @@ class LoginController extends GetxController {
     return userProfile;
   }
 
-  Future<void> _persistLocationForCurrentUser(UserLocationModel location) async {
+  Future<void> _persistLocationForCurrentUser(
+      UserLocationModel location) async {
     final firebaseUser = _authService.currentUser;
     if (_bypassPhoneAuth || firebaseUser == null) {
       final localUser = await _ensureLocalUserDocument(
@@ -950,7 +1272,9 @@ class LoginController extends GetxController {
     if (status != 'OK') {
       final apiErrorMessage = responseMap['error_message']?.toString();
       throw Exception(
-        apiErrorMessage?.isNotEmpty == true ? apiErrorMessage : 'Google Places returned $status.',
+        apiErrorMessage?.isNotEmpty == true
+            ? apiErrorMessage
+            : 'Google Places returned $status.',
       );
     }
 
@@ -961,8 +1285,9 @@ class LoginController extends GetxController {
 
     final resultMap = Map<String, dynamic>.from(result);
     final geometry = resultMap['geometry'];
-    final locationMap =
-        geometry is Map ? Map<String, dynamic>.from(geometry['location'] as Map? ?? {}) : <String, dynamic>{};
+    final locationMap = geometry is Map
+        ? Map<String, dynamic>.from(geometry['location'] as Map? ?? {})
+        : <String, dynamic>{};
 
     final latitude = (locationMap['lat'] as num?)?.toDouble();
     final longitude = (locationMap['lng'] as num?)?.toDouble();
@@ -971,7 +1296,9 @@ class LoginController extends GetxController {
     }
 
     return UserLocationModel(
-      address: resultMap['formatted_address']?.toString() ?? suggestion.address ?? suggestion.description,
+      address: resultMap['formatted_address']?.toString() ??
+          suggestion.address ??
+          suggestion.description,
       latitude: latitude,
       longitude: longitude,
       label: resultMap['name']?.toString() ?? suggestion.title,
@@ -982,7 +1309,9 @@ class LoginController extends GetxController {
     fullNameController.text = userProfile.fullName;
     emailController.text = userProfile.email;
     registeredMobileNumberController.text =
-        userProfile.registeredMobileNumber.isNotEmpty ? userProfile.registeredMobileNumber : userProfile.phoneNumber;
+        userProfile.registeredMobileNumber.isNotEmpty
+            ? userProfile.registeredMobileNumber
+            : userProfile.phoneNumber;
   }
 
   void _setCurrentUserProfile(AppUserModel userProfile) {
@@ -1008,9 +1337,10 @@ class LoginController extends GetxController {
       phoneNumber: resolvedPhoneNumber,
       fullName: existingUser?.fullName ?? '',
       email: existingUser?.email ?? '',
-      registeredMobileNumber: existingUser?.registeredMobileNumber.isNotEmpty == true
-          ? existingUser!.registeredMobileNumber
-          : resolvedPhoneNumber,
+      registeredMobileNumber:
+          existingUser?.registeredMobileNumber.isNotEmpty == true
+              ? existingUser!.registeredMobileNumber
+              : resolvedPhoneNumber,
       photoUrl: existingUser?.photoUrl ?? '',
       location: existingUser?.location,
       createdAt: existingUser?.createdAt ?? DateTime.now(),
@@ -1065,9 +1395,11 @@ class LoginController extends GetxController {
     isSendingOtp = false;
     isVerifyingOtp = false;
     isSavingProfile = false;
+    isUploadingProfilePhoto = false;
     isSavingLocation = false;
     isFetchingCurrentLocation = false;
     isSearchingPlaces = false;
+    isDeletingAccount = false;
     phoneController.clear();
     fullNameController.clear();
     emailController.clear();
@@ -1098,6 +1430,29 @@ class LoginController extends GetxController {
       'Firebase is not configured yet. Create a Firebase project, then run flutterfire configure.',
     );
     return false;
+  }
+
+  String _friendlyFirestoreSessionError({
+    String? code,
+    String? message,
+  }) {
+    final normalizedCode = code?.toLowerCase() ?? '';
+    final normalizedMessage = message?.toLowerCase() ?? '';
+
+    if (normalizedCode == 'operation-not-allowed' ||
+        normalizedCode == 'admin-restricted-operation') {
+      return 'Anonymous sign-in is disabled in Firebase Authentication. Enable the Anonymous provider in Firebase Console.';
+    }
+    if (normalizedCode == 'invalid-api-key' ||
+        normalizedCode == 'app-not-authorized' ||
+        normalizedMessage.contains('app is not authorized')) {
+      return 'This iOS app is not authorized for the current Firebase project. Check GoogleService-Info.plist and bundle ID setup.';
+    }
+    if (normalizedCode == 'network-request-failed') {
+      return 'Check your internet connection and try chat again.';
+    }
+
+    return 'Unable to start a Firebase session for chat right now.';
   }
 
   void _setError(String message) {
@@ -1147,6 +1502,89 @@ class LoginController extends GetxController {
     );
   }
 
+  void _beginOtpVerification() {
+    isVerifyingOtp = true;
+    errorMessage = null;
+    infoMessage = null;
+    update();
+    _showVerificationLoader();
+  }
+
+  void _completeOtpVerification() {
+    _hideVerificationLoader();
+    isVerifyingOtp = false;
+    update();
+  }
+
+  void _showVerificationLoader() {
+    if (_isVerificationLoaderVisible) {
+      return;
+    }
+
+    _isVerificationLoaderVisible = true;
+    Get.dialog<void>(
+      const PopScope(
+        canPop: false,
+        child: Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(Radius.circular(20)),
+          ),
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 24, vertical: 22),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(
+                  height: 26,
+                  width: 26,
+                  child: CircularProgressIndicator(strokeWidth: 2.8),
+                ),
+                SizedBox(width: 18),
+                Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Verifying OTP',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF233A66),
+                        ),
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        'Please wait while we verify and save your details.',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF5E6E8C),
+                          height: 1.4,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+      barrierDismissible: false,
+    );
+  }
+
+  void _hideVerificationLoader() {
+    if (!_isVerificationLoaderVisible) {
+      return;
+    }
+
+    _isVerificationLoaderVisible = false;
+    if (Get.isDialogOpen == true) {
+      Get.back<void>();
+    }
+  }
+
   String _friendlyFirebaseMessage({
     String? code,
     String? message,
@@ -1161,7 +1599,8 @@ class LoginController extends GetxController {
     if (normalizedCode == 'invalid-phone-number') {
       return 'Enter a valid phone number.';
     }
-    if (normalizedCode == 'too-many-requests' || normalizedCode == 'quota-exceeded') {
+    if (normalizedCode == 'too-many-requests' ||
+        normalizedCode == 'quota-exceeded') {
       return 'Too many attempts. Please wait a bit and try again.';
     }
     if (normalizedCode == 'invalid-verification-code') {
@@ -1175,6 +1614,58 @@ class LoginController extends GetxController {
     }
     if (normalizedMessage.contains('internal error')) {
       return fallback;
+    }
+
+    return fallback;
+  }
+
+  String _friendlyProfilePhotoError({
+    String? code,
+    String? message,
+    required String fallback,
+  }) {
+    final normalizedCode = code?.toLowerCase() ?? '';
+    final normalizedMessage = message?.toLowerCase() ?? '';
+
+    if (normalizedCode == 'permission-denied' ||
+        normalizedCode == 'unauthorized' ||
+        normalizedCode == 'unauthenticated') {
+      return 'Firebase Storage blocked this photo upload. Check your Storage rules and try again.';
+    }
+    if (normalizedCode == 'object-not-found') {
+      return 'Firebase Storage could not save the selected image. Please try another photo.';
+    }
+    if (normalizedCode == 'network-request-failed') {
+      return 'Check your internet connection and try again.';
+    }
+    if (normalizedMessage.contains('bucket')) {
+      return 'Firebase Storage is not configured correctly for this app yet.';
+    }
+
+    return fallback;
+  }
+
+  String _friendlyDeleteAccountError({
+    String? code,
+    String? message,
+    required String fallback,
+  }) {
+    final normalizedCode = code?.toLowerCase() ?? '';
+    final normalizedMessage = message?.toLowerCase() ?? '';
+
+    if (normalizedCode == 'requires-recent-login') {
+      return 'For security, Firebase needs a recent sign-in before deleting this account. Please sign in again and retry.';
+    }
+    if (normalizedCode == 'permission-denied' ||
+        normalizedCode == 'unauthorized' ||
+        normalizedCode == 'unauthenticated') {
+      return 'Firebase blocked part of the account deletion request. Check your Auth, Firestore, and Storage rules, then try again.';
+    }
+    if (normalizedCode == 'network-request-failed') {
+      return 'Check your internet connection and try again.';
+    }
+    if (normalizedMessage.contains('missing or insufficient permissions')) {
+      return 'Firestore blocked the account cleanup request. Check your rules and try again.';
     }
 
     return fallback;
@@ -1228,7 +1719,12 @@ class LoginController extends GetxController {
   }
 
   static String _joinAddressParts(List<String?> parts) {
-    return parts.whereType<String>().map((part) => part.trim()).where((part) => part.isNotEmpty).toSet().join(', ');
+    return parts
+        .whereType<String>()
+        .map((part) => part.trim())
+        .where((part) => part.isNotEmpty)
+        .toSet()
+        .join(', ');
   }
 
   static String _localUserIdFromPhoneNumber(String phoneNumber) {

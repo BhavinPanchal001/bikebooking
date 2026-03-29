@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
@@ -259,13 +260,19 @@ class _LoginScreenState extends State<LoginScreen> {
                                 child: TextField(
                                   controller: controller.phoneController,
                                   keyboardType: TextInputType.phone,
+                                  inputFormatters: [
+                                    FilteringTextInputFormatter.digitsOnly,
+                                    LengthLimitingTextInputFormatter(10),
+                                  ],
                                   onChanged: controller.updatePhoneNumber,
+                                  maxLength: 10,
                                   style: GoogleFonts.poppins(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w600,
                                     color: Colors.black,
                                   ),
                                   decoration: const InputDecoration(
+                                    counterText: '',
                                     hintText: '1234567890',
                                     hintStyle: TextStyle(color: Colors.grey),
                                     border: InputBorder.none,

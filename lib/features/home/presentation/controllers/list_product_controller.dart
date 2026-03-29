@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:bikebooking/core/constants/product_categories.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -40,9 +41,56 @@ class ListProductController extends GetxController {
   String get category => _category;
 
   void setCategory(String value) {
-    _category = value;
+    final normalizedValue = value.trim();
+    if (normalizedValue.isEmpty) {
+      return;
+    }
+
+    final nextCategory = _isBikeOrScooterCategory(normalizedValue)
+        ? ProductCategoryCatalog.baseCategoryFor(normalizedValue)
+        : normalizedValue;
+    if (nextCategory == _category) {
+      return;
+    }
+
+    final previousCategory = _category;
+    final previousBaseCategory = previousCategory.isEmpty
+        ? ''
+        : ProductCategoryCatalog.baseCategoryFor(previousCategory);
+    final nextBaseCategory = ProductCategoryCatalog.baseCategoryFor(nextCategory);
+    _category = nextCategory;
+
+    if (_isBikeOrScooterCategory(nextCategory)) {
+      _condition = null;
+      _sellerType = null;
+
+      if (!_isBikeOrScooterCategory(previousCategory) ||
+          previousBaseCategory != nextBaseCategory) {
+        _subCategory = null;
+        _fuelType = null;
+        kilometerController.clear();
+        _numberOfOwners = null;
+      }
+    } else {
+      _fuelType = null;
+      kilometerController.clear();
+      _numberOfOwners = null;
+
+      if (previousCategory != nextCategory) {
+        _subCategory = null;
+      }
+    }
+
     update();
   }
+
+  bool _isBikeOrScooterCategory(String category) =>
+      ProductCategoryCatalog.isVehicleCategory(category);
+
+  bool get isBikeOrScooterCategory => _isBikeOrScooterCategory(_category);
+
+  List<VehicleSubCategoryOption> get vehicleSubCategoryOptions =>
+      ProductCategoryCatalog.vehicleOptionsFor(_category);
 
   // ── Step 2: Images (URLs — placeholder for now) ──
   List<String> _imageUrls = [];
@@ -151,7 +199,8 @@ class ListProductController extends GetxController {
   String? get subCategory => _subCategory;
 
   void setSubCategory(String value) {
-    _subCategory = value;
+    final normalizedValue = value.trim();
+    _subCategory = normalizedValue.isEmpty ? null : normalizedValue;
     update();
   }
 
@@ -225,7 +274,7 @@ class ListProductController extends GetxController {
 
       final product = ProductModel(
         id: _editingProductId,
-        category: _category,
+        category: ProductCategoryCatalog.baseCategoryFor(_category),
         title: titleController.text.trim(),
         brand: _brand,
         year: _year,
@@ -342,7 +391,10 @@ class ListProductController extends GetxController {
 
   void loadProductForEditing(ProductModel product) {
     _editingProductId = product.id;
-    _category = product.category;
+    final normalizedCategory = product.category.trim();
+    _category = normalizedCategory.isEmpty
+        ? ''
+        : ProductCategoryCatalog.baseCategoryFor(normalizedCategory);
     titleController.text = product.title;
     descriptionController.text = product.description;
     kilometerController.text = product.kilometerDriven?.toString() ?? '';
@@ -356,7 +408,13 @@ class ListProductController extends GetxController {
     _year = product.year;
     _fuelType = product.fuelType;
     _numberOfOwners = product.numberOfOwners;
-    _subCategory = product.subCategory;
+    _subCategory = ProductCategoryCatalog.isVehicleCategory(normalizedCategory)
+        ? ProductCategoryCatalog.resolveVehicleSubCategory(
+            category: normalizedCategory,
+            subCategory: product.subCategory,
+            fuelType: product.fuelType,
+          )
+        : product.subCategory;
     _condition = product.condition;
     _sellerType = product.sellerType;
     _imageUrls = List<String>.from(product.imageUrls);
@@ -528,7 +586,7 @@ class ListProductController extends GetxController {
       return 'Upload at least one product image.';
     }
 
-    final isBikeOrScooter = _category == 'Bikes' || _category == 'Scooter';
+    final isBikeOrScooter = _isBikeOrScooterCategory(_category);
     final detailValidationError = isBikeOrScooter
         ? _validateBikeDetailsStep()
         : _validateAccessoryDetailsStep();
@@ -545,6 +603,9 @@ class ListProductController extends GetxController {
       return commonValidationError;
     }
 
+    if ((_subCategory ?? '').trim().isEmpty) {
+      return 'Select a sub category.';
+    }
     if ((_fuelType ?? '').trim().isEmpty) {
       return 'Select a fuel type.';
     }

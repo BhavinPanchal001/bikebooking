@@ -10,6 +10,9 @@ class UserFirestoreService {
   CollectionReference<Map<String, dynamic>> get _usersRef =>
       _firestore.collection('users');
 
+  CollectionReference<Map<String, dynamic>> get _sellerReportsRef =>
+      _firestore.collection('seller_reports');
+
   Future<AppUserModel?> getUserById(String userId) async {
     final snapshot = await _usersRef.doc(userId).get();
     final data = snapshot.data();
@@ -100,5 +103,139 @@ class UserFirestoreService {
       throw StateError('Unable to load the updated user location.');
     }
     return updatedUser;
+  }
+
+  Future<AppUserModel> updatePhotoUrl({
+    required String userId,
+    required String photoUrl,
+  }) async {
+    await _usersRef.doc(userId).set({
+      'photoUrl': photoUrl.trim(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+
+    final updatedUser = await getUserById(userId);
+    if (updatedUser == null) {
+      throw StateError('Unable to load the updated profile photo.');
+    }
+    return updatedUser;
+  }
+
+  Future<void> savePushToken({
+    required String userId,
+    required String token,
+    String? permissionStatus,
+  }) async {
+    final trimmedToken = token.trim();
+    if (trimmedToken.isEmpty) {
+      return;
+    }
+
+    await _usersRef.doc(userId).set({
+      'fcmTokens': FieldValue.arrayUnion([trimmedToken]),
+      'notificationsEnabled': true,
+      if (permissionStatus != null)
+        'notificationPermissionStatus': permissionStatus,
+      'notificationTokenUpdatedAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+  }
+
+  Future<void> removePushToken({
+    required String userId,
+    required String token,
+  }) async {
+    final trimmedToken = token.trim();
+    if (trimmedToken.isEmpty) {
+      return;
+    }
+
+    await _usersRef.doc(userId).set({
+      'fcmTokens': FieldValue.arrayRemove([trimmedToken]),
+      'notificationTokenUpdatedAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+  }
+
+  Future<void> updateNotificationPermission({
+    required String userId,
+    required String permissionStatus,
+    required bool isEnabled,
+  }) async {
+    await _usersRef.doc(userId).set({
+      'notificationsEnabled': isEnabled,
+      'notificationPermissionStatus': permissionStatus,
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+  }
+
+  Future<void> deleteUserAccountData(String userId) async {
+    final trimmedUserId = userId.trim();
+    if (trimmedUserId.isEmpty) {
+      return;
+    }
+
+    await _deleteCollection(
+      _usersRef.doc(trimmedUserId).collection('notifications'),
+    );
+    await _deleteCollection(
+      _usersRef.doc(trimmedUserId).collection('recentlyViewed'),
+    );
+    await _deleteCollection(
+      _usersRef.doc(trimmedUserId).collection('reviews'),
+    );
+
+    await _deleteQuery(
+      _firestore.collectionGroup('reviews').where(
+            'reviewerId',
+            isEqualTo: trimmedUserId,
+          ),
+    );
+    await _deleteQuery(
+      _sellerReportsRef.where('reporterId', isEqualTo: trimmedUserId),
+    );
+    await _deleteQuery(
+      _sellerReportsRef.where('sellerId', isEqualTo: trimmedUserId),
+    );
+
+    await _usersRef.doc(trimmedUserId).delete();
+  }
+
+  Future<void> _deleteCollection(
+    CollectionReference<Map<String, dynamic>> collection,
+  ) async {
+    final snapshot = await collection.get();
+    await _deleteSnapshotDocuments(snapshot.docs);
+  }
+
+  Future<void> _deleteQuery(
+    Query<Map<String, dynamic>> query,
+  ) async {
+    final snapshot = await query.get();
+    await _deleteSnapshotDocuments(snapshot.docs);
+  }
+
+  Future<void> _deleteSnapshotDocuments(
+    List<QueryDocumentSnapshot<Map<String, dynamic>>> documents,
+  ) async {
+    if (documents.isEmpty) {
+      return;
+    }
+
+    final uniqueReferences =
+        <String, DocumentReference<Map<String, dynamic>>>{};
+    for (final document in documents) {
+      uniqueReferences[document.reference.path] = document.reference;
+    }
+
+    final references = uniqueReferences.values.toList(growable: false);
+    for (var index = 0; index < references.length; index += 450) {
+      final batch = _firestore.batch();
+      final chunk = references.skip(index).take(450);
+      for (final reference in chunk) {
+        batch.delete(reference);
+      }
+      await batch.commit();
+    }
   }
 }

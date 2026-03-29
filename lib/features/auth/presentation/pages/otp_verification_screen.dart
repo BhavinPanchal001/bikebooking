@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:bikebooking/core/constants/global.dart';
@@ -213,6 +214,10 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                                   controller.updateOtpDigit(index, value),
                               textAlign: TextAlign.center,
                               keyboardType: TextInputType.number,
+                              inputFormatters: [
+                                FilteringTextInputFormatter.digitsOnly,
+                                LengthLimitingTextInputFormatter(1),
+                              ],
                               maxLength: 1,
                               style: GoogleFonts.poppins(
                                 fontSize: 22,

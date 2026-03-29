@@ -1,3 +1,4 @@
+import 'package:bikebooking/core/constants/product_categories.dart';
 import 'package:bikebooking/core/constants/global.dart';
 import 'package:bikebooking/core/widgets/custom_button.dart';
 import 'package:bikebooking/features/home/presentation/controllers/list_product_controller.dart';
@@ -12,6 +13,13 @@ class BikeDetailFormScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return GetBuilder<ListProductController>(
       builder: (controller) {
+        final baseCategory = ProductCategoryCatalog.baseCategoryFor(
+          controller.category,
+        );
+        final detailLabel = baseCategory == ProductCategoryCatalog.scooter
+            ? 'Scooter'
+            : 'Bike';
+
         return Scaffold(
           backgroundColor: AppColors.background,
           body: SafeArea(
@@ -39,9 +47,9 @@ class BikeDetailFormScreen extends StatelessWidget {
                         constraints: const BoxConstraints(),
                       ),
                       const SizedBox(height: 20),
-                      const Text(
-                        'Bike Detail',
-                        style: TextStyle(
+                      Text(
+                        '$detailLabel Detail',
+                        style: const TextStyle(
                           color: Colors.white,
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
@@ -71,6 +79,18 @@ class BikeDetailFormScreen extends StatelessWidget {
                               : controller.brand,
                           onTap: () =>
                               _showBrandBottomSheet(context, controller),
+                          readOnly: true,
+                        ),
+                        const SizedBox(height: 16),
+                        _buildLabel('Sub Category'),
+                        _buildTextField(
+                          controller.subCategory ??
+                              'Select ${detailLabel.toLowerCase()} sub category',
+                          onTap: () => _showVehicleSubCategoryBottomSheet(
+                            context,
+                            controller,
+                            detailLabel,
+                          ),
                           readOnly: true,
                         ),
                         const SizedBox(height: 16),
@@ -276,6 +296,116 @@ class BikeDetailFormScreen extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showVehicleSubCategoryBottomSheet(
+    BuildContext context,
+    ListProductController controller,
+    String detailLabel,
+  ) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        final options = controller.vehicleSubCategoryOptions;
+
+        return Container(
+          height: MediaQuery.of(context).size.height * 0.56,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 8),
+              Center(
+                child: Container(
+                  width: 50,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                'Select $detailLabel Sub Category',
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF2E3E5C),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Expanded(
+                child: ListView(
+                  physics: const BouncingScrollPhysics(),
+                  children: options
+                      .map(
+                        (option) => _buildVehicleSubCategoryItem(
+                          option,
+                          context,
+                          controller,
+                        ),
+                      )
+                      .toList(growable: false),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildVehicleSubCategoryItem(
+    VehicleSubCategoryOption option,
+    BuildContext context,
+    ListProductController controller,
+  ) {
+    final isSelected = controller.subCategory == option.label;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isSelected
+              ? const Color(0xFF233A66)
+              : Colors.black.withOpacity(0.05),
+        ),
+      ),
+      child: ListTile(
+        leading: Icon(
+          option.icon,
+          color: option.iconColor,
+          size: 28,
+        ),
+        title: Text(
+          option.label,
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
+            color: Color(0xFF2E3E5C),
+          ),
+        ),
+        trailing: isSelected
+            ? const Icon(
+                Icons.check_circle,
+                color: Color(0xFF233A66),
+              )
+            : null,
+        onTap: () {
+          controller.setSubCategory(option.label);
+          Navigator.pop(context);
+        },
       ),
     );
   }
