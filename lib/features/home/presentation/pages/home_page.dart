@@ -91,14 +91,7 @@ class _HomePageState extends State<HomePage> {
                             const SizedBox(height: 15),
 
                             // Top Categories
-                            _buildSectionHeader(
-                              'Top Categories',
-                              onViewAll: () => Navigator.pushNamed(
-                                context,
-                                '/select_category',
-                                arguments: 'Bikes',
-                              ),
-                            ),
+                            _buildSectionHeader('Top Categories'),
                             const SizedBox(height: 12),
                             SingleChildScrollView(
                               scrollDirection: Axis.horizontal,
@@ -106,33 +99,23 @@ class _HomePageState extends State<HomePage> {
                               child: Row(
                                 children: [
                                   _buildCategoryItem(
-                                      'Bikes',
-                                      'assets/images/Group 1171278014.png',
-                                      const Color(0xFFD4E7C5)),
+                                      'Bikes', 'assets/images/Group 1171278014.png', const Color(0xFFD4E7C5)),
                                   _buildCategoryItem(
-                                      'Scooter',
-                                      'assets/images/Group 1171278014.png',
-                                      const Color(0xFFFFD1A5)),
+                                      'Scooter', 'assets/images/Group 1171278015.png', const Color(0xFFFFD1A5)),
                                   _buildCategoryItem(
-                                      'Accessories',
-                                      'assets/images/Group 1171278014.png',
-                                      const Color(0xFFC9C9EB)),
+                                      'Accessories', 'assets/images/Group 1171278016.png', const Color(0xFFC9C9EB)),
                                   _buildCategoryItem(
-                                      'Spare Parts',
-                                      'assets/images/Group 1171278014.png',
-                                      const Color(0xFFB9E5F3)),
+                                      'Spare Parts', 'assets/images/Group 1171278017.png', const Color(0xFFB9E5F3)),
                                 ],
                               ),
                             ),
                             const SizedBox(height: 24),
 
                             // Recently Viewed Items
-                            if (controller
-                                .recentlyViewedProducts.isNotEmpty) ...[
+                            if (controller.recentlyViewedProducts.isNotEmpty) ...[
                               _buildSectionHeader(
                                 'Recently Viewed Items',
-                                onViewAll: () => Navigator.pushNamed(
-                                    context, '/filter_result'),
+                                onViewAll: () => Navigator.pushNamed(context, '/filter_result'),
                               ),
                               const SizedBox(height: 12),
                               SingleChildScrollView(
@@ -159,8 +142,7 @@ class _HomePageState extends State<HomePage> {
                             // Just Added
                             _buildSectionHeader(
                               'Just Added',
-                              onViewAll: () => Navigator.pushNamed(
-                                  context, '/filter_result'),
+                              onViewAll: () => Navigator.pushNamed(context, '/filter_result'),
                             ),
                             const SizedBox(height: 12),
                             if (controller.justAddedProducts.isEmpty)
@@ -235,11 +217,9 @@ class _HomePageState extends State<HomePage> {
               // Bikenest Logo
               Row(
                 children: [
-                  Image.asset('assets/images/homebike.png',
-                      height: 25, width: 25),
+                  Image.asset('assets/images/homebike.png', height: 25, width: 25),
                   const SizedBox(width: 1),
-                  Image.asset('assets/images/bokenestimage.png',
-                      height: 30, width: 100),
+                  Image.asset('assets/images/bokenestimage.png', height: 30, width: 100),
                 ],
               ),
               const Spacer(),
@@ -272,9 +252,7 @@ class _HomePageState extends State<HomePage> {
                                 minHeight: 16,
                               ),
                               child: Text(
-                                notifController.unreadCount > 99
-                                    ? '99+'
-                                    : '${notifController.unreadCount}',
+                                notifController.unreadCount > 99 ? '99+' : '${notifController.unreadCount}',
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 9,
@@ -292,14 +270,12 @@ class _HomePageState extends State<HomePage> {
               const SizedBox(width: 12),
               GestureDetector(
                 onTap: () => Navigator.pushNamed(context, '/messages'),
-                child: Image.asset('assets/images/Vector (1).png',
-                    height: 20, width: 20),
+                child: Image.asset('assets/images/Vector (1).png', height: 20, width: 20),
               ),
               const SizedBox(width: 12),
               GestureDetector(
                 onTap: () => Navigator.pushNamed(context, '/favorites'),
-                child: Image.asset('assets/images/Vector (2).png',
-                    height: 20, width: 20),
+                child: Image.asset('assets/images/Vector (2).png', height: 20, width: 20),
               ),
               const SizedBox(width: 12),
 
@@ -308,8 +284,7 @@ class _HomePageState extends State<HomePage> {
                 onTap: () => Navigator.pushNamed(context, '/profile_overview'),
                 child: GetBuilder<LoginController>(
                   builder: (loginController) {
-                    final photoUrl =
-                        loginController.currentUserProfile?.photoUrl ?? '';
+                    final photoUrl = loginController.currentUserProfile?.photoUrl ?? '';
                     return Container(
                       height: 34,
                       width: 34,
@@ -323,8 +298,7 @@ class _HomePageState extends State<HomePage> {
                             ? Image.network(
                                 photoUrl,
                                 fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) =>
-                                    _buildDefaultAvatar(loginController),
+                                errorBuilder: (_, __, ___) => _buildDefaultAvatar(loginController),
                               )
                             : _buildDefaultAvatar(loginController),
                       ),
@@ -393,8 +367,7 @@ class _HomePageState extends State<HomePage> {
   Widget _buildPromoBanner() {
     return ClipRRect(
       borderRadius: BorderRadius.circular(16),
-      child:
-          Image.asset('assets/images/Group 1171278220.png', fit: BoxFit.cover),
+      child: Image.asset('assets/images/Group 1171278220.png', fit: BoxFit.cover),
     );
   }
 
@@ -407,13 +380,14 @@ class _HomePageState extends State<HomePage> {
           title,
           style: Theme.of(context).textTheme.titleLarge,
         ),
-        GestureDetector(
-          onTap: onViewAll,
-          child: Text(
-            'View All',
-            style: Theme.of(context).textTheme.labelLarge,
+        if (onViewAll != null)
+          GestureDetector(
+            onTap: onViewAll,
+            child: Text(
+              'View All',
+              style: Theme.of(context).textTheme.labelLarge,
+            ),
           ),
-        ),
       ],
     );
   }
@@ -453,11 +427,7 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
             const SizedBox(height: 8),
-            Text(title,
-                style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF262A36))),
+            Text(title, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF262A36))),
           ],
         ),
       ),

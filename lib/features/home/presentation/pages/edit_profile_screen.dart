@@ -3,6 +3,7 @@ import 'package:bikebooking/core/widgets/custom_button.dart';
 import 'package:bikebooking/features/auth/presentation/controllers/login_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:image_picker/image_picker.dart';
 
 class EditProfileScreen extends StatelessWidget {
   const EditProfileScreen({super.key});
@@ -16,8 +17,16 @@ class EditProfileScreen extends StatelessWidget {
         final avatarLabel = displayName.isNotEmpty
             ? displayName.substring(0, 1).toUpperCase()
             : 'U';
+        final photoUrl = controller.currentUserProfile?.photoUrl.trim() ?? '';
         final savedLocation =
             controller.currentUserProfile?.location?.address ?? '';
+        final registeredMobileNumber = controller
+                    .currentUserProfile?.registeredMobileNumber
+                    .trim()
+                    .isNotEmpty ==
+                true
+            ? controller.currentUserProfile!.registeredMobileNumber.trim()
+            : controller.currentUserProfile?.phoneNumber ?? '';
 
         return Scaffold(
           backgroundColor: AppColors.background,
@@ -70,40 +79,54 @@ class EditProfileScreen extends StatelessWidget {
                           Stack(
                             alignment: Alignment.center,
                             children: [
-                              CircleAvatar(
-                                radius: 65,
-                                backgroundColor: Colors.white,
-                                child: CircleAvatar(
-                                  radius: 58,
-                                  backgroundColor: AppColors.primary,
-                                  child: Text(
-                                    avatarLabel,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 36,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
+                              _buildProfileAvatar(
+                                avatarLabel: avatarLabel,
+                                photoUrl: photoUrl,
+                                isUploading: controller.isUploadingProfilePhoto,
                               ),
                               Positioned(
                                 bottom: 5,
                                 right: 5,
-                                child: Container(
-                                  height: 32,
-                                  width: 32,
-                                  decoration: const BoxDecoration(
-                                    color: Color(0xFF233A66),
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: const Icon(
-                                    Icons.camera_alt,
-                                    color: Colors.white,
-                                    size: 16,
+                                child: GestureDetector(
+                                  onTap: controller.isUploadingProfilePhoto
+                                      ? null
+                                      : () => _showPhotoSourceBottomSheet(
+                                            context,
+                                            controller,
+                                          ),
+                                  child: Container(
+                                    height: 36,
+                                    width: 36,
+                                    decoration: const BoxDecoration(
+                                      color: Color(0xFF233A66),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: controller.isUploadingProfilePhoto
+                                        ? const Padding(
+                                            padding: EdgeInsets.all(8),
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              color: Colors.white,
+                                            ),
+                                          )
+                                        : const Icon(
+                                            Icons.camera_alt,
+                                            color: Colors.white,
+                                            size: 18,
+                                          ),
                                   ),
                                 ),
                               ),
                             ],
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            'Tap the camera icon to change your profile photo',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: Colors.grey.shade600,
+                              fontSize: 12,
+                            ),
                           ),
                           const SizedBox(height: 40),
                           _buildLabel('Full Name'),
@@ -131,13 +154,13 @@ class EditProfileScreen extends StatelessWidget {
                             keyboardType: TextInputType.emailAddress,
                           ),
                           const SizedBox(height: 24),
-                          _buildLabel('Register Mobile Number'),
+                          _buildLabel('Registered Mobile Number'),
                           _buildTextField(
-                            controller:
-                                controller.registeredMobileNumberController,
-                            hint: 'Enter mobile number',
+                            initialValue: registeredMobileNumber,
+                            hint: 'Registered mobile number',
                             prefixIcon: Icons.phone_android_outlined,
                             keyboardType: TextInputType.phone,
+                            readOnly: true,
                           ),
                           const SizedBox(height: 24),
                           _buildLabel('Saved Address'),
@@ -183,6 +206,191 @@ class EditProfileScreen extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildProfileAvatar({
+    required String avatarLabel,
+    required String photoUrl,
+    required bool isUploading,
+  }) {
+    return Container(
+      height: 130,
+      width: 130,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(
+          color: Colors.white,
+          width: 4,
+        ),
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: ClipOval(
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            if (photoUrl.isNotEmpty)
+              Image.network(
+                photoUrl,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => _buildAvatarFallback(avatarLabel),
+              )
+            else
+              _buildAvatarFallback(avatarLabel),
+            if (isUploading)
+              Container(
+                color: Colors.black.withOpacity(0.28),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAvatarFallback(String avatarLabel) {
+    return Container(
+      color: AppColors.primary,
+      alignment: Alignment.center,
+      child: Text(
+        avatarLabel,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 36,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+  }
+
+  void _showPhotoSourceBottomSheet(
+    BuildContext context,
+    LoginController controller,
+  ) {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetContext) {
+        return SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  height: 4,
+                  width: 44,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFD8DEE8),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                const Text(
+                  'Update Profile Photo',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF2E3E5C),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Choose how you want to add your profile photo.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.grey.shade600,
+                    fontSize: 13,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                _buildPhotoSourceTile(
+                  context: sheetContext,
+                  icon: Icons.photo_library_outlined,
+                  title: 'Choose from gallery',
+                  source: ImageSource.gallery,
+                  controller: controller,
+                ),
+                const SizedBox(height: 12),
+                _buildPhotoSourceTile(
+                  context: sheetContext,
+                  icon: Icons.photo_camera_outlined,
+                  title: 'Take a photo',
+                  source: ImageSource.camera,
+                  controller: controller,
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildPhotoSourceTile({
+    required BuildContext context,
+    required IconData icon,
+    required String title,
+    required ImageSource source,
+    required LoginController controller,
+  }) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: () async {
+        Navigator.pop(context);
+        await controller.uploadProfilePhoto(source);
+      },
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF9FBFF),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.black.withOpacity(0.05)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              height: 40,
+              width: 40,
+              decoration: const BoxDecoration(
+                color: Color(0xFFE8EEF7),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                icon,
+                color: const Color(0xFF233A66),
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF2E3E5C),
+                ),
+              ),
+            ),
+            const Icon(
+              Icons.arrow_forward_ios,
+              size: 14,
+              color: Color(0xFF94A3B8),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

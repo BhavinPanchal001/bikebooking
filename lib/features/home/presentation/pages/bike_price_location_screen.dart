@@ -14,6 +14,7 @@ class BikePriceLocationScreen extends StatelessWidget {
       builder: (controller) {
         return Scaffold(
           backgroundColor: AppColors.background,
+          resizeToAvoidBottomInset: true,
           body: SafeArea(
             child: Column(
               children: [
@@ -52,7 +53,8 @@ class BikePriceLocationScreen extends StatelessWidget {
                 ),
 
                 Expanded(
-                  child: Padding(
+                  child: SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
                     padding: const EdgeInsets.all(16.0),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -104,18 +106,21 @@ class BikePriceLocationScreen extends StatelessWidget {
                                 ),
                               if (controller.isFetchingCurrentLocation) ...[
                                 const SizedBox(width: 8),
-                                const Text(
-                                  'Fetching current location...',
-                                  style: TextStyle(
-                                    color: Color(0xFF2E4475),
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w500,
+                                const Flexible(
+                                  child: Text(
+                                    'Fetching current location...',
+                                    style: TextStyle(
+                                      color: Color(0xFF2E4475),
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w500,
+                                    ),
                                   ),
                                 ),
                               ],
                             ],
                           ),
                         ),
+                        const SizedBox(height: 24),
                       ],
                     ),
                   ),

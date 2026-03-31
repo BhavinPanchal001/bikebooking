@@ -15,9 +15,6 @@ class ProductImagesScreen extends StatelessWidget {
     final controller = Get.isRegistered<ListProductController>()
         ? Get.find<ListProductController>()
         : Get.put(ListProductController());
-    if (controller.isEditing) {
-      controller.resetForm();
-    }
     if (controller.category.isEmpty) {
       controller.setCategory(category);
     }
@@ -108,10 +105,10 @@ class ProductImagesScreen extends StatelessWidget {
                           child: Row(
                             children: [
                               for (var index = 0;
-                                  index < controller.pickedImages.length;
+                                  index < controller.totalImageCount;
                                   index++)
                                 _buildThumbnail(controller, index),
-                              if (controller.pickedImages.length < 6)
+                              if (controller.totalImageCount < 6)
                                 _buildAddThumbnail(controller),
                             ],
                           ),
@@ -125,7 +122,7 @@ class ProductImagesScreen extends StatelessWidget {
                   child: CustomGradientButton(
                     text: 'Next',
                     onPressed: () {
-                      if (!controller.hasPickedImages) {
+                      if (!controller.hasAnyImages) {
                         Get.snackbar(
                           'Images required',
                           'Please upload at least one product image.',
@@ -155,23 +152,23 @@ class ProductImagesScreen extends StatelessWidget {
   }
 
   Widget _buildMainPreview(ListProductController controller) {
+    final previewImageUrl = controller.selectedPreviewImageUrl;
     final previewImage = controller.selectedPreviewImage;
-    if (previewImage == null) {
-      return Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.image_outlined, size: 100, color: Colors.grey.shade300),
-          const SizedBox(height: 12),
-          Text(
-            'Upload product images',
-            style: TextStyle(
-              color: Colors.grey.shade500,
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
+
+    if (previewImageUrl != null) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: Image.network(
+          previewImageUrl,
+          width: double.infinity,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) => _buildEmptyPreview(),
+        ),
       );
+    }
+
+    if (previewImage == null) {
+      return _buildEmptyPreview();
     }
 
     return ClipRRect(
@@ -184,8 +181,65 @@ class ProductImagesScreen extends StatelessWidget {
     );
   }
 
+  Widget _buildEmptyPreview() {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(Icons.image_outlined, size: 100, color: Colors.grey.shade300),
+        const SizedBox(height: 12),
+        Text(
+          'Upload product images',
+          style: TextStyle(
+            color: Colors.grey.shade500,
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildThumbnail(ListProductController controller, int index) {
-    final image = controller.pickedImages[index];
+    final existingImageCount = controller.existingImageUrls.length;
+
+    if (index < existingImageCount) {
+      final imageUrl = controller.existingImageUrls[index];
+      return GestureDetector(
+        onTap: () => controller.selectProductImage(index),
+        child: Container(
+          width: 60,
+          height: 60,
+          margin: const EdgeInsets.only(right: 12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: controller.selectedImageIndex == index
+                  ? AppColors.primary
+                  : Colors.grey.shade200,
+              width: controller.selectedImageIndex == index ? 1.5 : 1,
+            ),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(11),
+            child: Image.network(
+              imageUrl,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) => Container(
+                color: const Color(0xFFF1F4F8),
+                alignment: Alignment.center,
+                child: const Icon(
+                  Icons.image_not_supported_outlined,
+                  color: Color(0xFF94A3B8),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    final image = controller.pickedImages[index - existingImageCount];
 
     return GestureDetector(
       onTap: () => controller.selectProductImage(index),

@@ -797,18 +797,13 @@ class LoginController extends GetxController {
 
     final fullName = fullNameController.text.trim();
     final email = emailController.text.trim();
-    final registeredMobileNumber = registeredMobileNumberController.text.trim();
+    final registeredMobileNumber =
+        currentUserProfile?.registeredMobileNumber.trim().isNotEmpty == true
+            ? currentUserProfile!.registeredMobileNumber.trim()
+            : currentUserProfile?.phoneNumber.trim() ?? '';
 
     if (email.isNotEmpty && !GetUtils.isEmail(email)) {
       _setError('Enter a valid email address.');
-      return false;
-    }
-
-    final formattedRegisteredMobile =
-        _formatOptionalPhoneNumber(registeredMobileNumber);
-    if (registeredMobileNumber.isNotEmpty &&
-        formattedRegisteredMobile == null) {
-      _setError('Enter a valid registered mobile number.');
       return false;
     }
 
@@ -827,13 +822,13 @@ class LoginController extends GetxController {
             userId: baseUser.id,
             fullName: fullName,
             email: email,
-            registeredMobileNumber: formattedRegisteredMobile ?? '',
+            registeredMobileNumber: registeredMobileNumber,
           );
         } catch (_) {
           updatedUser = baseUser.copyWith(
             fullName: fullName,
             email: email,
-            registeredMobileNumber: formattedRegisteredMobile ?? '',
+            registeredMobileNumber: registeredMobileNumber,
             updatedAt: DateTime.now(),
           );
         }
@@ -842,7 +837,7 @@ class LoginController extends GetxController {
           userId: firebaseUser.uid,
           fullName: fullName,
           email: email,
-          registeredMobileNumber: formattedRegisteredMobile ?? '',
+          registeredMobileNumber: registeredMobileNumber,
         );
       }
 

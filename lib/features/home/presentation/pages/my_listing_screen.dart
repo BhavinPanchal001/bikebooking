@@ -315,14 +315,11 @@ class _MyListingScreenState extends State<MyListingScreen>
         : Get.put(ListProductController());
 
     editController.loadProductForEditing(product);
-
-    final routeName = switch (product.category) {
-      'Spare Parts' => '/spare_parts_detail_form',
-      'Accessories' => '/accessories_detail_form',
-      _ => '/bike_detail_form',
-    };
-
-    Navigator.pushNamed(context, routeName);
+    Navigator.pushNamed(
+      context,
+      '/product_images',
+      arguments: editController.category,
+    );
   }
 
   void _openProductDetails(BuildContext context, ProductModel product) {
@@ -357,58 +354,72 @@ class _MyListingScreenState extends State<MyListingScreen>
     return RefreshIndicator(
       color: const Color(0xFF233A66),
       onRefresh: _listingController.refreshProducts,
-      child: ListView(
-        physics: const AlwaysScrollableScrollPhysics(
-          parent: BouncingScrollPhysics(),
-        ),
-        padding: const EdgeInsets.all(16),
-        children: [
-          const SizedBox(height: 60),
-          Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.black.withOpacity(0.05)),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(
+              parent: BouncingScrollPhysics(),
             ),
-            child: Column(
-              children: [
-                CircleAvatar(
-                  radius: 34,
-                  backgroundColor: const Color(0xFFEAF0FB),
-                  child: Icon(
-                    icon,
-                    size: 34,
-                    color: const Color(0xFF233A66),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 420),
+                    child: Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        border:
+                            Border.all(color: Colors.black.withOpacity(0.05)),
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          CircleAvatar(
+                            radius: 34,
+                            backgroundColor: const Color(0xFFEAF0FB),
+                            child: Icon(
+                              icon,
+                              size: 34,
+                              color: const Color(0xFF233A66),
+                            ),
+                          ),
+                          const SizedBox(height: 18),
+                          Text(
+                            title,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF233A66),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          Text(
+                            message,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              color: Color(0xFF5E6E8C),
+                              height: 1.5,
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                          CustomGradientButton(
+                            text: actionLabel,
+                            onPressed: onAction,
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
-                const SizedBox(height: 18),
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF233A66),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  message,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Color(0xFF5E6E8C),
-                    height: 1.5,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                CustomGradientButton(
-                  text: actionLabel,
-                  onPressed: onAction,
-                ),
-              ],
+              ),
             ),
-          ),
-        ],
+          );
+        },
       ),
     );
   }

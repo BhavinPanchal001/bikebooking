@@ -57,7 +57,8 @@ class ListProductController extends GetxController {
     final previousBaseCategory = previousCategory.isEmpty
         ? ''
         : ProductCategoryCatalog.baseCategoryFor(previousCategory);
-    final nextBaseCategory = ProductCategoryCatalog.baseCategoryFor(nextCategory);
+    final nextBaseCategory =
+        ProductCategoryCatalog.baseCategoryFor(nextCategory);
     _category = nextCategory;
 
     if (_isBikeOrScooterCategory(nextCategory)) {
@@ -95,22 +96,43 @@ class ListProductController extends GetxController {
   // ── Step 2: Images (URLs — placeholder for now) ──
   List<String> _imageUrls = [];
   List<String> get imageUrls => _imageUrls;
+  List<String> get existingImageUrls =>
+      _imageUrls.where((url) => url.trim().isNotEmpty).toList(growable: false);
   final List<PickedProductImage> _pickedImages = [];
   List<PickedProductImage> get pickedImages => List.unmodifiable(_pickedImages);
   int _selectedImageIndex = 0;
   int get selectedImageIndex => _selectedImageIndex;
   bool get hasPickedImages => _pickedImages.isNotEmpty;
-  PickedProductImage? get selectedPreviewImage =>
-      _pickedImages.isEmpty ? null : _pickedImages[_selectedImageIndex];
+  bool get hasAnyImages =>
+      existingImageUrls.isNotEmpty || _pickedImages.isNotEmpty;
+  int get totalImageCount => existingImageUrls.length + _pickedImages.length;
+  String? get selectedPreviewImageUrl {
+    if (_selectedImageIndex < 0 ||
+        _selectedImageIndex >= existingImageUrls.length) {
+      return null;
+    }
+    return existingImageUrls[_selectedImageIndex];
+  }
+
+  PickedProductImage? get selectedPreviewImage {
+    final pickedImageIndex = _selectedImageIndex - existingImageUrls.length;
+    if (pickedImageIndex < 0 || pickedImageIndex >= _pickedImages.length) {
+      return null;
+    }
+    return _pickedImages[pickedImageIndex];
+  }
 
   void setImageUrls(List<String> urls) {
     _imageUrls = urls;
+    if (_selectedImageIndex >= totalImageCount) {
+      _selectedImageIndex = totalImageCount == 0 ? 0 : totalImageCount - 1;
+    }
     update();
   }
 
   Future<void> pickProductImages() async {
     try {
-      final remainingSlots = _maxProductImages - _pickedImages.length;
+      final remainingSlots = _maxProductImages - totalImageCount;
       if (remainingSlots <= 0) {
         Get.snackbar(
           'Limit reached',
@@ -135,8 +157,8 @@ class ListProductController extends GetxController {
       }
 
       _pickedImages.addAll(newImages);
-      if (_pickedImages.length == newImages.length) {
-        _selectedImageIndex = 0;
+      if (newImages.isNotEmpty) {
+        _selectedImageIndex = existingImageUrls.length;
       }
       update();
     } catch (error) {
@@ -150,7 +172,7 @@ class ListProductController extends GetxController {
   }
 
   void selectProductImage(int index) {
-    if (index < 0 || index >= _pickedImages.length) {
+    if (index < 0 || index >= totalImageCount) {
       return;
     }
     _selectedImageIndex = index;

@@ -103,8 +103,7 @@ class _SelectCategoryScreenState extends State<SelectCategoryScreen> {
             children: [
               IconButton(
                 onPressed: () => Navigator.pop(context),
-                icon:
-                    const Icon(Icons.arrow_back, color: Colors.white, size: 28),
+                icon: const Icon(Icons.arrow_back, color: Colors.white, size: 28),
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(),
               ),
@@ -190,17 +189,25 @@ class _SelectCategoryScreenState extends State<SelectCategoryScreen> {
     SelectCategoryController controller,
   ) {
     if (controller.isLoading && controller.sections.isEmpty) {
-      return ListView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.all(24),
-        children: const [
-          SizedBox(height: 120),
-          Center(
-            child: CircularProgressIndicator(
-              color: AppColors.primary,
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          return SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(
+              parent: BouncingScrollPhysics(),
             ),
-          ),
-        ],
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(24),
+                  child: CircularProgressIndicator(
+                    color: AppColors.primary,
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
       );
     }
 
@@ -258,9 +265,8 @@ class _SelectCategoryScreenState extends State<SelectCategoryScreen> {
       ),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(12, 14, 12, 24),
-        child: controller.sections.isEmpty
-            ? const SizedBox.shrink()
-            : _buildSection(context, controller.sections.first),
+        child:
+            controller.sections.isEmpty ? const SizedBox.shrink() : _buildSection(context, controller.sections.first),
       ),
     );
   }
@@ -291,7 +297,7 @@ class _SelectCategoryScreenState extends State<SelectCategoryScreen> {
               crossAxisCount: 2,
               crossAxisSpacing: 14,
               mainAxisSpacing: 14,
-              childAspectRatio: 0.97,
+              childAspectRatio: 1.08,
             ),
             itemBuilder: (context, index) {
               final item = section.items[index];
@@ -336,38 +342,30 @@ class _SelectCategoryScreenState extends State<SelectCategoryScreen> {
               margin: const EdgeInsets.fromLTRB(10, 10, 10, 6),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(12),
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    Colors.white.withOpacity(0.55),
-                    item.backgroundColor,
-                  ],
-                ),
+                // gradient: LinearGradient(
+                //   begin: Alignment.topLeft,
+                //   end: Alignment.bottomRight,
+                //   colors: [
+                //     Colors.white.withOpacity(0.55),
+                //     item.backgroundColor,
+                //   ],
+                // ),
               ),
               child: Stack(
                 children: [
-                  Positioned(
-                    top: -18,
-                    left: -14,
-                    child: Container(
-                      width: 72,
-                      height: 72,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.white.withOpacity(0.22),
-                      ),
-                    ),
-                  ),
-                  Positioned.fill(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 10,
-                      ),
-                      child: _buildCardArtwork(item),
-                    ),
-                  ),
+                  // Positioned(
+                  //   top: -18,
+                  //   left: -14,
+                  //   child: Container(
+                  //     width: 72,
+                  //     height: 72,
+                  //     decoration: BoxDecoration(
+                  //       shape: BoxShape.circle,
+                  //       color: Colors.white.withOpacity(0.22),
+                  //     ),
+                  //   ),
+                  // ),
+                  _buildCardArtwork(item),
                 ],
               ),
             ),
@@ -434,57 +432,62 @@ class _SelectCategoryScreenState extends State<SelectCategoryScreen> {
     switch (item.categoryKey) {
       case 'Sports Bikes':
         return _buildAssetArtwork(
-          assetPath: 'assets/images/pngwing.com (18) 3.png',
-          width: 82,
+          assetPath: 'assets/images/Group 1171278018.png',
+          width: 150,
         );
       case 'Cruiser Bikes':
         return _buildAssetArtwork(
-          assetPath: 'assets/images/pngwing.com (18) 3.png',
-          width: 86,
-          rotation: -0.03,
-          alignment: Alignment.centerRight,
+          assetPath: 'assets/images/Group 1171278020.png',
+          width: 150,
+          // width: 150,
         );
       case 'Commuter Bikes':
         return _buildAssetArtwork(
-          assetPath: 'assets/images/bike.png',
-          width: 84,
-          alignment: Alignment.centerLeft,
+          assetPath: 'assets/images/Group 1171278021.png',
+          width: 150,
+          // alignment: Alignment.centerLeft,
         );
       case 'Adventure Bikes':
         return _buildAssetArtwork(
-          assetPath: 'assets/images/pngwing.com (18) 3.png',
-          width: 78,
-          rotation: 0.04,
+          assetPath: 'assets/images/Group 1171278022.png',
+          width: 150,
+          // rotation: 0.04,
         );
       case 'Electric Bikes':
-        return _buildIconArtwork(
-          icon: Icons.electric_bike_rounded,
-          size: 48,
+        return _buildAssetArtwork(
+          assetPath: 'assets/images/Group 1171278023.png',
+          width: 150,
+          // rotation: 0.04,
         );
       case 'Petrol Scooters':
-        return _buildIconArtwork(
-          icon: Icons.moped_rounded,
-          size: 52,
+        return _buildAssetArtwork(
+          assetPath: 'assets/images/Group 1171278024.png',
+          width: 150,
+          // rotation: 0.04,
         );
       case 'Electric Scooters':
-        return _buildIconArtwork(
-          icon: Icons.electric_scooter_rounded,
-          size: 52,
+        return _buildAssetArtwork(
+          assetPath: 'assets/images/Group 1171278025.png',
+          width: 150,
+          // rotation: 0.04,
         );
       case 'Maxi Scooters':
-        return _buildIconArtwork(
-          icon: Icons.motorcycle_rounded,
-          size: 50,
+        return _buildAssetArtwork(
+          assetPath: 'assets/images/Group 1171278026.png',
+          width: 150,
+          // rotation: 0.04,
         );
       case 'Ladies Scooters':
-        return _buildIconArtwork(
-          icon: Icons.two_wheeler_rounded,
-          size: 50,
+        return _buildAssetArtwork(
+          assetPath: 'assets/images/Group 1171278027.png',
+          width: 150,
+          // rotation: 0.04,
         );
       case 'Moped Scooters':
-        return _buildIconArtwork(
-          icon: Icons.pedal_bike_rounded,
-          size: 48,
+        return _buildAssetArtwork(
+          assetPath: 'assets/images/Group 1171278028.png',
+          width: 150,
+          // rotation: 0.04,
         );
       default:
         return _buildIconArtwork(
