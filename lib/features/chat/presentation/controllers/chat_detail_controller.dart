@@ -16,9 +16,15 @@ import 'package:bikebooking/features/home/presentation/controllers/block_sync_he
 /// Streams messages in real-time, handles sending messages,
 /// read receipts, and the other user's online status.
 class ChatDetailController extends GetxController {
-  ChatDetailController({required this.chatId});
+  ChatDetailController({
+    required this.chatId,
+    this.initialChat,
+  });
+
+  static const String _localMessageIdPrefix = 'local:';
 
   final String chatId;
+  final ChatModel? initialChat;
   final ChatFirestoreService _chatService = ChatFirestoreService();
   final SellerActionFirestoreService _sellerActionService =
       SellerActionFirestoreService();
@@ -26,12 +32,15 @@ class ChatDetailController extends GetxController {
   final ScrollController scrollController = ScrollController();
 
   List<MessageModel> messages = [];
+  final List<MessageModel> _streamMessages = <MessageModel>[];
+  final List<MessageModel> _pendingMessages = <MessageModel>[];
   ChatModel? chat;
   bool isLoading = true;
   String? errorMessage;
   bool isChatBlocked = false;
   bool isOtherUserBlockedByCurrentUser = false;
   bool isUpdatingBlockStatus = false;
+  bool isResolvingChatAccess = true;
 
   // Other user's online status
   bool isOtherUserOnline = false;
@@ -39,6 +48,8 @@ class ChatDetailController extends GetxController {
 
   StreamSubscription<List<MessageModel>>? _messagesSubscription;
   StreamSubscription<Map<String, dynamic>>? _onlineStatusSubscription;
+  String? _onlineStatusUserId;
+  bool _hasAppliedInitialMessageScroll = false;
 
   LoginController get _loginController => Get.find<LoginController>();
   String get _currentUserId => _loginController.chatUserId;
@@ -61,6 +72,7 @@ class ChatDetailController extends GetxController {
   Future<void> _loadChatAndStartListening() async {
     if (_currentUserId.isEmpty) {
       isLoading = false;
+      isResolvingChatAccess = false;
       errorMessage = 'You must be logged in to view messages.';
       update();
       return;
@@ -69,70 +81,28 @@ class ChatDetailController extends GetxController {
     final hasSession = await _loginController.ensureFirestoreSession();
     if (!hasSession) {
       isLoading = false;
+      isResolvingChatAccess = false;
       errorMessage = _loginController.firestoreSessionErrorMessage ??
           'Messages require a valid Firebase sign-in. Please sign in again and try again.';
       update();
       return;
     }
 
-    try {
-      // Load chat document first for participant info.
-      chat = await _chatService.getChatById(chatId);
-      if (chat == null) {
-        isLoading = false;
-        errorMessage = 'Conversation not found.';
-        update();
-        return;
-      }
-
-      await _refreshBlockState();
-      if (isChatBlocked) {
-        isLoading = false;
-        update();
-        return;
-      }
-
-      // Start streaming messages.
-      _messagesSubscription = _chatService.getMessages(chatId).listen(
-        (messageList) {
-          messages = messageList;
-          isLoading = false;
-          errorMessage = null;
-          update();
-
-          // Auto-scroll to bottom when new messages arrive.
-          _scrollToBottom();
-
-          // Mark messages as read.
-          _markAsRead();
-        },
-        onError: (error) {
-          messages = [];
-          isLoading = false;
-          errorMessage = _friendlyChatError(error);
-          update();
-        },
+    if (initialChat != null) {
+      chat = initialChat;
+      isResolvingChatAccess = false;
+      _startOnlineStatusListening(
+        initialChat!.otherParticipantId(_currentUserId),
       );
+      update();
+    }
 
-      // Start streaming other user's online status.
-      final otherUserId = chat!.otherParticipantId(_currentUserId);
-      if (otherUserId.isNotEmpty) {
-        _onlineStatusSubscription =
-            _chatService.getUserOnlineStatus(otherUserId).listen(
-          (statusData) {
-            isOtherUserOnline = statusData['isOnline'] ?? false;
-            otherUserLastSeen = statusData['lastSeen'] as DateTime?;
-            update();
-          },
-          onError: (_) {
-            isOtherUserOnline = false;
-            otherUserLastSeen = null;
-            update();
-          },
-        );
-      }
+    try {
+      _startMessageStream();
+      unawaited(_loadChatMetadata());
     } catch (error) {
       isLoading = false;
+      isResolvingChatAccess = false;
       errorMessage = _friendlyChatError(
         error,
         fallback: 'Something went wrong.',
@@ -158,17 +128,42 @@ class ChatDetailController extends GetxController {
       return;
     }
 
+    final sentAt = DateTime.now();
+    final clientMessageId =
+        '$_localMessageIdPrefix${userId}_${sentAt.microsecondsSinceEpoch}';
+    final pendingMessage = MessageModel(
+      id: clientMessageId,
+      clientMessageId: clientMessageId,
+      senderId: userId,
+      text: text,
+      timestamp: sentAt,
+      readBy: [userId],
+      isPending: true,
+    );
+
     // Clear input immediately for responsive feel.
     messageController.clear();
+    _pendingMessages.add(pendingMessage);
+    messages = _buildVisibleMessages();
+    update();
+    _scrollToBottom();
 
     try {
       await _chatService.sendMessage(
         chatId: chatId,
         senderId: userId,
         text: text,
+        otherUserId: chat?.otherParticipantId(userId),
+        clientMessageId: clientMessageId,
+        sentAt: sentAt,
+        verifyChatAvailability: false,
       );
     } catch (error) {
       // If sending fails, restore the text.
+      _pendingMessages.removeWhere(
+        (message) => message.clientMessageId == clientMessageId,
+      );
+      messages = _buildVisibleMessages();
       messageController.text = text;
       await _refreshBlockState();
       update();
@@ -213,6 +208,20 @@ class ChatDetailController extends GetxController {
     });
   }
 
+  void _jumpToBottomAfterLayout({int remainingFrames = 2}) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!scrollController.hasClients) {
+        return;
+      }
+
+      scrollController.jumpTo(scrollController.position.maxScrollExtent);
+
+      if (remainingFrames > 0) {
+        _jumpToBottomAfterLayout(remainingFrames: remainingFrames - 1);
+      }
+    });
+  }
+
   /// Returns a human-readable "last seen" string.
   String get lastSeenText {
     if (isOtherUserOnline) return 'Online';
@@ -231,6 +240,8 @@ class ChatDetailController extends GetxController {
     return message.senderId == _currentUserId;
   }
 
+  bool isPendingMessage(MessageModel message) => message.isPending;
+
   /// The other participant's display name.
   String get otherUserName {
     if (chat == null) return '';
@@ -246,8 +257,10 @@ class ChatDetailController extends GetxController {
   /// The product snapshot for this conversation (if any).
   ProductSnapshot? get productSnapshot => chat?.productSnapshot;
 
-  bool get canComposeMessages =>
+  bool get shouldShowComposeBar =>
       !isLoading && !isChatBlocked && errorMessage == null;
+
+  bool get canComposeMessages => shouldShowComposeBar && !isResolvingChatAccess;
 
   Future<bool> toggleBlockOtherUser() async {
     final currentUserId = _currentUserId;
@@ -292,6 +305,7 @@ class ChatDetailController extends GetxController {
     if (currentUserId.isEmpty || otherUserId.isEmpty) {
       isChatBlocked = false;
       isOtherUserBlockedByCurrentUser = false;
+      isResolvingChatAccess = false;
       return;
     }
 
@@ -312,6 +326,7 @@ class ChatDetailController extends GetxController {
     } else if (errorMessage != 'Conversation not found.') {
       errorMessage = null;
     }
+    isResolvingChatAccess = false;
   }
 
   String _friendlyChatError(
@@ -345,5 +360,151 @@ class ChatDetailController extends GetxController {
     }
 
     return fallback;
+  }
+
+  void _startMessageStream() {
+    _messagesSubscription?.cancel();
+    _messagesSubscription = _chatService.getMessages(chatId).listen(
+      (messageList) {
+        final shouldApplyInitialScroll =
+            !_hasAppliedInitialMessageScroll && messageList.isNotEmpty;
+
+        _streamMessages
+          ..clear()
+          ..addAll(messageList);
+        _reconcilePendingMessages();
+        messages = _buildVisibleMessages();
+        isLoading = false;
+        if (!isChatBlocked) {
+          errorMessage = null;
+        }
+        update();
+
+        if (shouldApplyInitialScroll) {
+          _hasAppliedInitialMessageScroll = true;
+          _jumpToBottomAfterLayout();
+        } else {
+          _scrollToBottom();
+        }
+        _markAsRead();
+      },
+      onError: (error) {
+        _streamMessages.clear();
+        messages = _buildVisibleMessages();
+        isLoading = false;
+        errorMessage = _friendlyChatError(error);
+        update();
+      },
+    );
+  }
+
+  Future<void> _loadChatMetadata() async {
+    try {
+      final fetchedChat = await _chatService.getChatById(chatId);
+      if (fetchedChat == null) {
+        isResolvingChatAccess = false;
+        if (_streamMessages.isEmpty && _pendingMessages.isEmpty) {
+          isLoading = false;
+          errorMessage = 'Conversation not found.';
+        }
+        update();
+        return;
+      }
+
+      chat = fetchedChat;
+      _startOnlineStatusListening(
+        fetchedChat.otherParticipantId(_currentUserId),
+      );
+      update();
+      if (messages.isNotEmpty) {
+        _jumpToBottomAfterLayout();
+      }
+
+      await _refreshBlockState();
+      update();
+    } catch (error) {
+      isResolvingChatAccess = false;
+      if (_streamMessages.isEmpty && _pendingMessages.isEmpty) {
+        isLoading = false;
+        errorMessage = _friendlyChatError(
+          error,
+          fallback: 'Something went wrong.',
+        );
+      }
+      update();
+    }
+  }
+
+  void _startOnlineStatusListening(String otherUserId) {
+    final normalizedOtherUserId = otherUserId.trim();
+    if (normalizedOtherUserId.isEmpty ||
+        _onlineStatusUserId == normalizedOtherUserId) {
+      return;
+    }
+
+    _onlineStatusUserId = normalizedOtherUserId;
+    _onlineStatusSubscription?.cancel();
+    _onlineStatusSubscription =
+        _chatService.getUserOnlineStatus(normalizedOtherUserId).listen(
+      (statusData) {
+        isOtherUserOnline = statusData['isOnline'] ?? false;
+        otherUserLastSeen = statusData['lastSeen'] as DateTime?;
+        update();
+      },
+      onError: (_) {
+        isOtherUserOnline = false;
+        otherUserLastSeen = null;
+        update();
+      },
+    );
+  }
+
+  void _reconcilePendingMessages() {
+    if (_pendingMessages.isEmpty) {
+      return;
+    }
+
+    final deliveredMessageIds = _streamMessages
+        .map((message) => message.clientMessageId?.trim() ?? '')
+        .where((messageId) => messageId.isNotEmpty)
+        .toSet();
+
+    if (deliveredMessageIds.isEmpty) {
+      return;
+    }
+
+    _pendingMessages.removeWhere((message) {
+      final pendingMessageId = message.clientMessageId?.trim() ?? '';
+      return pendingMessageId.isNotEmpty &&
+          deliveredMessageIds.contains(pendingMessageId);
+    });
+  }
+
+  List<MessageModel> _buildVisibleMessages() {
+    final visibleMessages = <MessageModel>[
+      ..._streamMessages,
+      ..._pendingMessages,
+    ];
+
+    visibleMessages.sort((first, second) {
+      final firstTimestamp =
+          first.timestamp ?? DateTime.fromMillisecondsSinceEpoch(0);
+      final secondTimestamp =
+          second.timestamp ?? DateTime.fromMillisecondsSinceEpoch(0);
+      final timestampComparison = firstTimestamp.compareTo(secondTimestamp);
+      if (timestampComparison != 0) {
+        return timestampComparison;
+      }
+
+      if (first.isPending != second.isPending) {
+        return first.isPending ? 1 : -1;
+      }
+
+      final firstKey = first.clientMessageId ?? first.id ?? '';
+      final secondKey = second.clientMessageId ?? second.id ?? '';
+      return firstKey.compareTo(secondKey);
+    });
+
+    return visibleMessages;
   }
 }

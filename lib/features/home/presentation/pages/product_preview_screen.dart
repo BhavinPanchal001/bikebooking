@@ -355,46 +355,41 @@ class ProductPreviewScreen extends StatelessWidget {
                       ),
                       const SizedBox(width: 16),
                       Expanded(
-                        child: controller.isLoading
-                            ? const Center(child: CircularProgressIndicator())
-                            : CustomGradientButton(
-                                text: controller.isEditing ? 'Update' : 'Post',
-                                onPressed: () async {
-                                  final wasEditing = controller.isEditing;
-                                  final success =
-                                      await controller.submitProduct();
-                                  if (success && context.mounted) {
-                                    Get.snackbar(
-                                      'Success',
-                                      controller.submissionSuccessMessage ??
-                                          (wasEditing
-                                              ? 'Your product has been updated!'
-                                              : 'Your product has been posted!'),
-                                      snackPosition: SnackPosition.BOTTOM,
-                                      backgroundColor: Colors.green.shade600,
-                                    );
-                                    controller.resetForm();
-                                    Navigator.pushNamedAndRemoveUntil(
-                                      context,
-                                      '/my_listing',
-                                      (route) => route.settings.name == '/home',
-                                      arguments: wasEditing
-                                          ? null
-                                          : {'showBoost': true},
-                                    );
-                                  } else if (context.mounted) {
-                                    Get.snackbar(
-                                      'Error',
-                                      controller.submissionErrorMessage ??
-                                          (wasEditing
-                                              ? 'Failed to update product. Please try again.'
-                                              : 'Failed to post product. Please try again.'),
-                                      snackPosition: SnackPosition.BOTTOM,
-                                      backgroundColor: Colors.red.shade600,
-                                    );
-                                  }
-                                },
-                              ),
+                        child: CustomGradientButton(
+                          text: controller.isEditing ? 'Update' : 'Post',
+                          isLoading: controller.isLoading,
+                          onPressed: () async {
+                            final wasEditing = controller.isEditing;
+                            final success = await controller.submitProduct();
+                            if (success && context.mounted) {
+                              Get.snackbar(
+                                'Success',
+                                controller.submissionSuccessMessage ??
+                                    (wasEditing
+                                        ? 'Your product has been updated!'
+                                        : 'Your product has been posted!'),
+                                snackPosition: SnackPosition.BOTTOM,
+                                backgroundColor: Colors.green.shade600,
+                              );
+                              controller.resetForm();
+                              Navigator.pushNamedAndRemoveUntil(
+                                context,
+                                '/my_listing',
+                                (route) => route.settings.name == '/home',
+                              );
+                            } else if (context.mounted) {
+                              Get.snackbar(
+                                'Error',
+                                controller.submissionErrorMessage ??
+                                    (wasEditing
+                                        ? 'Failed to update product. Please try again.'
+                                        : 'Failed to post product. Please try again.'),
+                                snackPosition: SnackPosition.BOTTOM,
+                                backgroundColor: Colors.red.shade600,
+                              );
+                            }
+                          },
+                        ),
                       ),
                     ],
                   ),

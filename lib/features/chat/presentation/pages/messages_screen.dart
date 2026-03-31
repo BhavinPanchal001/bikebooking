@@ -292,6 +292,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
       onTap: () {
         Navigator.pushNamed(context, '/chat_detail', arguments: {
           'chatId': chat.id,
+          'chat': chat,
         });
       },
     );

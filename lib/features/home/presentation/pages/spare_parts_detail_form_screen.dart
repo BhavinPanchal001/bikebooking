@@ -71,6 +71,7 @@ class SparePartsDetailFormScreen extends StatelessWidget {
                           onTap: () =>
                               _showBrandBottomSheet(context, controller),
                           readOnly: true,
+                          hasValue: controller.brand.isNotEmpty,
                         ),
                         const SizedBox(height: 16),
 
@@ -88,6 +89,7 @@ class SparePartsDetailFormScreen extends StatelessWidget {
                                     onTap: () => _showYearBottomSheet(
                                         context, controller),
                                     readOnly: true,
+                                    hasValue: controller.year != null,
                                   ),
                                 ],
                               ),
@@ -104,6 +106,7 @@ class SparePartsDetailFormScreen extends StatelessWidget {
                                     onTap: () => _showCategoryBottomSheet(
                                         context, controller),
                                     readOnly: true,
+                                    hasValue: controller.subCategory != null,
                                   ),
                                 ],
                               ),
@@ -124,6 +127,7 @@ class SparePartsDetailFormScreen extends StatelessWidget {
                                     onTap: () => _showConditionBottomSheet(
                                         context, controller),
                                     readOnly: true,
+                                    hasValue: controller.condition != null,
                                   ),
                                 ],
                               ),
@@ -140,6 +144,7 @@ class SparePartsDetailFormScreen extends StatelessWidget {
                                     onTap: () => _showSellerTypeBottomSheet(
                                         context, controller),
                                     readOnly: true,
+                                    hasValue: controller.sellerType != null,
                                   ),
                                 ],
                               ),
@@ -214,6 +219,12 @@ class SparePartsDetailFormScreen extends StatelessWidget {
   Widget _buildDescriptionField(ListProductController controller) {
     return TextField(
       controller: controller.descriptionController,
+      style: const TextStyle(
+        color: AppColors.primary,
+        fontSize: 14,
+        fontWeight: FontWeight.w500,
+      ),
+      cursorColor: AppColors.primary,
       maxLines: 5,
       maxLength: 1000,
       buildCounter: (context,
@@ -279,19 +290,36 @@ class SparePartsDetailFormScreen extends StatelessWidget {
       {int maxLines = 1,
       VoidCallback? onTap,
       bool readOnly = false,
-      TextEditingController? controller}) {
+      TextEditingController? controller,
+      bool hasValue = false}) {
+    final showsValue =
+        hasValue || (controller?.text.trim().isNotEmpty ?? false);
+
     return TextField(
       maxLines: maxLines,
       onTap: onTap,
       readOnly: readOnly,
       controller: controller,
+      style: const TextStyle(
+        color: AppColors.primary,
+        fontSize: 14,
+        fontWeight: FontWeight.w500,
+      ),
+      cursorColor: AppColors.primary,
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
+        hintStyle: TextStyle(
+          color: showsValue ? AppColors.primary : Colors.grey.shade400,
+          fontSize: 14,
+          fontWeight: showsValue ? FontWeight.w500 : FontWeight.w400,
+        ),
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         suffixIcon: onTap != null
-            ? Icon(Icons.keyboard_arrow_down, color: Colors.grey.shade400)
+            ? Icon(
+                Icons.keyboard_arrow_down,
+                color: showsValue ? AppColors.primary : Colors.grey.shade400,
+              )
             : null,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),

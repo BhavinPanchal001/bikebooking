@@ -3,6 +3,7 @@ import 'package:bikebooking/core/widgets/custom_button.dart';
 import 'package:bikebooking/features/auth/data/models/app_user_model.dart';
 import 'package:bikebooking/features/auth/data/services/user_firestore_service.dart';
 import 'package:bikebooking/features/auth/presentation/controllers/login_controller.dart';
+import 'package:bikebooking/features/chat/data/models/chat_model.dart';
 import 'package:bikebooking/features/chat/data/services/chat_firestore_service.dart';
 import 'package:bikebooking/features/home/data/models/product_model.dart';
 import 'package:bikebooking/features/home/data/models/seller_review_model.dart';
@@ -862,9 +863,33 @@ class _BikeDetailScreenState extends State<BikeDetailScreen> {
 
       Get.back(); // Close loading.
 
+      final initialChat = ChatModel(
+        id: chatId,
+        participants: [currentChatUser.id, sellerUser.id],
+        participantDetails: {
+          currentChatUser.id: ChatParticipant(
+            name: currentChatUser.displayName,
+            photoUrl: currentChatUser.photoUrl,
+            phoneNumber: currentChatUser.phoneNumber,
+          ),
+          sellerUser.id: ChatParticipant(
+            name: sellerUser.displayName,
+            photoUrl: sellerUser.photoUrl,
+            phoneNumber: sellerUser.phoneNumber,
+          ),
+        },
+        productSnapshot: ProductSnapshot(
+          productId: product.id ?? '',
+          title: product.title,
+          price: product.price,
+          imageUrl: product.imageUrls.isNotEmpty ? product.imageUrls.first : '',
+        ),
+      );
+
       if (!mounted) return;
       Navigator.pushNamed(context, '/chat_detail', arguments: {
         'chatId': chatId,
+        'chat': initialChat,
       });
     } catch (error) {
       Get.back(); // Close loading.

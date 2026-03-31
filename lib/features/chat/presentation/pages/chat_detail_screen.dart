@@ -1,6 +1,7 @@
 import 'package:bikebooking/core/constants/global.dart';
 import 'package:bikebooking/core/widgets/custom_button.dart';
 import 'package:bikebooking/features/auth/presentation/controllers/login_controller.dart';
+import 'package:bikebooking/features/chat/data/models/chat_model.dart';
 import 'package:bikebooking/features/chat/data/models/message_model.dart';
 import 'package:bikebooking/features/chat/presentation/controllers/chat_detail_controller.dart';
 import 'package:flutter/material.dart';
@@ -18,15 +19,25 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   // ignore: unused_field
   late final ChatDetailController _controller;
   String? _chatId;
+  ChatModel? _initialChat;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (_chatId != null) return; // Already initialized.
 
-    final args =
-        ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
-    _chatId = args?['chatId']?.toString() ?? '';
+    final args = ModalRoute.of(context)?.settings.arguments;
+    if (args is Map<String, dynamic>) {
+      _chatId = args['chatId']?.toString() ?? '';
+      final initialChatArg = args['chat'];
+      if (initialChatArg is ChatModel) {
+        _initialChat = initialChatArg;
+      }
+    } else if (args is String) {
+      _chatId = args.trim();
+    } else {
+      _chatId = '';
+    }
 
     if (_chatId!.isEmpty) return;
 
@@ -34,7 +45,10 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       _controller = Get.find<ChatDetailController>(tag: _chatId);
     } else {
       _controller = Get.put(
-        ChatDetailController(chatId: _chatId!),
+        ChatDetailController(
+          chatId: _chatId!,
+          initialChat: _initialChat,
+        ),
         tag: _chatId,
       );
     }
@@ -148,8 +162,11 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                               ),
               ),
 
-              if (controller.canComposeMessages)
-                _buildMessageInput(controller)
+              if (controller.shouldShowComposeBar)
+                _buildMessageInput(
+                  controller,
+                  isEnabled: controller.canComposeMessages,
+                )
               else if (!controller.isLoading && controller.isChatBlocked)
                 _buildLockedConversationNotice(controller),
             ],
@@ -402,8 +419,10 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   ) {
     final currentUserId = Get.find<LoginController>().chatUserId;
     final timestamp = message.timestamp;
-    final timeStr =
-        timestamp != null ? DateFormat('HH:mm').format(timestamp) : '';
+    final isPending = controller.isPendingMessage(message);
+    final timeStr = timestamp != null
+        ? DateFormat('HH:mm').format(timestamp)
+        : (isPending ? 'Sending...' : '');
     final isRead = !isMe ||
         (controller.chat != null &&
             message.isReadBy(
@@ -471,10 +490,12 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                   ),
                   const SizedBox(width: 4),
                   Icon(
-                    Icons.done_all,
-                    color: isRead
-                        ? const Color(0xFF38599A)
-                        : const Color(0xFF9AA7C1),
+                    isPending ? Icons.done : Icons.done_all,
+                    color: isPending
+                        ? const Color(0xFF9AA7C1)
+                        : isRead
+                            ? const Color(0xFF38599A)
+                            : const Color(0xFF9AA7C1),
                     size: 14,
                   ),
                 ],
@@ -486,7 +507,10 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     );
   }
 
-  Widget _buildMessageInput(ChatDetailController controller) {
+  Widget _buildMessageInput(
+    ChatDetailController controller, {
+    required bool isEnabled,
+  }) {
     return SafeArea(
       top: false,
       child: Container(
@@ -504,8 +528,13 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 18),
                 child: TextField(
                   controller: controller.messageController,
+                  readOnly: !isEnabled,
                   textInputAction: TextInputAction.send,
-                  onSubmitted: (_) => controller.sendMessage(),
+                  onSubmitted: (_) {
+                    if (isEnabled) {
+                      controller.sendMessage();
+                    }
+                  },
                   decoration: const InputDecoration(
                     hintText: 'Write your message here',
                     hintStyle: TextStyle(
@@ -520,12 +549,14 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
             ),
             const SizedBox(width: 12),
             GestureDetector(
-              onTap: () => controller.sendMessage(),
+              onTap: isEnabled ? () => controller.sendMessage() : null,
               child: Container(
                 height: 44,
                 width: 44,
-                decoration: const BoxDecoration(
-                  color: Color(0xFF2F497E),
+                decoration: BoxDecoration(
+                  color: isEnabled
+                      ? const Color(0xFF2F497E)
+                      : const Color(0xFF2F497E).withOpacity(0.45),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(

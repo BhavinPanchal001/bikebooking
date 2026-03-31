@@ -203,6 +203,12 @@ class BikePriceLocationScreen extends StatelessWidget {
       controller: controller,
       keyboardType: keyboardType,
       inputFormatters: inputFormatters,
+      style: const TextStyle(
+        color: AppColors.primary,
+        fontSize: 15,
+        fontWeight: FontWeight.w500,
+      ),
+      cursorColor: AppColors.primary,
       decoration: InputDecoration(
         hintText: hint,
         hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 15),

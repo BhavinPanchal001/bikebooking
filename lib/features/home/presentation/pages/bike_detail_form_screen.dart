@@ -16,9 +16,8 @@ class BikeDetailFormScreen extends StatelessWidget {
         final baseCategory = ProductCategoryCatalog.baseCategoryFor(
           controller.category,
         );
-        final detailLabel = baseCategory == ProductCategoryCatalog.scooter
-            ? 'Scooter'
-            : 'Bike';
+        final detailLabel =
+            baseCategory == ProductCategoryCatalog.scooter ? 'Scooter' : 'Bike';
 
         return Scaffold(
           backgroundColor: AppColors.background,
@@ -80,6 +79,7 @@ class BikeDetailFormScreen extends StatelessWidget {
                           onTap: () =>
                               _showBrandBottomSheet(context, controller),
                           readOnly: true,
+                          hasValue: controller.brand.isNotEmpty,
                         ),
                         const SizedBox(height: 16),
                         _buildLabel('Sub Category'),
@@ -92,6 +92,7 @@ class BikeDetailFormScreen extends StatelessWidget {
                             detailLabel,
                           ),
                           readOnly: true,
+                          hasValue: controller.subCategory != null,
                         ),
                         const SizedBox(height: 16),
                         Row(
@@ -108,6 +109,7 @@ class BikeDetailFormScreen extends StatelessWidget {
                                     onTap: () => _showYearBottomSheet(
                                         context, controller),
                                     readOnly: true,
+                                    hasValue: controller.year != null,
                                   ),
                                 ],
                               ),
@@ -123,6 +125,7 @@ class BikeDetailFormScreen extends StatelessWidget {
                                     onTap: () => _showFuelTypeBottomSheet(
                                         context, controller),
                                     readOnly: true,
+                                    hasValue: controller.fuelType != null,
                                   ),
                                 ],
                               ),
@@ -161,6 +164,7 @@ class BikeDetailFormScreen extends StatelessWidget {
                                     onTap: () => _showOwnersBottomSheet(
                                         context, controller),
                                     readOnly: true,
+                                    hasValue: controller.numberOfOwners != null,
                                   ),
                                 ],
                               ),
@@ -237,6 +241,12 @@ class BikeDetailFormScreen extends StatelessWidget {
       children: [
         TextField(
           controller: controller.descriptionController,
+          style: const TextStyle(
+            color: AppColors.primary,
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+          ),
+          cursorColor: AppColors.primary,
           maxLines: 5,
           maxLength: 1000,
           buildCounter: (context,
@@ -783,7 +793,11 @@ class BikeDetailFormScreen extends StatelessWidget {
     TextEditingController? controller,
     TextInputType? keyboardType,
     List<TextInputFormatter>? inputFormatters,
+    bool hasValue = false,
   }) {
+    final showsValue =
+        hasValue || (controller?.text.trim().isNotEmpty ?? false);
+
     return TextField(
       maxLines: maxLines,
       onTap: onTap,
@@ -791,13 +805,26 @@ class BikeDetailFormScreen extends StatelessWidget {
       controller: controller,
       keyboardType: keyboardType,
       inputFormatters: inputFormatters,
+      style: const TextStyle(
+        color: AppColors.primary,
+        fontSize: 14,
+        fontWeight: FontWeight.w500,
+      ),
+      cursorColor: AppColors.primary,
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
+        hintStyle: TextStyle(
+          color: showsValue ? AppColors.primary : Colors.grey.shade400,
+          fontSize: 14,
+          fontWeight: showsValue ? FontWeight.w500 : FontWeight.w400,
+        ),
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         suffixIcon: onTap != null
-            ? Icon(Icons.keyboard_arrow_down, color: Colors.grey.shade400)
+            ? Icon(
+                Icons.keyboard_arrow_down,
+                color: showsValue ? AppColors.primary : Colors.grey.shade400,
+              )
             : null,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),

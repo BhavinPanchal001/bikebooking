@@ -159,30 +159,45 @@ class ChatFirestoreService {
     required String chatId,
     required String senderId,
     required String text,
+    String? otherUserId,
+    String? clientMessageId,
+    DateTime? sentAt,
+    bool verifyChatAvailability = true,
   }) async {
     final trimmedText = text.trim();
     if (trimmedText.isEmpty) return;
 
-    final chatDoc = await _chatsRef.doc(chatId).get();
-    final chatData = chatDoc.data();
-    if (!chatDoc.exists || chatData == null) {
-      throw StateError('Conversation not found.');
+    final normalizedClientMessageId = clientMessageId?.trim() ?? '';
+    final localSentAt = sentAt ?? DateTime.now();
+    var resolvedOtherUserId = otherUserId?.trim() ?? '';
+
+    if (resolvedOtherUserId.isEmpty) {
+      final chatDoc = await _chatsRef.doc(chatId).get();
+      final chatData = chatDoc.data();
+      if (!chatDoc.exists || chatData == null) {
+        throw StateError('Conversation not found.');
+      }
+
+      final participants = List<String>.from(chatData['participants'] ?? []);
+      resolvedOtherUserId = participants.firstWhere(
+        (id) => id != senderId,
+        orElse: () => '',
+      );
     }
 
-    final participants = List<String>.from(chatData['participants'] ?? []);
-    final otherUserId = participants.firstWhere(
-      (id) => id != senderId,
-      orElse: () => '',
-    );
-
-    await _assertUsersCanChat(
-      currentUserId: senderId,
-      otherUserId: otherUserId,
-    );
+    if (verifyChatAvailability) {
+      await _assertUsersCanChat(
+        currentUserId: senderId,
+        otherUserId: resolvedOtherUserId,
+      );
+    }
 
     final message = MessageModel(
+      clientMessageId:
+          normalizedClientMessageId.isEmpty ? null : normalizedClientMessageId,
       senderId: senderId,
       text: trimmedText,
+      timestamp: localSentAt,
       readBy: [senderId],
     );
 
@@ -194,14 +209,16 @@ class ChatFirestoreService {
       'lastMessage': {
         'text': trimmedText,
         'senderId': senderId,
-        'timestamp': FieldValue.serverTimestamp(),
+        'timestamp': Timestamp.fromDate(localSentAt),
         'type': 'text',
+        if (normalizedClientMessageId.isNotEmpty)
+          'clientMessageId': normalizedClientMessageId,
       },
       'updatedAt': FieldValue.serverTimestamp(),
     };
 
-    if (otherUserId.isNotEmpty) {
-      updates['unreadCount.$otherUserId'] = FieldValue.increment(1);
+    if (resolvedOtherUserId.isNotEmpty) {
+      updates['unreadCount.$resolvedOtherUserId'] = FieldValue.increment(1);
     }
 
     await _chatsRef.doc(chatId).update(updates);

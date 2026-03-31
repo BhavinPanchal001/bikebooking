@@ -551,8 +551,6 @@ class ListProductController extends GetxController {
         debugPrint(
           'Falling back to posting without uploaded images: $error\n$stackTrace',
         );
-        _submissionSuccessMessage =
-            'Your product has been posted, but the images were not uploaded because Firebase Storage is not configured yet.';
         _imageUrls = [];
         return const [];
       }
