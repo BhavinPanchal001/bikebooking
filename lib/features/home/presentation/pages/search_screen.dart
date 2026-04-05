@@ -7,6 +7,7 @@ import 'package:bikebooking/features/home/presentation/controllers/favorites_con
 import 'package:bikebooking/features/home/presentation/controllers/search_controller.dart'
     as home_search;
 import 'package:bikebooking/features/home/presentation/widgets/bike_card.dart';
+import 'package:bikebooking/features/home/presentation/widgets/product_status_badge.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -460,6 +461,14 @@ class _SearchScreenState extends State<SearchScreen> {
                           },
                         ),
                       ],
+                    ),
+                    const SizedBox(height: 8),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: ProductStatusBadge(
+                        status: product.status,
+                        compact: true,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     if (tags.isNotEmpty)

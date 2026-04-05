@@ -12,6 +12,9 @@ import 'package:bikebooking/features/home/data/services/seller_action_firestore_
 import 'package:bikebooking/features/home/data/services/seller_review_firestore_service.dart';
 import 'package:bikebooking/features/home/presentation/controllers/favorites_controller.dart';
 import 'package:bikebooking/features/home/presentation/controllers/home_products_controller.dart';
+import 'package:bikebooking/features/home/presentation/widgets/product_status_badge.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -25,6 +28,7 @@ class BikeDetailScreen extends StatefulWidget {
 class _BikeDetailScreenState extends State<BikeDetailScreen> {
   late final FavoritesController _favoritesController;
   ProductModel? _product;
+  bool _isOwnerView = false;
   List<String> _imageUrls = const [];
   int _selectedIndex = 0;
   bool _initialized = false;
@@ -53,25 +57,42 @@ class _BikeDetailScreenState extends State<BikeDetailScreen> {
 
     final args = ModalRoute.of(context)?.settings.arguments;
     if (args is ProductModel) {
-      _product = args;
-      _imageUrls = args.imageUrls
-          .map((url) => url.trim())
-          .where((url) => url.isNotEmpty)
-          .toList(growable: false);
-
-      // Record this product view after the route finishes building so we do
-      // not trigger a HomePage GetBuilder rebuild during navigation.
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted || !Get.isRegistered<HomeProductsController>()) {
-          return;
-        }
-
-        Get.find<HomeProductsController>().recordProductView(args);
-      });
-
-      _loadSellerInfo(args.sellerId);
+      _bindProduct(args);
+    } else if (args is Map) {
+      final routeProduct = args['product'] is ProductModel
+          ? args['product'] as ProductModel
+          : null;
+      if (routeProduct != null) {
+        _bindProduct(
+          routeProduct,
+          isOwnerView:
+              args['isOwnerView'] == true || args['isOwnProduct'] == true,
+        );
+      }
     }
     _initialized = true;
+  }
+
+  void _bindProduct(
+    ProductModel product, {
+    bool isOwnerView = false,
+  }) {
+    _product = product;
+    _isOwnerView = isOwnerView;
+    _imageUrls = product.imageUrls
+        .map((url) => url.trim())
+        .where((url) => url.isNotEmpty)
+        .toList(growable: false);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !Get.isRegistered<HomeProductsController>()) {
+        return;
+      }
+
+      Get.find<HomeProductsController>().recordProductView(product);
+    });
+
+    _loadSellerInfo(product.sellerId);
   }
 
   Future<void> _loadSellerInfo(String sellerId) async {
@@ -89,7 +110,10 @@ class _BikeDetailScreenState extends State<BikeDetailScreen> {
 
       final futures = await Future.wait([
         userRepo.getUserById(normalizedId),
-        productRepo.getUserProducts(normalizedId),
+        productRepo.getUserProducts(
+          normalizedId,
+          includeInactive: _isOwnerView,
+        ),
         reviewRepo.getSellerReviews(normalizedId),
       ]);
 
@@ -124,59 +148,18 @@ class _BikeDetailScreenState extends State<BikeDetailScreen> {
   Widget build(BuildContext context) {
     final product = _product;
     if (product == null) {
-      return Scaffold(
-        backgroundColor: const Color(0xFFF9FBFF),
-        body: SafeArea(
-          child: Center(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(
-                    Icons.inventory_2_outlined,
-                    size: 56,
-                    color: Color(0xFF5E6E8C),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Product details are unavailable',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF233A66),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  const Text(
-                    'Open this screen from a product card to view the real listing details.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Color(0xFF5E6E8C),
-                      height: 1.5,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () => Navigator.pop(context),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF233A66),
-                        foregroundColor: Colors.white,
-                        minimumSize: const Size(0, 50),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: const Text('Go back'),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
+      return _buildUnavailableProductScaffold(
+        title: 'Product details are unavailable',
+        message:
+            'Open this screen from a product card to view the real listing details.',
+      );
+    }
+
+    if (!product.isActive && !_isOwnProduct(product)) {
+      return _buildUnavailableProductScaffold(
+        title: 'This listing is no longer available',
+        message:
+            'The seller has already marked this product as sold, so it is only visible in their posts now.',
       );
     }
 
@@ -311,6 +294,8 @@ class _BikeDetailScreenState extends State<BikeDetailScreen> {
                       ),
                     ),
                     const SizedBox(height: 8),
+                    ProductStatusBadge(status: product.status),
+                    const SizedBox(height: 12),
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -366,16 +351,7 @@ class _BikeDetailScreenState extends State<BikeDetailScreen> {
                     _buildSellerCard(product),
                     const SizedBox(height: 16),
                     if (!_isOwnProduct(product))
-                      CustomGradientButton(
-                        text: 'Chat',
-                        onPressed: () => _startChat(product),
-                        height: 48,
-                        icon: const Icon(
-                          Icons.chat_bubble_outline,
-                          color: Colors.white,
-                          size: 20,
-                        ),
-                      ),
+                      _buildBuyerActionSection(product),
                     const SizedBox(height: 32),
                   ],
                 ),
@@ -407,6 +383,66 @@ class _BikeDetailScreenState extends State<BikeDetailScreen> {
         Icons.image_outlined,
         size: 100,
         color: Colors.grey,
+      ),
+    );
+  }
+
+  Widget _buildUnavailableProductScaffold({
+    required String title,
+    required String message,
+  }) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF9FBFF),
+      body: SafeArea(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.inventory_2_outlined,
+                  size: 56,
+                  color: Color(0xFF5E6E8C),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF233A66),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  message,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Color(0xFF5E6E8C),
+                    height: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF233A66),
+                      foregroundColor: Colors.white,
+                      minimumSize: const Size(0, 50),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text('Go back'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -754,6 +790,61 @@ class _BikeDetailScreenState extends State<BikeDetailScreen> {
     return parts.join(' ');
   }
 
+  Widget _buildBuyerActionSection(ProductModel product) {
+    if (product.allowsBuyerActions) {
+      return CustomGradientButton(
+        text: 'Chat',
+        onPressed: () => _startChat(product),
+        height: 48,
+        icon: const Icon(
+          Icons.chat_bubble_outline,
+          color: Colors.white,
+          size: 20,
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFFF7ED),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: const Color(0xFFFACCA8)),
+          ),
+          child: Text(
+            'This listing is marked ${product.statusLabel.toLowerCase()}, so chat is disabled.',
+            style: const TextStyle(
+              color: Color(0xFF9A4D15),
+              height: 1.5,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          width: double.infinity,
+          height: 48,
+          child: ElevatedButton.icon(
+            onPressed: null,
+            icon: const Icon(Icons.chat_bubble_outline, size: 20),
+            label: const Text('Chat unavailable'),
+            style: ElevatedButton.styleFrom(
+              disabledBackgroundColor: const Color(0xFFE5EAF3),
+              disabledForegroundColor: const Color(0xFF7A889F),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   void _openSellerProfile(
     ProductModel product, {
     required String fallbackSellerName,
@@ -794,19 +885,56 @@ class _BikeDetailScreenState extends State<BikeDetailScreen> {
   }
 
   bool _isOwnProduct(ProductModel product) {
+    if (_isOwnerView) {
+      return true;
+    }
+
     final sellerId = product.sellerId.trim();
     if (sellerId.isEmpty) {
       return false;
     }
 
-    final loginController = Get.find<LoginController>();
-    final resolvedCurrentUserId = loginController.resolvedCurrentUserId.trim();
-    final chatUserId = loginController.chatUserId.trim();
+    final candidateUserIds = <String>{};
 
-    return sellerId == resolvedCurrentUserId || sellerId == chatUserId;
+    if (Get.isRegistered<LoginController>()) {
+      final loginController = Get.find<LoginController>();
+      final profileUserId = loginController.currentUserProfile?.id.trim() ?? '';
+      final resolvedCurrentUserId =
+          loginController.resolvedCurrentUserId.trim();
+      final chatUserId = loginController.chatUserId.trim();
+
+      if (profileUserId.isNotEmpty) {
+        candidateUserIds.add(profileUserId);
+      }
+      if (resolvedCurrentUserId.isNotEmpty) {
+        candidateUserIds.add(resolvedCurrentUserId);
+      }
+      if (chatUserId.isNotEmpty) {
+        candidateUserIds.add(chatUserId);
+      }
+    }
+
+    if (Firebase.apps.isNotEmpty) {
+      final firebaseUserId =
+          FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
+      if (firebaseUserId.isNotEmpty) {
+        candidateUserIds.add(firebaseUserId);
+      }
+    }
+
+    return candidateUserIds.contains(sellerId);
   }
 
   Future<void> _startChat(ProductModel product) async {
+    if (!product.allowsBuyerActions) {
+      Get.snackbar(
+        'Chat unavailable',
+        'This listing is marked ${product.statusLabel.toLowerCase()}, so chat is disabled.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      return;
+    }
+
     final loginController = Get.find<LoginController>();
     final chatUserId = loginController.chatUserId;
     final currentUser = loginController.currentUserProfile;

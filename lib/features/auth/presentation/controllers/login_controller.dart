@@ -950,10 +950,6 @@ class LoginController extends GetxController {
         await _safeSignOut();
       }
 
-      if (Get.isRegistered<FavoritesController>()) {
-        Get.find<FavoritesController>().clearFavorites();
-      }
-
       _clearLocalSession();
       update();
       Get.offAllNamed('/login');
@@ -1313,6 +1309,9 @@ class LoginController extends GetxController {
     currentUserProfile = userProfile;
     phoneNumber = userProfile.phoneNumber;
     _syncProfileControllers(userProfile);
+    if (Get.isRegistered<FavoritesController>()) {
+      unawaited(Get.find<FavoritesController>().bindToCurrentUser());
+    }
   }
 
   AppUserModel _createOrUpdateLocalSession({
@@ -1377,6 +1376,10 @@ class LoginController extends GetxController {
   }
 
   void _clearLocalSession() {
+    if (Get.isRegistered<FavoritesController>()) {
+      Get.find<FavoritesController>().clearFavorites();
+    }
+
     verificationId = null;
     resendToken = null;
     phoneNumber = null;

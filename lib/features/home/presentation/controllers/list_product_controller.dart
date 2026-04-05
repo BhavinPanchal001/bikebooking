@@ -9,6 +9,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:bikebooking/features/auth/presentation/controllers/login_controller.dart';
 import 'package:bikebooking/features/home/data/models/product_model.dart';
+import 'package:bikebooking/features/home/data/models/product_status.dart';
 import 'package:bikebooking/features/home/data/services/product_firestore_service.dart';
 import 'package:bikebooking/features/home/data/services/product_storage_service.dart';
 
@@ -27,13 +28,19 @@ class ListProductController extends GetxController {
     ProductFirestoreService? firestoreService,
     ProductStorageService? storageService,
     ImagePicker? imagePicker,
+    String Function()? sellerIdProvider,
+    String Function()? sellerNameProvider,
   })  : _firestoreService = firestoreService ?? ProductFirestoreService(),
         _storageService = storageService ?? ProductStorageService(),
-        _imagePicker = imagePicker ?? ImagePicker();
+        _imagePicker = imagePicker ?? ImagePicker(),
+        _sellerIdProvider = sellerIdProvider,
+        _sellerNameProvider = sellerNameProvider;
 
   final ProductFirestoreService _firestoreService;
   final ProductStorageService _storageService;
   final ImagePicker _imagePicker;
+  final String Function()? _sellerIdProvider;
+  final String Function()? _sellerNameProvider;
   static const int _maxProductImages = 6;
 
   // ── Step 1: Category ──
@@ -257,6 +264,8 @@ class ListProductController extends GetxController {
   String? get submissionSuccessMessage => _submissionSuccessMessage;
   String? _editingProductId;
   String? get editingProductId => _editingProductId;
+  String _status = ProductStatus.active;
+  String get status => _status;
   bool get isEditing =>
       _editingProductId != null && _editingProductId!.isNotEmpty;
 
@@ -276,12 +285,16 @@ class ListProductController extends GetxController {
     update();
 
     try {
-      final firebaseUser = FirebaseAuth.instance.currentUser;
+      final providedSellerId = _sellerIdProvider?.call().trim() ?? '';
+      final firebaseUser = providedSellerId.isNotEmpty
+          ? null
+          : FirebaseAuth.instance.currentUser;
       final loginController = Get.isRegistered<LoginController>()
           ? Get.find<LoginController>()
           : null;
-      final sellerId =
-          firebaseUser?.uid ?? loginController?.currentUserProfile?.id ?? '';
+      final sellerId = providedSellerId.isNotEmpty
+          ? providedSellerId
+          : firebaseUser?.uid ?? loginController?.currentUserProfile?.id ?? '';
       if (sellerId.isEmpty) {
         throw StateError(
           'Unable to find a Firebase user for this listing. Please sign in again and retry.',
@@ -306,7 +319,7 @@ class ListProductController extends GetxController {
         imageUrls: uploadedImageUrls,
         sellerId: sellerId,
         sellerName: sellerName,
-        status: 'active',
+        status: _status,
         // Bike / Scooter fields
         fuelType: _fuelType,
         kilometerDriven: int.tryParse(kilometerController.text.trim()),
@@ -388,6 +401,7 @@ class ListProductController extends GetxController {
     _submissionErrorMessage = null;
     _submissionSuccessMessage = null;
     _editingProductId = null;
+    _status = ProductStatus.active;
     update();
   }
 
@@ -413,6 +427,7 @@ class ListProductController extends GetxController {
 
   void loadProductForEditing(ProductModel product) {
     _editingProductId = product.id;
+    _status = ProductStatus.normalize(product.status);
     final normalizedCategory = product.category.trim();
     _category = normalizedCategory.isEmpty
         ? ''
@@ -584,6 +599,11 @@ class ListProductController extends GetxController {
     required LoginController? loginController,
     required User? firebaseUser,
   }) {
+    final providedSellerName = _sellerNameProvider?.call().trim() ?? '';
+    if (providedSellerName.isNotEmpty) {
+      return providedSellerName;
+    }
+
     final profileDisplayName =
         loginController?.currentUserProfile?.displayName.trim() ?? '';
     if (profileDisplayName.isNotEmpty) {

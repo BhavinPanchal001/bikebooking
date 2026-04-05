@@ -1,4 +1,5 @@
 import 'package:bikebooking/features/auth/data/models/app_user_model.dart';
+import 'package:bikebooking/features/home/data/models/notification_preferences_model.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class UserFirestoreService {
@@ -169,6 +170,38 @@ class UserFirestoreService {
     }, SetOptions(merge: true));
   }
 
+  Future<NotificationPreferencesModel> getNotificationPreferences(
+    String userId,
+  ) async {
+    final snapshot = await _usersRef.doc(userId.trim()).get();
+    final data = snapshot.data();
+    if (data == null) {
+      return NotificationPreferencesModel.defaults;
+    }
+
+    final preferences = data['notificationPreferences'];
+    if (preferences is Map<String, dynamic>) {
+      return NotificationPreferencesModel.fromMap(preferences);
+    }
+    if (preferences is Map) {
+      return NotificationPreferencesModel.fromMap(
+        Map<String, dynamic>.from(preferences),
+      );
+    }
+
+    return NotificationPreferencesModel.defaults;
+  }
+
+  Future<void> updateNotificationPreferences({
+    required String userId,
+    required NotificationPreferencesModel preferences,
+  }) async {
+    await _usersRef.doc(userId.trim()).set({
+      'notificationPreferences': preferences.toMap(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+  }
+
   Future<void> deleteUserAccountData(String userId) async {
     final trimmedUserId = userId.trim();
     if (trimmedUserId.isEmpty) {
@@ -177,6 +210,9 @@ class UserFirestoreService {
 
     await _deleteCollection(
       _usersRef.doc(trimmedUserId).collection('notifications'),
+    );
+    await _deleteCollection(
+      _usersRef.doc(trimmedUserId).collection('favorites'),
     );
     await _deleteCollection(
       _usersRef.doc(trimmedUserId).collection('recentlyViewed'),

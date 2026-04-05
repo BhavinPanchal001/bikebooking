@@ -153,23 +153,38 @@ class ChatFirestoreService {
   // Send Message
   // ---------------------------------------------------------------------------
 
-  /// Sends a text message and updates the chat document's
+  /// Sends a chat message and updates the chat document's
   /// `lastMessage`, `unreadCount`, and `updatedAt`.
   Future<void> sendMessage({
     required String chatId,
     required String senderId,
     required String text,
+    String type = 'text',
+    String? imageUrl,
+    String? previewText,
     String? otherUserId,
     String? clientMessageId,
     DateTime? sentAt,
     bool verifyChatAvailability = true,
   }) async {
     final trimmedText = text.trim();
-    if (trimmedText.isEmpty) return;
+    final normalizedType =
+        type.trim().isEmpty ? 'text' : type.trim().toLowerCase();
+    final normalizedImageUrl = imageUrl?.trim() ?? '';
+    final normalizedPreviewText = previewText?.trim() ?? '';
+    if (normalizedType == 'image' && normalizedImageUrl.isEmpty) {
+      throw ArgumentError('An image URL is required for image messages.');
+    }
+    if (normalizedType != 'image' && trimmedText.isEmpty) return;
 
     final normalizedClientMessageId = clientMessageId?.trim() ?? '';
     final localSentAt = sentAt ?? DateTime.now();
     var resolvedOtherUserId = otherUserId?.trim() ?? '';
+    final resolvedPreviewText = normalizedPreviewText.isNotEmpty
+        ? normalizedPreviewText
+        : normalizedType == 'image'
+            ? (trimmedText.isEmpty ? 'Photo' : 'Photo: $trimmedText')
+            : trimmedText;
 
     if (resolvedOtherUserId.isEmpty) {
       final chatDoc = await _chatsRef.doc(chatId).get();
@@ -197,6 +212,8 @@ class ChatFirestoreService {
           normalizedClientMessageId.isEmpty ? null : normalizedClientMessageId,
       senderId: senderId,
       text: trimmedText,
+      type: normalizedType,
+      imageUrl: normalizedImageUrl.isEmpty ? null : normalizedImageUrl,
       timestamp: localSentAt,
       readBy: [senderId],
     );
@@ -207,10 +224,10 @@ class ChatFirestoreService {
     // Update the chat document with last message and increment unread.
     final updates = <String, dynamic>{
       'lastMessage': {
-        'text': trimmedText,
+        'text': resolvedPreviewText,
         'senderId': senderId,
         'timestamp': Timestamp.fromDate(localSentAt),
-        'type': 'text',
+        'type': normalizedType,
         if (normalizedClientMessageId.isNotEmpty)
           'clientMessageId': normalizedClientMessageId,
       },

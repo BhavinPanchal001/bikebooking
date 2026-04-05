@@ -218,12 +218,16 @@ class SellerProfileController extends GetxController {
     ProductModel? initialProduct,
   }) async {
     try {
-      return await _productFirestoreService.getUserProducts(sellerId);
+      return await _productFirestoreService.getUserProducts(
+        sellerId,
+        includeInactive: isOwnProfile,
+      );
     } on FirebaseException catch (error, stackTrace) {
       debugPrint('Error loading seller listings: $error\n$stackTrace');
 
       if (initialProduct != null &&
-          initialProduct.sellerId.trim() == sellerId.trim()) {
+          initialProduct.sellerId.trim() == sellerId.trim() &&
+          (isOwnProfile || initialProduct.isActive)) {
         return <ProductModel>[initialProduct];
       }
 

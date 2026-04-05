@@ -4,16 +4,39 @@ import 'package:firebase_storage/firebase_storage.dart';
 
 class ProductStorageService {
   ProductStorageService({FirebaseStorage? storage})
-      : _storage = storage ?? FirebaseStorage.instance;
+      : _storage = storage,
+        _uploadProductImagesOverride = null;
 
-  final FirebaseStorage _storage;
+  ProductStorageService.withOverride({
+    FirebaseStorage? storage,
+    Future<List<String>> Function({
+      required String sellerId,
+      required List<Uint8List> imageBytes,
+    })? uploadProductImagesOverride,
+  })  : _storage = storage,
+        _uploadProductImagesOverride = uploadProductImagesOverride;
 
-  Reference get _productImagesRef => _storage.ref().child('product_images');
+  final FirebaseStorage? _storage;
+  final Future<List<String>> Function({
+    required String sellerId,
+    required List<Uint8List> imageBytes,
+  })? _uploadProductImagesOverride;
+
+  Reference get _productImagesRef =>
+      (_storage ?? FirebaseStorage.instance).ref().child('product_images');
 
   Future<List<String>> uploadProductImages({
     required String sellerId,
     required List<Uint8List> imageBytes,
   }) async {
+    final uploadProductImagesOverride = _uploadProductImagesOverride;
+    if (uploadProductImagesOverride != null) {
+      return uploadProductImagesOverride(
+        sellerId: sellerId,
+        imageBytes: imageBytes,
+      );
+    }
+
     if (imageBytes.isEmpty) {
       return const [];
     }

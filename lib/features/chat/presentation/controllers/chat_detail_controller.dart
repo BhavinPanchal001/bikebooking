@@ -3,11 +3,13 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:image_picker/image_picker.dart';
 
 import 'package:bikebooking/features/auth/presentation/controllers/login_controller.dart';
 import 'package:bikebooking/features/chat/data/models/chat_model.dart';
 import 'package:bikebooking/features/chat/data/models/message_model.dart';
 import 'package:bikebooking/features/chat/data/services/chat_firestore_service.dart';
+import 'package:bikebooking/features/chat/data/services/chat_image_storage_service.dart';
 import 'package:bikebooking/features/home/data/services/seller_action_firestore_service.dart';
 import 'package:bikebooking/features/home/presentation/controllers/block_sync_helper.dart';
 
@@ -19,15 +21,25 @@ class ChatDetailController extends GetxController {
   ChatDetailController({
     required this.chatId,
     this.initialChat,
-  });
+    ChatFirestoreService? chatService,
+    SellerActionFirestoreService? sellerActionService,
+    ImagePicker? imagePicker,
+    ChatImageStorageService? chatImageStorageService,
+  })  : _chatService = chatService ?? ChatFirestoreService(),
+        _sellerActionService =
+            sellerActionService ?? SellerActionFirestoreService(),
+        _imagePicker = imagePicker ?? ImagePicker(),
+        _chatImageStorageService =
+            chatImageStorageService ?? ChatImageStorageService();
 
   static const String _localMessageIdPrefix = 'local:';
 
   final String chatId;
   final ChatModel? initialChat;
-  final ChatFirestoreService _chatService = ChatFirestoreService();
-  final SellerActionFirestoreService _sellerActionService =
-      SellerActionFirestoreService();
+  final ChatFirestoreService _chatService;
+  final SellerActionFirestoreService _sellerActionService;
+  final ImagePicker _imagePicker;
+  final ChatImageStorageService _chatImageStorageService;
   final TextEditingController messageController = TextEditingController();
   final ScrollController scrollController = ScrollController();
 
@@ -41,6 +53,7 @@ class ChatDetailController extends GetxController {
   bool isOtherUserBlockedByCurrentUser = false;
   bool isUpdatingBlockStatus = false;
   bool isResolvingChatAccess = true;
+  bool isUploadingImage = false;
 
   // Other user's online status
   bool isOtherUserOnline = false;
@@ -117,20 +130,12 @@ class ChatDetailController extends GetxController {
     if (text.isEmpty) return;
 
     final userId = _currentUserId;
-    if (userId.isEmpty) return;
-    if (isChatBlocked) {
-      Get.snackbar(
-        'Chat unavailable',
-        errorMessage ??
-            'This conversation is unavailable because one of you has blocked the other.',
-        snackPosition: SnackPosition.BOTTOM,
-      );
+    if (!_canSendMessage(userId)) {
       return;
     }
 
     final sentAt = DateTime.now();
-    final clientMessageId =
-        '$_localMessageIdPrefix${userId}_${sentAt.microsecondsSinceEpoch}';
+    final clientMessageId = _buildClientMessageId(userId, sentAt);
     final pendingMessage = MessageModel(
       id: clientMessageId,
       clientMessageId: clientMessageId,
@@ -164,7 +169,7 @@ class ChatDetailController extends GetxController {
         (message) => message.clientMessageId == clientMessageId,
       );
       messages = _buildVisibleMessages();
-      messageController.text = text;
+      _restoreComposerText(text);
       await _refreshBlockState();
       update();
       Get.snackbar(
@@ -175,6 +180,97 @@ class ChatDetailController extends GetxController {
         ),
         snackPosition: SnackPosition.BOTTOM,
       );
+    }
+  }
+
+  Future<void> pickAndSendImage(ImageSource source) async {
+    if (isUploadingImage) {
+      return;
+    }
+
+    final userId = _currentUserId;
+    if (!_canSendMessage(userId)) {
+      return;
+    }
+
+    String? pendingClientMessageId;
+    var pendingCaption = '';
+    try {
+      final pickedFile = await _imagePicker.pickImage(
+        source: source,
+        imageQuality: 85,
+        maxWidth: 1800,
+      );
+      if (pickedFile == null) {
+        return;
+      }
+
+      final caption = messageController.text.trim();
+      pendingCaption = caption;
+      final imageBytes = await pickedFile.readAsBytes();
+      final sentAt = DateTime.now();
+      final clientMessageId = _buildClientMessageId(userId, sentAt);
+      pendingClientMessageId = clientMessageId;
+      final pendingMessage = MessageModel(
+        id: clientMessageId,
+        clientMessageId: clientMessageId,
+        senderId: userId,
+        text: caption,
+        type: 'image',
+        localImageBytes: imageBytes,
+        timestamp: sentAt,
+        readBy: [userId],
+        isPending: true,
+      );
+
+      if (caption.isNotEmpty) {
+        messageController.clear();
+      }
+
+      isUploadingImage = true;
+      _pendingMessages.add(pendingMessage);
+      messages = _buildVisibleMessages();
+      update();
+      _scrollToBottom();
+
+      final imageUrl = await _chatImageStorageService.uploadChatImage(
+        chatId: chatId,
+        userId: userId,
+        imageFile: pickedFile,
+      );
+
+      await _chatService.sendMessage(
+        chatId: chatId,
+        senderId: userId,
+        text: caption,
+        type: 'image',
+        imageUrl: imageUrl,
+        previewText: caption.isEmpty ? 'Photo' : 'Photo: $caption',
+        otherUserId: chat?.otherParticipantId(userId),
+        clientMessageId: clientMessageId,
+        sentAt: sentAt,
+        verifyChatAvailability: false,
+      );
+    } catch (error) {
+      if (pendingClientMessageId != null) {
+        _pendingMessages.removeWhere(
+          (message) => message.clientMessageId == pendingClientMessageId,
+        );
+      }
+      messages = _buildVisibleMessages();
+      if (pendingCaption.isNotEmpty && messageController.text.trim().isEmpty) {
+        _restoreComposerText(pendingCaption);
+      }
+      await _refreshBlockState();
+      update();
+      Get.snackbar(
+        'Error',
+        _friendlyImageUploadError(error),
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    } finally {
+      isUploadingImage = false;
+      update();
     }
   }
 
@@ -362,6 +458,28 @@ class ChatDetailController extends GetxController {
     return fallback;
   }
 
+  String _friendlyImageUploadError(Object error) {
+    if (error is FirebaseException) {
+      final code = error.code.toLowerCase();
+      if (code == 'permission-denied' ||
+          code == 'unauthorized' ||
+          code == 'unauthenticated') {
+        return 'Image uploads are blocked by Firebase Storage permissions. Check your storage rules and try again.';
+      }
+      if (code == 'unavailable' || code == 'network-request-failed') {
+        return 'Check your internet connection and try again.';
+      }
+      if (code == 'canceled') {
+        return 'Image upload was cancelled before it could finish.';
+      }
+    }
+
+    return _friendlyChatError(
+      error,
+      fallback: 'Failed to send image. Please try again.',
+    );
+  }
+
   void _startMessageStream() {
     _messagesSubscription?.cancel();
     _messagesSubscription = _chatService.getMessages(chatId).listen(
@@ -506,5 +624,34 @@ class ChatDetailController extends GetxController {
     });
 
     return visibleMessages;
+  }
+
+  bool _canSendMessage(String userId) {
+    if (userId.isEmpty) {
+      return false;
+    }
+
+    if (isChatBlocked) {
+      Get.snackbar(
+        'Chat unavailable',
+        errorMessage ??
+            'This conversation is unavailable because one of you has blocked the other.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      return false;
+    }
+
+    return true;
+  }
+
+  String _buildClientMessageId(String userId, DateTime sentAt) {
+    return '$_localMessageIdPrefix${userId}_${sentAt.microsecondsSinceEpoch}';
+  }
+
+  void _restoreComposerText(String text) {
+    messageController.value = TextEditingValue(
+      text: text,
+      selection: TextSelection.collapsed(offset: text.length),
+    );
   }
 }

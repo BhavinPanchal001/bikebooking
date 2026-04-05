@@ -4,6 +4,7 @@ import 'package:bikebooking/features/home/data/models/product_model.dart';
 import 'package:bikebooking/features/home/presentation/controllers/favorites_controller.dart';
 import 'package:bikebooking/features/home/presentation/controllers/filter_result_controller.dart';
 import 'package:bikebooking/features/home/presentation/widgets/app_bottom_nav_bar.dart';
+import 'package:bikebooking/features/home/presentation/widgets/product_status_badge.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -393,6 +394,14 @@ class _FilterResultScreenState extends State<FilterResultScreen>
                         const SizedBox(width: 8),
                         _buildFavoriteAction(product),
                       ],
+                    ),
+                    const SizedBox(height: 8),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: ProductStatusBadge(
+                        status: product.status,
+                        compact: true,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     if (tags.isNotEmpty)

@@ -6,6 +6,7 @@ import 'package:bikebooking/features/chat/data/models/message_model.dart';
 import 'package:bikebooking/features/chat/presentation/controllers/chat_detail_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 
 class ChatDetailScreen extends StatefulWidget {
@@ -420,6 +421,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     final currentUserId = Get.find<LoginController>().chatUserId;
     final timestamp = message.timestamp;
     final isPending = controller.isPendingMessage(message);
+    final hasImage = message.hasImage;
     final timeStr = timestamp != null
         ? DateFormat('HH:mm').format(timestamp)
         : (isPending ? 'Sending...' : '');
@@ -445,10 +447,12 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                 isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
+                padding: hasImage
+                    ? const EdgeInsets.all(6)
+                    : const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
                 decoration: BoxDecoration(
                   color: isMe ? const Color(0xFF2F497E) : Colors.white,
                   borderRadius: BorderRadius.only(
@@ -466,15 +470,17 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                       ),
                   ],
                 ),
-                child: Text(
-                  message.text,
-                  style: TextStyle(
-                    color: isMe ? Colors.white : const Color(0xFF263238),
-                    fontSize: 14,
-                    height: 1.45,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
+                child: hasImage
+                    ? _buildImageMessageContent(message, isMe)
+                    : Text(
+                        message.text,
+                        style: TextStyle(
+                          color: isMe ? Colors.white : const Color(0xFF263238),
+                          fontSize: 14,
+                          height: 1.45,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
               ),
               const SizedBox(height: 6),
               Row(
@@ -507,6 +513,99 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     );
   }
 
+  Widget _buildImageMessageContent(MessageModel message, bool isMe) {
+    final caption = message.text.trim();
+    final textColor = isMe ? Colors.white : const Color(0xFF263238);
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(14),
+          child: _buildChatImage(message),
+        ),
+        if (caption.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            child: Text(
+              caption,
+              style: TextStyle(
+                color: textColor,
+                fontSize: 14,
+                height: 1.45,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildChatImage(MessageModel message) {
+    const imageWidth = 220.0;
+    const imageHeight = 220.0;
+    final imageUrl = message.imageUrl?.trim() ?? '';
+
+    Widget placeholder({IconData icon = Icons.image_outlined}) {
+      return Container(
+        width: imageWidth,
+        height: imageHeight,
+        color: const Color(0xFFE8EEF7),
+        alignment: Alignment.center,
+        child: Icon(
+          icon,
+          size: 34,
+          color: const Color(0xFF7D8BA6),
+        ),
+      );
+    }
+
+    if (message.localImageBytes?.isNotEmpty ?? false) {
+      return Image.memory(
+        message.localImageBytes!,
+        width: imageWidth,
+        height: imageHeight,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => placeholder(icon: Icons.broken_image),
+      );
+    }
+
+    if (imageUrl.isEmpty) {
+      return placeholder();
+    }
+
+    return Image.network(
+      imageUrl,
+      width: imageWidth,
+      height: imageHeight,
+      fit: BoxFit.cover,
+      loadingBuilder: (context, child, loadingProgress) {
+        if (loadingProgress == null) {
+          return child;
+        }
+
+        return Container(
+          width: imageWidth,
+          height: imageHeight,
+          color: const Color(0xFFE8EEF7),
+          alignment: Alignment.center,
+          child: const SizedBox(
+            width: 28,
+            height: 28,
+            child: CircularProgressIndicator(
+              strokeWidth: 2.5,
+              color: Color(0xFF233A66),
+            ),
+          ),
+        );
+      },
+      errorBuilder: (_, __, ___) => placeholder(icon: Icons.broken_image),
+    );
+  }
+
   Widget _buildMessageInput(
     ChatDetailController controller, {
     required bool isEnabled,
@@ -517,6 +616,37 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         padding: const EdgeInsets.fromLTRB(16, 10, 16, 14),
         child: Row(
           children: [
+            GestureDetector(
+              onTap: isEnabled && !controller.isUploadingImage
+                  ? () => _showImageSourceBottomSheet(context, controller)
+                  : null,
+              child: Container(
+                height: 44,
+                width: 44,
+                decoration: BoxDecoration(
+                  color:
+                      isEnabled ? Colors.white : Colors.white.withOpacity(0.75),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: const Color(0xFFE0E7F2)),
+                ),
+                child: controller.isUploadingImage
+                    ? const Padding(
+                        padding: EdgeInsets.all(11),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.2,
+                          color: Color(0xFF233A66),
+                        ),
+                      )
+                    : Icon(
+                        Icons.add_photo_alternate_outlined,
+                        color: isEnabled
+                            ? const Color(0xFF2F497E)
+                            : const Color(0xFF2F497E).withOpacity(0.45),
+                        size: 22,
+                      ),
+              ),
+            ),
+            const SizedBox(width: 12),
             Expanded(
               child: Container(
                 height: 48,
@@ -660,6 +790,127 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => const _ReportBottomSheet(),
+    );
+  }
+
+  void _showImageSourceBottomSheet(
+    BuildContext context,
+    ChatDetailController controller,
+  ) {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetContext) {
+        return SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  height: 4,
+                  width: 44,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFD8DEE8),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                const Text(
+                  'Share Image',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF2E3E5C),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Choose how you want to add an image to this conversation.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.grey.shade600,
+                    fontSize: 13,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                _buildImageSourceTile(
+                  context: sheetContext,
+                  icon: Icons.photo_library_outlined,
+                  title: 'Choose from gallery',
+                  source: ImageSource.gallery,
+                  controller: controller,
+                ),
+                const SizedBox(height: 12),
+                _buildImageSourceTile(
+                  context: sheetContext,
+                  icon: Icons.photo_camera_outlined,
+                  title: 'Take a photo',
+                  source: ImageSource.camera,
+                  controller: controller,
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildImageSourceTile({
+    required BuildContext context,
+    required IconData icon,
+    required String title,
+    required ImageSource source,
+    required ChatDetailController controller,
+  }) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: () async {
+        Navigator.pop(context);
+        await controller.pickAndSendImage(source);
+      },
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF9FBFF),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.black.withOpacity(0.05)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              height: 42,
+              width: 42,
+              decoration: const BoxDecoration(
+                color: Color(0xFFEAF0FC),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: const Color(0xFF233A66)),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF2E3E5C),
+                ),
+              ),
+            ),
+            const Icon(
+              Icons.chevron_right,
+              color: Color(0xFF9AA7C1),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

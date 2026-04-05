@@ -1,38 +1,54 @@
 import 'dart:async';
+import 'dart:convert';
 
-import 'package:firebase_core/firebase_core.dart';
 import 'package:bikebooking/core/widgets/app_snackbar.dart';
 import 'package:bikebooking/features/auth/data/services/user_firestore_service.dart';
 import 'package:bikebooking/features/auth/presentation/controllers/login_controller.dart';
 import 'package:bikebooking/features/home/data/models/app_notification_model.dart';
+import 'package:bikebooking/features/home/data/models/notification_preferences_model.dart';
 import 'package:bikebooking/features/home/data/models/product_model.dart';
 import 'package:bikebooking/features/home/data/services/notification_firestore_service.dart';
 import 'package:bikebooking/features/home/data/services/product_firestore_service.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:get/get.dart';
 
-class NotificationPushService extends GetxService with WidgetsBindingObserver {
+class NotificationPushService extends GetxController
+    with WidgetsBindingObserver {
   NotificationPushService({
     FirebaseMessaging? messaging,
     UserFirestoreService? userFirestoreService,
     NotificationFirestoreService? notificationService,
     ProductFirestoreService? productFirestoreService,
     LoginController? loginController,
+    FlutterLocalNotificationsPlugin? localNotificationsPlugin,
   })  : _messaging = messaging ?? FirebaseMessaging.instance,
         _userFirestoreService = userFirestoreService ?? UserFirestoreService(),
         _notificationService =
             notificationService ?? NotificationFirestoreService(),
         _productFirestoreService =
             productFirestoreService ?? ProductFirestoreService(),
-        _loginController = loginController ?? Get.find<LoginController>();
+        _loginController = loginController ?? Get.find<LoginController>(),
+        _localNotificationsPlugin =
+            localNotificationsPlugin ?? FlutterLocalNotificationsPlugin();
+
+  static const AndroidNotificationChannel _androidNotificationChannel =
+      AndroidNotificationChannel(
+    'bikebooking_high_importance',
+    'Bikebooking notifications',
+    description: 'Alerts for chats, listings, and account activity.',
+    importance: Importance.high,
+  );
 
   final FirebaseMessaging _messaging;
   final UserFirestoreService _userFirestoreService;
   final NotificationFirestoreService _notificationService;
   final ProductFirestoreService _productFirestoreService;
   final LoginController _loginController;
+  final FlutterLocalNotificationsPlugin _localNotificationsPlugin;
 
   StreamSubscription<String>? _tokenRefreshSubscription;
   StreamSubscription<RemoteMessage>? _foregroundSubscription;
@@ -40,8 +56,40 @@ class NotificationPushService extends GetxService with WidgetsBindingObserver {
   Timer? _apnsRetryTimer;
 
   bool _isInitialized = false;
+  bool _localNotificationsInitialized = false;
+  bool _isLoadingPreferences = false;
+  bool _isUpdatingPreferences = false;
+  String? _preferencesErrorMessage;
+  String _permissionStatus = 'not_determined';
+  NotificationPreferencesModel _preferences =
+      NotificationPreferencesModel.defaults;
+  String? _preferencesUserId;
   String? _currentToken;
   String? _lastObservedUserId;
+
+  NotificationPreferencesModel get preferences => _preferences;
+  bool get isLoadingPreferences => _isLoadingPreferences;
+  bool get isUpdatingPreferences => _isUpdatingPreferences;
+  String? get preferencesErrorMessage => _preferencesErrorMessage;
+  String get permissionStatus => _permissionStatus;
+  bool get hasSignedInUser => (_resolveCurrentUserId() ?? '').isNotEmpty;
+  bool get isDevicePermissionEnabled =>
+      _permissionStatus == 'authorized' || _permissionStatus == 'provisional';
+  bool get isNotificationsEnabled =>
+      _preferences.allNotifications && isDevicePermissionEnabled;
+
+  String get permissionStatusDescription {
+    switch (_permissionStatus) {
+      case 'authorized':
+        return 'Device notifications are enabled.';
+      case 'provisional':
+        return 'Device notifications are provisionally enabled.';
+      case 'denied':
+        return 'Device notifications are blocked right now.';
+      default:
+        return 'Device notification access has not been granted yet.';
+    }
+  }
 
   Future<void> initialize() async {
     if (_isInitialized) {
@@ -53,7 +101,9 @@ class NotificationPushService extends GetxService with WidgetsBindingObserver {
     _loginController.addListener(_handleLoginControllerChanged);
 
     await _messaging.setAutoInitEnabled(true);
+    await _initializeLocalNotifications();
     await _configureForegroundNotifications();
+    await _loadPreferencesForCurrentUser(showLoader: false);
     final settings = await _requestPermissionIfNeeded();
     await _syncTokenForCurrentUser(settings: settings);
     await _bindMessageStreams();
@@ -63,13 +113,99 @@ class NotificationPushService extends GetxService with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      unawaited(_syncTokenForCurrentUser());
+      unawaited(refreshPreferences(showLoader: false));
     }
+  }
+
+  Future<void> refreshPreferences({bool showLoader = true}) async {
+    await _loadPreferencesForCurrentUser(
+      forceRefresh: true,
+      showLoader: showLoader,
+    );
+    await _syncTokenForCurrentUser();
+  }
+
+  Future<void> updatePreferences(
+    NotificationPreferencesModel nextPreferences, {
+    bool requestPermissionOnEnable = false,
+  }) async {
+    final userId = _resolveCurrentUserId();
+    if (userId == null || userId.isEmpty) {
+      return;
+    }
+
+    final previousPreferences = _preferences;
+    _isUpdatingPreferences = true;
+    _preferencesErrorMessage = null;
+    _preferences = nextPreferences;
+    _preferencesUserId = userId;
+    update();
+
+    try {
+      await _userFirestoreService.updateNotificationPreferences(
+        userId: userId,
+        preferences: nextPreferences,
+      );
+
+      NotificationSettings? settings;
+      if (requestPermissionOnEnable && nextPreferences.allNotifications) {
+        settings = await _requestPermissionIfNeeded();
+      }
+
+      await _syncTokenForCurrentUser(settings: settings);
+    } catch (error, stackTrace) {
+      _preferences = previousPreferences;
+      _preferencesErrorMessage =
+          'Unable to update notification settings right now.';
+      debugPrint(
+        'Error updating notification preferences: $error\n$stackTrace',
+      );
+    } finally {
+      _isUpdatingPreferences = false;
+      update();
+    }
+  }
+
+  Future<void> requestDevicePermission() async {
+    final settings = await _requestPermissionIfNeeded();
+    await _syncTokenForCurrentUser(settings: settings);
+  }
+
+  Future<void> _initializeLocalNotifications() async {
+    if (kIsWeb || _localNotificationsInitialized) {
+      return;
+    }
+
+    const initializationSettings = InitializationSettings(
+      android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+      iOS: DarwinInitializationSettings(
+        requestAlertPermission: false,
+        requestBadgePermission: false,
+        requestSoundPermission: false,
+      ),
+    );
+
+    await _localNotificationsPlugin.initialize(
+      initializationSettings,
+      onDidReceiveNotificationResponse: _handleLocalNotificationResponse,
+    );
+
+    final androidNotifications =
+        _localNotificationsPlugin.resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>();
+    await androidNotifications?.createNotificationChannel(
+      _androidNotificationChannel,
+    );
+
+    _localNotificationsInitialized = true;
   }
 
   Future<void> _bindMessageStreams() async {
     _tokenRefreshSubscription ??= _messaging.onTokenRefresh.listen((token) {
-      _currentToken = token.trim().isEmpty ? _currentToken : token.trim();
+      final trimmedToken = token.trim();
+      if (trimmedToken.isNotEmpty) {
+        _currentToken = trimmedToken;
+      }
       unawaited(_syncTokenForCurrentUser());
     });
 
@@ -94,14 +230,8 @@ class NotificationPushService extends GetxService with WidgetsBindingObserver {
       sound: true,
     );
 
-    final userId = _resolveCurrentUserId();
-    if (userId != null && userId.isNotEmpty) {
-      await _userFirestoreService.updateNotificationPermission(
-        userId: userId,
-        permissionStatus: _permissionStatusLabel(settings.authorizationStatus),
-        isEnabled: _isPermissionEnabled(settings.authorizationStatus),
-      );
-    }
+    _permissionStatus = _permissionStatusLabel(settings.authorizationStatus);
+    update();
 
     return settings;
   }
@@ -118,21 +248,73 @@ class NotificationPushService extends GetxService with WidgetsBindingObserver {
     );
   }
 
+  Future<void> _loadPreferencesForCurrentUser({
+    bool forceRefresh = false,
+    bool showLoader = false,
+  }) async {
+    final userId = _resolveCurrentUserId();
+    if (userId == null || userId.isEmpty) {
+      _preferences = NotificationPreferencesModel.defaults;
+      _preferencesUserId = null;
+      _preferencesErrorMessage = null;
+      _isLoadingPreferences = false;
+      update();
+      return;
+    }
+
+    if (!forceRefresh && _preferencesUserId == userId) {
+      return;
+    }
+
+    if (showLoader) {
+      _isLoadingPreferences = true;
+      _preferencesErrorMessage = null;
+      update();
+    }
+
+    try {
+      _preferences = await _userFirestoreService.getNotificationPreferences(
+        userId,
+      );
+      _preferencesUserId = userId;
+      _preferencesErrorMessage = null;
+    } catch (error, stackTrace) {
+      _preferences = NotificationPreferencesModel.defaults;
+      _preferencesUserId = userId;
+      _preferencesErrorMessage =
+          'Unable to load notification settings right now.';
+      debugPrint(
+        'Error loading notification preferences: $error\n$stackTrace',
+      );
+    } finally {
+      _isLoadingPreferences = false;
+      update();
+    }
+  }
+
   Future<void> _syncTokenForCurrentUser({
     NotificationSettings? settings,
   }) async {
     final userId = _resolveCurrentUserId();
     final normalizedUserId =
         userId != null && userId.trim().isNotEmpty ? userId.trim() : null;
+
+    if (normalizedUserId != null && _preferencesUserId != normalizedUserId) {
+      await _loadPreferencesForCurrentUser(showLoader: false);
+    }
+
     final currentSettings =
         settings ?? await _messaging.getNotificationSettings();
-    final permissionStatus =
+    _permissionStatus =
         _permissionStatusLabel(currentSettings.authorizationStatus);
-    final isEnabled = _isPermissionEnabled(currentSettings.authorizationStatus);
+    final isPermissionEnabled =
+        _isPermissionEnabled(currentSettings.authorizationStatus);
+    final shouldKeepPushToken =
+        isPermissionEnabled && _preferences.allNotifications;
 
     if (_lastObservedUserId != normalizedUserId &&
         _lastObservedUserId != null &&
-        _currentToken != null) {
+        (_currentToken ?? '').trim().isNotEmpty) {
       try {
         await _userFirestoreService.removePushToken(
           userId: _lastObservedUserId!,
@@ -146,26 +328,44 @@ class NotificationPushService extends GetxService with WidgetsBindingObserver {
     }
 
     _lastObservedUserId = normalizedUserId;
+    update();
 
     if (normalizedUserId == null) {
       return;
     }
 
+    final permissionStatus =
+        _permissionStatusLabel(currentSettings.authorizationStatus);
+
     try {
       await _userFirestoreService.updateNotificationPermission(
         userId: normalizedUserId,
         permissionStatus: permissionStatus,
-        isEnabled: isEnabled,
+        isEnabled: shouldKeepPushToken,
       );
     } catch (error, stackTrace) {
       debugPrint('Error updating notification permission: $error\n$stackTrace');
     }
 
-    if (!isEnabled) {
+    final existingToken = (_currentToken ?? '').trim();
+    if (!shouldKeepPushToken) {
+      if (existingToken.isNotEmpty) {
+        try {
+          await _userFirestoreService.removePushToken(
+            userId: normalizedUserId,
+            token: existingToken,
+          );
+        } catch (error, stackTrace) {
+          debugPrint('Error removing disabled push token: $error\n$stackTrace');
+        }
+      }
       return;
     }
 
-    final token = (_currentToken ?? await _loadMessagingToken())?.trim() ?? '';
+    final token = (existingToken.isNotEmpty
+            ? existingToken
+            : (_currentToken ?? await _loadMessagingToken())?.trim() ?? '')
+        .trim();
     if (token.isEmpty) {
       return;
     }
@@ -254,7 +454,8 @@ class NotificationPushService extends GetxService with WidgetsBindingObserver {
         );
       } catch (error, stackTrace) {
         debugPrint(
-            'Error persisting foreground notification: $error\n$stackTrace');
+          'Error persisting foreground notification: $error\n$stackTrace',
+        );
       }
     }
 
@@ -264,11 +465,111 @@ class NotificationPushService extends GetxService with WidgetsBindingObserver {
       return;
     }
 
-    AppSnackbar.show(
-      title: title.isNotEmpty ? title : 'Notification',
-      message: body.isNotEmpty ? body : 'You have a new update.',
-      backgroundColor: const Color(0xFF233A66),
+    final showedLocalNotification =
+        await _showForegroundLocalNotification(message);
+    if (!showedLocalNotification &&
+        _shouldShowNotificationType(
+            (message.data['type'] ?? 'system').toString())) {
+      AppSnackbar.show(
+        title: title.isNotEmpty ? title : 'Notification',
+        message: body.isNotEmpty ? body : 'You have a new update.',
+        backgroundColor: const Color(0xFF233A66),
+      );
+    }
+  }
+
+  Future<bool> _showForegroundLocalNotification(RemoteMessage message) async {
+    if (kIsWeb ||
+        !_localNotificationsInitialized ||
+        defaultTargetPlatform != TargetPlatform.android) {
+      return false;
+    }
+
+    final type = (message.data['type'] ?? 'system').toString();
+    if (!_shouldShowNotificationType(type)) {
+      return false;
+    }
+
+    final title = _notificationTitle(message);
+    final body = _notificationBody(message);
+    if (title.isEmpty && body.isEmpty) {
+      return false;
+    }
+
+    final payload = jsonEncode({
+      ...message.data.map(
+        (key, value) => MapEntry(key, value.toString()),
+      ),
+      '_notificationTitle': title,
+      '_notificationBody': body,
+      '_notificationId': _notificationDocumentId(message),
+      if (message.sentTime != null)
+        '_notificationSentAt': message.sentTime!.millisecondsSinceEpoch,
+    });
+
+    await _localNotificationsPlugin.show(
+      _localNotificationId(message),
+      title.isEmpty ? 'Notification' : title,
+      body.isEmpty ? 'You have a new update.' : body,
+      NotificationDetails(
+        android: AndroidNotificationDetails(
+          _androidNotificationChannel.id,
+          _androidNotificationChannel.name,
+          channelDescription: _androidNotificationChannel.description,
+          importance: Importance.high,
+          priority: Priority.high,
+          icon: '@mipmap/ic_launcher',
+        ),
+      ),
+      payload: payload,
     );
+
+    return true;
+  }
+
+  void _handleLocalNotificationResponse(NotificationResponse response) {
+    final rawPayload = response.payload?.trim() ?? '';
+    if (rawPayload.isEmpty) {
+      return;
+    }
+
+    try {
+      final decodedPayload = jsonDecode(rawPayload);
+      if (decodedPayload is! Map) {
+        return;
+      }
+
+      final payload = Map<String, dynamic>.from(decodedPayload);
+      final title =
+          (payload.remove('_notificationTitle') ?? '').toString().trim();
+      final body =
+          (payload.remove('_notificationBody') ?? '').toString().trim();
+      final notificationId =
+          (payload.remove('_notificationId') ?? '').toString().trim();
+      final sentAtValue = payload.remove('_notificationSentAt');
+      final sentAtMilliseconds = sentAtValue is num
+          ? sentAtValue.toInt()
+          : int.tryParse(sentAtValue?.toString() ?? '');
+      final sentAt = sentAtMilliseconds == null
+          ? null
+          : DateTime.fromMillisecondsSinceEpoch(sentAtMilliseconds);
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        unawaited(
+          _handleNotificationPayload(
+            payload,
+            title: title,
+            body: body,
+            sentAt: sentAt,
+            fallbackNotificationId: notificationId,
+          ),
+        );
+      });
+    } catch (error, stackTrace) {
+      debugPrint(
+        'Error handling local notification response: $error\n$stackTrace',
+      );
+    }
   }
 
   Future<void> _handleInitialMessage() async {
@@ -285,13 +586,38 @@ class NotificationPushService extends GetxService with WidgetsBindingObserver {
     });
   }
 
-  Future<void> _handleMessageNavigation(RemoteMessage message) async {
-    final notification = _notificationFromRemoteMessage(message);
+  Future<void> _handleMessageNavigation(RemoteMessage message) {
+    return _handleNotificationPayload(
+      message.data,
+      title: _notificationTitle(message),
+      body: _notificationBody(message),
+      sentAt: message.sentTime,
+      fallbackNotificationId: _notificationDocumentId(message),
+    );
+  }
+
+  Future<void> _handleNotificationPayload(
+    Map<String, dynamic> data, {
+    required String title,
+    required String body,
+    DateTime? sentAt,
+    String? fallbackNotificationId,
+  }) async {
+    final notification = _notificationFromPayload(
+      data,
+      title: title,
+      body: body,
+      sentAt: sentAt,
+      fallbackNotificationId: fallbackNotificationId,
+    );
     if (notification != null) {
       try {
         await _notificationService.upsertNotification(
           notification,
-          documentId: _notificationDocumentId(message),
+          documentId: _notificationDocumentIdFromPayload(
+            data,
+            fallbackNotificationId: fallbackNotificationId,
+          ),
         );
       } catch (error, stackTrace) {
         debugPrint('Error persisting opened notification: $error\n$stackTrace');
@@ -299,7 +625,10 @@ class NotificationPushService extends GetxService with WidgetsBindingObserver {
     }
 
     final userId = _resolveCurrentUserId();
-    final notificationId = _notificationDocumentId(message);
+    final notificationId = _notificationDocumentIdFromPayload(
+      data,
+      fallbackNotificationId: fallbackNotificationId,
+    );
     if (userId != null && userId.isNotEmpty && notificationId.isNotEmpty) {
       try {
         await _notificationService.markAsRead(
@@ -308,11 +637,11 @@ class NotificationPushService extends GetxService with WidgetsBindingObserver {
         );
       } catch (error, stackTrace) {
         debugPrint(
-            'Error marking push notification as read: $error\n$stackTrace');
+          'Error marking push notification as read: $error\n$stackTrace',
+        );
       }
     }
 
-    final data = message.data;
     final productId = (data['productId'] ?? '').toString().trim();
     if (productId.isNotEmpty) {
       final product = await _loadProduct(productId);
@@ -354,27 +683,43 @@ class NotificationPushService extends GetxService with WidgetsBindingObserver {
   }
 
   AppNotificationModel? _notificationFromRemoteMessage(RemoteMessage message) {
+    return _notificationFromPayload(
+      message.data,
+      title: _notificationTitle(message),
+      body: _notificationBody(message),
+      sentAt: message.sentTime,
+      fallbackNotificationId: _notificationDocumentId(message),
+    );
+  }
+
+  AppNotificationModel? _notificationFromPayload(
+    Map<String, dynamic> data, {
+    required String title,
+    required String body,
+    DateTime? sentAt,
+    String? fallbackNotificationId,
+  }) {
     final recipientId = _resolveCurrentUserId();
     if (recipientId == null || recipientId.trim().isEmpty) {
       return null;
     }
 
-    final data = message.data;
     final messageRecipientId = (data['recipientId'] ?? '').toString().trim();
     if (messageRecipientId.isNotEmpty && messageRecipientId != recipientId) {
       return null;
     }
 
-    final title = _notificationTitle(message);
-    final body = _notificationBody(message);
     if (title.isEmpty && body.isEmpty) {
       return null;
     }
 
+    final notificationId = _notificationDocumentIdFromPayload(
+      data,
+      fallbackNotificationId: fallbackNotificationId,
+    );
+
     return AppNotificationModel(
-      id: _notificationDocumentId(message).isEmpty
-          ? null
-          : _notificationDocumentId(message),
+      id: notificationId.isEmpty ? null : notificationId,
       recipientId: recipientId,
       title: title.isEmpty ? 'Notification' : title,
       body: body,
@@ -386,19 +731,38 @@ class NotificationPushService extends GetxService with WidgetsBindingObserver {
       productId: _nullableString(data['productId']),
       chatId: _nullableString(data['chatId']),
       isRead: false,
-      createdAt: message.sentTime,
-      updatedAt: message.sentTime,
+      createdAt: sentAt,
+      updatedAt: sentAt,
     );
   }
 
+  int _localNotificationId(RemoteMessage message) {
+    final source = _notificationDocumentId(message);
+    if (source.isNotEmpty) {
+      return source.hashCode & 0x7fffffff;
+    }
+    return DateTime.now().millisecondsSinceEpoch & 0x7fffffff;
+  }
+
   String _notificationDocumentId(RemoteMessage message) {
-    final data = message.data;
+    return _notificationDocumentIdFromPayload(
+      message.data,
+      fallbackNotificationId: message.messageId,
+    );
+  }
+
+  String _notificationDocumentIdFromPayload(
+    Map<String, dynamic> data, {
+    String? fallbackNotificationId,
+  }) {
     final fromPayload =
-        (data['notificationId'] ?? data['id'] ?? '').toString().trim();
+        (data['notificationId'] ?? data['id'] ?? data['_notificationId'] ?? '')
+            .toString()
+            .trim();
     if (fromPayload.isNotEmpty) {
       return fromPayload;
     }
-    return message.messageId?.trim() ?? '';
+    return fallbackNotificationId?.trim() ?? '';
   }
 
   String _notificationTitle(RemoteMessage message) {
@@ -415,6 +779,13 @@ class NotificationPushService extends GetxService with WidgetsBindingObserver {
       return payloadBody;
     }
     return message.notification?.body?.trim() ?? '';
+  }
+
+  bool _shouldShowNotificationType(String type) {
+    if (!_preferences.allNotifications) {
+      return false;
+    }
+    return _preferences.isTypeEnabled(type);
   }
 
   String? _nullableString(Object? value) {
@@ -450,17 +821,20 @@ class NotificationPushService extends GetxService with WidgetsBindingObserver {
       return await _productFirestoreService.getProductById(productId);
     } catch (error, stackTrace) {
       debugPrint(
-          'Error loading product from push payload: $error\n$stackTrace');
+        'Error loading product from push payload: $error\n$stackTrace',
+      );
       return null;
     }
   }
 
   void _handleLoginControllerChanged() {
     final currentUserId = _resolveCurrentUserId();
-    if (currentUserId == _lastObservedUserId) {
+    if (currentUserId == _lastObservedUserId &&
+        currentUserId == _preferencesUserId) {
       return;
     }
-    unawaited(_syncTokenForCurrentUser());
+
+    unawaited(refreshPreferences(showLoader: false));
   }
 
   @override

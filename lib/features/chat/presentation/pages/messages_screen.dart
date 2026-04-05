@@ -251,16 +251,35 @@ class _MessagesScreenState extends State<MessagesScreen> {
         child: Row(
           children: [
             Expanded(
-              child: Text(
-                lastMsg?.text ?? '',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color:
-                      unread > 0 ? const Color(0xFF1F2937) : Colors.grey[500],
-                  fontSize: 13,
-                  fontWeight: unread > 0 ? FontWeight.w600 : FontWeight.normal,
-                ),
+              child: Row(
+                children: [
+                  if (lastMsg?.type == 'image')
+                    Padding(
+                      padding: const EdgeInsets.only(right: 4),
+                      child: Icon(
+                        Icons.photo_outlined,
+                        size: 14,
+                        color: unread > 0
+                            ? const Color(0xFF1F2937)
+                            : Colors.grey[500],
+                      ),
+                    ),
+                  Expanded(
+                    child: Text(
+                      _lastMessagePreview(lastMsg),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: unread > 0
+                            ? const Color(0xFF1F2937)
+                            : Colors.grey[500],
+                        fontSize: 13,
+                        fontWeight:
+                            unread > 0 ? FontWeight.w600 : FontWeight.normal,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
             if (unread > 0)
@@ -296,6 +315,19 @@ class _MessagesScreenState extends State<MessagesScreen> {
         });
       },
     );
+  }
+
+  String _lastMessagePreview(LastMessage? lastMessage) {
+    if (lastMessage == null) {
+      return '';
+    }
+
+    if (lastMessage.type == 'image') {
+      final previewText = lastMessage.text.trim();
+      return previewText.isNotEmpty ? previewText : 'Photo';
+    }
+
+    return lastMessage.text;
   }
 
   String _formatTimestamp(DateTime timestamp) {

@@ -1,5 +1,6 @@
 import 'package:bikebooking/features/auth/presentation/controllers/login_controller.dart';
 import 'package:bikebooking/features/home/data/models/product_model.dart';
+import 'package:bikebooking/features/home/data/models/product_status.dart';
 import 'package:bikebooking/features/home/data/services/product_firestore_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
@@ -8,9 +9,12 @@ import 'package:get/get.dart';
 class MyListingController extends GetxController {
   MyListingController({
     ProductFirestoreService? firestoreService,
-  }) : _firestoreService = firestoreService ?? ProductFirestoreService();
+    String Function()? currentSellerIdProvider,
+  })  : _firestoreService = firestoreService ?? ProductFirestoreService(),
+        _currentSellerIdProvider = currentSellerIdProvider;
 
   final ProductFirestoreService _firestoreService;
+  final String Function()? _currentSellerIdProvider;
 
   List<ProductModel> _products = [];
   List<ProductModel> get products => List.unmodifiable(_products);
@@ -25,9 +29,13 @@ class MyListingController extends GetxController {
   String? get actionErrorMessage => _actionErrorMessage;
 
   final Set<String> _deletingProductIds = <String>{};
+  final Set<String> _statusUpdatingProductIds = <String>{};
 
   bool isDeleting(String? productId) =>
       productId != null && _deletingProductIds.contains(productId);
+
+  bool isUpdatingStatus(String? productId) =>
+      productId != null && _statusUpdatingProductIds.contains(productId);
 
   Future<void> loadProducts({bool showLoader = true}) async {
     if (showLoader) {
@@ -46,7 +54,10 @@ class MyListingController extends GetxController {
     }
 
     try {
-      _products = await _firestoreService.getUserProducts(sellerId);
+      _products = await _firestoreService.getUserProducts(
+        sellerId,
+        includeInactive: true,
+      );
     } on FirebaseException catch (error, stackTrace) {
       _errorMessage = _friendlyLoadError(error);
       debugPrint('Error loading products: $error\n$stackTrace');
@@ -90,7 +101,50 @@ class MyListingController extends GetxController {
     }
   }
 
+  Future<bool> updateProductStatus({
+    required String productId,
+    required String status,
+  }) async {
+    if (_statusUpdatingProductIds.contains(productId)) {
+      return false;
+    }
+
+    _actionErrorMessage = null;
+    _statusUpdatingProductIds.add(productId);
+    update();
+
+    try {
+      final normalizedStatus = ProductStatus.normalize(status);
+      await _firestoreService.updateProductStatus(productId, normalizedStatus);
+      final productIndex =
+          _products.indexWhere((product) => product.id == productId);
+      if (productIndex >= 0) {
+        _products[productIndex] = _products[productIndex].copyWith(
+          status: normalizedStatus,
+          updatedAt: DateTime.now(),
+        );
+      }
+      return true;
+    } on FirebaseException catch (error, stackTrace) {
+      _actionErrorMessage = _friendlyStatusError(error);
+      debugPrint('Error updating product status: $error\n$stackTrace');
+      return false;
+    } catch (error, stackTrace) {
+      _actionErrorMessage = 'Unable to update this listing right now.';
+      debugPrint('Error updating product status: $error\n$stackTrace');
+      return false;
+    } finally {
+      _statusUpdatingProductIds.remove(productId);
+      update();
+    }
+  }
+
   String _resolveCurrentSellerId() {
+    final providedSellerId = _currentSellerIdProvider?.call().trim() ?? '';
+    if (providedSellerId.isNotEmpty) {
+      return providedSellerId;
+    }
+
     final firebaseUser = FirebaseAuth.instance.currentUser;
     if (firebaseUser != null) {
       return firebaseUser.uid;
@@ -143,5 +197,24 @@ class MyListingController extends GetxController {
     }
 
     return 'Unable to remove this post right now.';
+  }
+
+  String _friendlyStatusError(FirebaseException error) {
+    final normalizedCode = error.code.toLowerCase();
+
+    if (normalizedCode == 'permission-denied' ||
+        normalizedCode == 'unauthenticated') {
+      return 'Firebase blocked updating this listing. Update your Firestore rules to allow it.';
+    }
+    if (normalizedCode == 'not-found') {
+      return 'This product no longer exists.';
+    }
+
+    final message = error.message?.trim() ?? '';
+    if (message.isNotEmpty) {
+      return message;
+    }
+
+    return 'Unable to update this listing right now.';
   }
 }

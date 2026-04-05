@@ -2,6 +2,7 @@ import 'package:bikebooking/core/constants/global.dart';
 import 'package:bikebooking/core/widgets/custom_button.dart';
 import 'package:bikebooking/features/home/data/models/product_model.dart';
 import 'package:bikebooking/features/home/presentation/controllers/favorites_controller.dart';
+import 'package:bikebooking/features/home/presentation/widgets/product_status_badge.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -189,6 +190,14 @@ class FavoritesScreen extends StatelessWidget {
                         ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 6),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: ProductStatusBadge(
+                          status: product.status,
+                          compact: true,
+                        ),
                       ),
                       const SizedBox(height: 4),
                       Text(

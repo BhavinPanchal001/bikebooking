@@ -3,6 +3,7 @@ import 'package:bikebooking/core/widgets/app_snackbar.dart';
 import 'package:bikebooking/features/home/data/models/product_model.dart';
 import 'package:bikebooking/features/home/data/models/seller_review_model.dart';
 import 'package:bikebooking/features/home/presentation/controllers/seller_profile_controller.dart';
+import 'package:bikebooking/features/home/presentation/widgets/product_status_badge.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -502,10 +503,15 @@ class _SellerProfileScreenState extends State<SellerProfileScreen> {
         if (controller.listings.isEmpty)
           _buildSectionEmptyState(
             icon: Icons.inventory_2_outlined,
-            message: 'This seller has no active listings yet.',
+            message: 'This seller has no listings yet.',
           )
         else
-          ...controller.listings.map(_buildListingCard),
+          ...controller.listings.map(
+            (product) => _buildListingCard(
+              product,
+              isOwnerView: controller.isOwnProfile,
+            ),
+          ),
       ],
     );
   }
@@ -595,7 +601,10 @@ class _SellerProfileScreenState extends State<SellerProfileScreen> {
     );
   }
 
-  Widget _buildListingCard(ProductModel product) {
+  Widget _buildListingCard(
+    ProductModel product, {
+    required bool isOwnerView,
+  }) {
     final primaryImage = product.imageUrls
         .map((url) => url.trim())
         .firstWhere((url) => url.isNotEmpty, orElse: () => '');
@@ -604,7 +613,10 @@ class _SellerProfileScreenState extends State<SellerProfileScreen> {
       onTap: () => Navigator.pushNamed(
         context,
         '/bike_detail',
-        arguments: product,
+        arguments: <String, dynamic>{
+          'product': product,
+          'isOwnerView': isOwnerView,
+        },
       ),
       child: Container(
         margin: const EdgeInsets.only(bottom: 14),
@@ -649,6 +661,11 @@ class _SellerProfileScreenState extends State<SellerProfileScreen> {
                     ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 6),
+                  ProductStatusBadge(
+                    status: product.status,
+                    compact: true,
                   ),
                   const SizedBox(height: 4),
                   Text(

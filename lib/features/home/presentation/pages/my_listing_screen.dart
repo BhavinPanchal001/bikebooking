@@ -1,9 +1,11 @@
 import 'package:bikebooking/core/constants/global.dart';
 import 'package:bikebooking/core/widgets/custom_button.dart';
 import 'package:bikebooking/features/home/data/models/product_model.dart';
+import 'package:bikebooking/features/home/data/models/product_status.dart';
 import 'package:bikebooking/features/home/presentation/controllers/list_product_controller.dart';
 import 'package:bikebooking/features/home/presentation/controllers/my_listing_controller.dart';
 import 'package:bikebooking/features/home/presentation/widgets/app_bottom_nav_bar.dart';
+import 'package:bikebooking/features/home/presentation/widgets/product_status_badge.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -163,6 +165,10 @@ class _MyListingScreenState extends State<MyListingScreen>
   ) {
     final primaryImage = _resolveDisplayableImage(product.imageUrls);
     final productId = product.id;
+    final isDeleting = controller.isDeleting(productId);
+    final isUpdatingStatus = controller.isUpdatingStatus(productId);
+    final isBusy = isDeleting || isUpdatingStatus;
+    final canEdit = productId != null && product.isActive && !isBusy;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -202,15 +208,59 @@ class _MyListingScreenState extends State<MyListingScreen>
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          _buildTitle(product),
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                            color: Color(0xFF5E6E8C),
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                _buildTitle(product),
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                  color: Color(0xFF5E6E8C),
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            ProductStatusBadge(
+                              status: product.status,
+                              compact: true,
+                            ),
+                            const SizedBox(width: 4),
+                            if (isUpdatingStatus)
+                              const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: Padding(
+                                  padding: EdgeInsets.all(2),
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                ),
+                              )
+                            else
+                              PopupMenuButton<_ListingStatusMenuAction>(
+                                tooltip: 'Manage status',
+                                onSelected: (action) => _handleStatusAction(
+                                  context,
+                                  controller,
+                                  product,
+                                  action,
+                                ),
+                                itemBuilder: (context) =>
+                                    _buildStatusMenuItems(product),
+                                child: const Padding(
+                                  padding: EdgeInsets.all(2),
+                                  child: Icon(
+                                    Icons.more_vert,
+                                    size: 20,
+                                    color: Color(0xFF5E6E8C),
+                                  ),
+                                ),
+                              ),
+                          ],
                         ),
                         const SizedBox(height: 4),
                         Text(
@@ -262,14 +312,13 @@ class _MyListingScreenState extends State<MyListingScreen>
               children: [
                 Expanded(
                   child: OutlinedButton(
-                    onPressed:
-                        productId == null || controller.isDeleting(productId)
-                            ? null
-                            : () => _confirmDeleteProduct(
-                                  context,
-                                  controller,
-                                  product,
-                                ),
+                    onPressed: productId == null || isBusy
+                        ? null
+                        : () => _confirmDeleteProduct(
+                              context,
+                              controller,
+                              product,
+                            ),
                     style: OutlinedButton.styleFrom(
                       backgroundColor: Colors.white,
                       side: BorderSide(color: Colors.black.withOpacity(0.05)),
@@ -278,7 +327,7 @@ class _MyListingScreenState extends State<MyListingScreen>
                       ),
                       padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
-                    child: controller.isDeleting(productId)
+                    child: isDeleting
                         ? const SizedBox(
                             height: 18,
                             width: 18,
@@ -295,11 +344,32 @@ class _MyListingScreenState extends State<MyListingScreen>
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: CustomGradientButton(
-                    height: 42,
-                    text: 'Edit',
-                    onPressed: () => _openEditProduct(context, product),
-                  ),
+                  child: canEdit
+                      ? CustomGradientButton(
+                          height: 42,
+                          text: 'Edit',
+                          onPressed: () => _openEditProduct(context, product),
+                        )
+                      : OutlinedButton(
+                          onPressed: null,
+                          style: OutlinedButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            disabledForegroundColor: const Color(0xFF9AA6BC),
+                            side: BorderSide(
+                              color: Colors.black.withOpacity(0.05),
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(15),
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                          ),
+                          child: Text(
+                            product.isActive ? 'Edit' : 'Reactivate to edit',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
                 ),
               ],
             ),
@@ -310,6 +380,15 @@ class _MyListingScreenState extends State<MyListingScreen>
   }
 
   void _openEditProduct(BuildContext context, ProductModel product) {
+    if (!product.isActive) {
+      Get.snackbar(
+        'Editing unavailable',
+        'Reactivate this listing before editing it.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      return;
+    }
+
     final editController = Get.isRegistered<ListProductController>()
         ? Get.find<ListProductController>()
         : Get.put(ListProductController());
@@ -322,11 +401,120 @@ class _MyListingScreenState extends State<MyListingScreen>
     );
   }
 
+  List<PopupMenuEntry<_ListingStatusMenuAction>> _buildStatusMenuItems(
+    ProductModel product,
+  ) {
+    if (product.isActive) {
+      return const [
+        PopupMenuItem<_ListingStatusMenuAction>(
+          value: _ListingStatusMenuAction.markSold,
+          child: Text('Mark sold'),
+        ),
+      ];
+    }
+
+    return const [
+      PopupMenuItem<_ListingStatusMenuAction>(
+        value: _ListingStatusMenuAction.reactivate,
+        child: Text('Reactivate'),
+      ),
+    ];
+  }
+
+  Future<void> _handleStatusAction(
+    BuildContext context,
+    MyListingController controller,
+    ProductModel product,
+    _ListingStatusMenuAction action,
+  ) async {
+    final productId = product.id;
+    if (productId == null) {
+      return;
+    }
+
+    final config = switch (action) {
+      _ListingStatusMenuAction.markSold => (
+          nextStatus: ProductStatus.sold,
+          title: 'Mark as Sold',
+          prompt:
+              'Mark "${product.title.trim().isNotEmpty ? product.title.trim() : 'this listing'}" as sold?',
+          successTitle: 'Marked as sold',
+          successMessage: 'Your listing is now marked as sold.'
+        ),
+      _ListingStatusMenuAction.reactivate => (
+          nextStatus: ProductStatus.active,
+          title: 'Reactivate Listing',
+          prompt:
+              'Reactivate "${product.title.trim().isNotEmpty ? product.title.trim() : 'this listing'}" so buyers can interact with it again?',
+          successTitle: 'Listing reactivated',
+          successMessage: 'Your listing is active again.'
+        ),
+    };
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(config.title),
+          content: Text(config.prompt),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: Text(
+                action == _ListingStatusMenuAction.reactivate
+                    ? 'Reactivate'
+                    : 'Confirm',
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true || !mounted) {
+      return;
+    }
+
+    final success = await controller.updateProductStatus(
+      productId: productId,
+      status: config.nextStatus,
+    );
+    if (!mounted) {
+      return;
+    }
+
+    if (success) {
+      Get.snackbar(
+        config.successTitle,
+        config.successMessage,
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.green.shade600,
+        colorText: Colors.white,
+      );
+      return;
+    }
+
+    Get.snackbar(
+      'Error',
+      controller.actionErrorMessage ?? 'Unable to update this listing.',
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: Colors.red.shade600,
+      colorText: Colors.white,
+    );
+  }
+
   void _openProductDetails(BuildContext context, ProductModel product) {
     Navigator.pushNamed(
       context,
       '/bike_detail',
-      arguments: product,
+      arguments: <String, dynamic>{
+        'product': product,
+        'isOwnerView': true,
+      },
     );
   }
 
@@ -1079,4 +1267,9 @@ class _MyListingScreenState extends State<MyListingScreen>
       },
     );
   }
+}
+
+enum _ListingStatusMenuAction {
+  markSold,
+  reactivate,
 }

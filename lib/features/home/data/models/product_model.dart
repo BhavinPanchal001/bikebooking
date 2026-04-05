@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import 'package:bikebooking/features/home/data/models/product_status.dart';
+
 class ProductModel {
   final String? id;
   final String category;
@@ -40,14 +42,68 @@ class ProductModel {
     this.sellerName = '',
     this.createdAt,
     this.updatedAt,
-    this.status = 'active',
+    String status = ProductStatus.active,
     this.fuelType,
     this.kilometerDriven,
     this.numberOfOwners,
     this.subCategory,
     this.condition,
     this.sellerType,
-  });
+  }) : status = ProductStatus.normalize(status);
+
+  bool get isActive => ProductStatus.isActive(status);
+
+  bool get isSold => ProductStatus.isSold(status);
+
+  bool get allowsBuyerActions => ProductStatus.allowsBuyerActions(status);
+
+  String get statusLabel => ProductStatus.label(status);
+
+  ProductModel copyWith({
+    String? id,
+    String? category,
+    String? title,
+    String? brand,
+    int? year,
+    String? description,
+    double? price,
+    String? location,
+    List<String>? imageUrls,
+    String? sellerId,
+    String? sellerName,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    String? status,
+    String? fuelType,
+    int? kilometerDriven,
+    int? numberOfOwners,
+    String? subCategory,
+    String? condition,
+    String? sellerType,
+  }) {
+    return ProductModel(
+      id: id ?? this.id,
+      category: category ?? this.category,
+      title: title ?? this.title,
+      brand: brand ?? this.brand,
+      year: year ?? this.year,
+      description: description ?? this.description,
+      price: price ?? this.price,
+      location: location ?? this.location,
+      imageUrls: imageUrls ?? this.imageUrls,
+      sellerId: sellerId ?? this.sellerId,
+      sellerName: sellerName ?? this.sellerName,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      status: status ?? this.status,
+      fuelType: fuelType ?? this.fuelType,
+      kilometerDriven: kilometerDriven ?? this.kilometerDriven,
+      numberOfOwners: numberOfOwners ?? this.numberOfOwners,
+      subCategory: subCategory ?? this.subCategory,
+      condition: condition ?? this.condition,
+      sellerType: sellerType ?? this.sellerType,
+    );
+  }
 
   Map<String, dynamic> toMap() {
     return {
@@ -109,7 +165,7 @@ class ProductModel {
       sellerName: map['sellerName'] ?? '',
       createdAt: (map['createdAt'] as Timestamp?)?.toDate(),
       updatedAt: (map['updatedAt'] as Timestamp?)?.toDate(),
-      status: map['status'] ?? 'active',
+      status: ProductStatus.normalize(map['status']?.toString()),
       fuelType: map['fuelType'],
       kilometerDriven: map['kilometerDriven'],
       numberOfOwners: map['numberOfOwners'],

@@ -28,6 +28,7 @@ class SearchController extends GetxController {
   final LoginController _loginController;
 
   static const int _maxRecentSearches = 8;
+  static const int _minRecentSearchLength = 2;
 
   final TextEditingController searchTextController = TextEditingController();
 
@@ -99,8 +100,12 @@ class SearchController extends GetxController {
       return;
     }
 
-    _searchDebounce = Timer(const Duration(milliseconds: 250), () {
+    _searchDebounce = Timer(const Duration(milliseconds: 250), () async {
       _searchResults = _filterProducts(_currentQuery);
+      if (_currentQuery.length >= _minRecentSearchLength) {
+        await _saveRecentSearch(_currentQuery);
+        _rebuildRecommendations();
+      }
       update();
     });
   }
@@ -140,8 +145,7 @@ class SearchController extends GetxController {
     _recentSearches.removeWhere(
       (item) => item.trim().toLowerCase() == query.trim().toLowerCase(),
     );
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setStringList(_recentSearchStorageKey, _recentSearches);
+    await _persistRecentSearches();
     _rebuildRecommendations();
     update();
   }
@@ -317,17 +321,35 @@ class SearchController extends GetxController {
 
   Future<List<String>> _loadRecentSearches() async {
     final prefs = await SharedPreferences.getInstance();
-    final storedSearches =
-        prefs.getStringList(_recentSearchStorageKey) ?? const [];
-    return storedSearches
+    final primaryKey = _recentSearchStorageKey;
+    final storedSearches = _normalizeRecentSearches(
+      prefs.getStringList(primaryKey) ?? const [],
+    );
+    if (storedSearches.isNotEmpty ||
+        primaryKey == _guestRecentSearchStorageKey) {
+      return storedSearches;
+    }
+
+    final guestSearches = _normalizeRecentSearches(
+      prefs.getStringList(_guestRecentSearchStorageKey) ?? const [],
+    );
+    if (guestSearches.isNotEmpty) {
+      await prefs.setStringList(primaryKey, guestSearches);
+      await prefs.remove(_guestRecentSearchStorageKey);
+    }
+    return guestSearches;
+  }
+
+  List<String> _normalizeRecentSearches(List<String> searches) {
+    return searches
         .map((item) => item.trim())
         .where((item) => item.isNotEmpty)
-        .toList(growable: false);
+        .toList(growable: true);
   }
 
   Future<void> _saveRecentSearch(String query) async {
     final normalizedQuery = query.trim();
-    if (normalizedQuery.isEmpty) {
+    if (normalizedQuery.length < _minRecentSearchLength) {
       return;
     }
 
@@ -339,8 +361,16 @@ class SearchController extends GetxController {
       _recentSearches = _recentSearches.take(_maxRecentSearches).toList();
     }
 
+    await _persistRecentSearches();
+  }
+
+  Future<void> _persistRecentSearches() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setStringList(_recentSearchStorageKey, _recentSearches);
+    final primaryKey = _recentSearchStorageKey;
+    await prefs.setStringList(primaryKey, _recentSearches);
+    if (primaryKey != _guestRecentSearchStorageKey) {
+      await prefs.remove(_guestRecentSearchStorageKey);
+    }
   }
 
   String _productSearchText(ProductModel product) {
@@ -358,12 +388,20 @@ class SearchController extends GetxController {
   }
 
   String get _recentSearchStorageKey {
-    final userId =
-        _loginController.currentUserProfile?.id.trim().isNotEmpty == true
-            ? _loginController.currentUserProfile!.id.trim()
-            : 'guest';
-    return 'recent_searches_$userId';
+    final resolvedUserId = _loginController.resolvedCurrentUserId.trim();
+    if (resolvedUserId.isNotEmpty) {
+      return 'recent_searches_$resolvedUserId';
+    }
+
+    final chatUserId = _loginController.chatUserId.trim();
+    if (chatUserId.isNotEmpty) {
+      return 'recent_searches_$chatUserId';
+    }
+
+    return _guestRecentSearchStorageKey;
   }
+
+  static const String _guestRecentSearchStorageKey = 'recent_searches_guest';
 
   Future<Set<String>> _loadHiddenUserIds() async {
     final currentUserId = _loginController.resolvedCurrentUserId.trim();
