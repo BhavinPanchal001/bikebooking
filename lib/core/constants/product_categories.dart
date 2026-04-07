@@ -58,61 +58,61 @@ class ProductCategoryCatalog {
 
   static const List<VehicleSubCategoryOption> bikeOptions =
       <VehicleSubCategoryOption>[
-        VehicleSubCategoryOption(
-          label: 'Sports Bikes',
-          icon: Icons.sports_motorsports_rounded,
-          backgroundColor: Color(0xFFD4E7C5),
-        ),
-        VehicleSubCategoryOption(
-          label: 'Cruiser Bikes',
-          icon: Icons.two_wheeler_rounded,
-          backgroundColor: Color(0xFFFFD1A5),
-        ),
-        VehicleSubCategoryOption(
-          label: 'Commuter Bikes',
-          icon: Icons.commute_rounded,
-          backgroundColor: Color(0xFFC9C9EB),
-        ),
-        VehicleSubCategoryOption(
-          label: 'Adventure Bikes',
-          icon: Icons.terrain_rounded,
-          backgroundColor: Color(0xFFB9E5F3),
-        ),
-        VehicleSubCategoryOption(
-          label: 'Electric Bikes',
-          icon: Icons.electric_bike_rounded,
-          backgroundColor: Color(0xFFFFD580),
-        ),
-      ];
+    VehicleSubCategoryOption(
+      label: 'Sports Bikes',
+      icon: Icons.sports_motorsports_rounded,
+      backgroundColor: Color(0xFFD4E7C5),
+    ),
+    VehicleSubCategoryOption(
+      label: 'Cruiser Bikes',
+      icon: Icons.two_wheeler_rounded,
+      backgroundColor: Color(0xFFFFD1A5),
+    ),
+    VehicleSubCategoryOption(
+      label: 'Commuter Bikes',
+      icon: Icons.motorcycle_rounded,
+      backgroundColor: Color(0xFFC9C9EB),
+    ),
+    VehicleSubCategoryOption(
+      label: 'Adventure Bikes',
+      icon: Icons.route_rounded,
+      backgroundColor: Color(0xFFB9E5F3),
+    ),
+    VehicleSubCategoryOption(
+      label: 'Electric Bikes',
+      icon: Icons.bolt_rounded,
+      backgroundColor: Color(0xFFFFD580),
+    ),
+  ];
 
   static const List<VehicleSubCategoryOption> scooterOptions =
       <VehicleSubCategoryOption>[
-        VehicleSubCategoryOption(
-          label: 'Petrol Scooters',
-          icon: Icons.moped_rounded,
-          backgroundColor: Color(0xFFD4E7C5),
-        ),
-        VehicleSubCategoryOption(
-          label: 'Electric Scooters',
-          icon: Icons.electric_scooter_rounded,
-          backgroundColor: Color(0xFFFFD1A5),
-        ),
-        VehicleSubCategoryOption(
-          label: 'Maxi Scooters',
-          icon: Icons.motorcycle_rounded,
-          backgroundColor: Color(0xFFC9C9EB),
-        ),
-        VehicleSubCategoryOption(
-          label: 'Ladies Scooters',
-          icon: Icons.two_wheeler_rounded,
-          backgroundColor: Color(0xFFB9E5F3),
-        ),
-        VehicleSubCategoryOption(
-          label: 'Moped Scooters',
-          icon: Icons.pedal_bike_rounded,
-          backgroundColor: Color(0xFFFFD580),
-        ),
-      ];
+    VehicleSubCategoryOption(
+      label: 'Petrol Scooters',
+      icon: Icons.moped_rounded,
+      backgroundColor: Color(0xFFD4E7C5),
+    ),
+    VehicleSubCategoryOption(
+      label: 'Electric Scooters',
+      icon: Icons.electric_scooter_rounded,
+      backgroundColor: Color(0xFFFFD1A5),
+    ),
+    VehicleSubCategoryOption(
+      label: 'Maxi Scooters',
+      icon: Icons.motorcycle_rounded,
+      backgroundColor: Color(0xFFC9C9EB),
+    ),
+    VehicleSubCategoryOption(
+      label: 'Ladies Scooters',
+      icon: Icons.two_wheeler_rounded,
+      backgroundColor: Color(0xFFB9E5F3),
+    ),
+    VehicleSubCategoryOption(
+      label: 'Moped Scooters',
+      icon: Icons.pedal_bike_rounded,
+      backgroundColor: Color(0xFFFFD580),
+    ),
+  ];
 
   static bool isBikeParent(String? value) => value?.trim() == bikes;
 

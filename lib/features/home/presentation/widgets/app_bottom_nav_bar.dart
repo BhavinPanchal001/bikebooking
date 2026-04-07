@@ -39,7 +39,8 @@ class AppBottomNavBar extends StatelessWidget {
             label: 'Home',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.directions_bike_outlined, size: 24),
+            icon: Icon(Icons.storefront_outlined, size: 24),
+            activeIcon: Icon(Icons.storefront_rounded, size: 24),
             label: 'Buy',
           ),
           BottomNavigationBarItem(

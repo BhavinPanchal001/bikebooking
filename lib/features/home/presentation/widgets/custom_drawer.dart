@@ -49,12 +49,12 @@ class CustomDrawer extends StatelessWidget {
     _BodyTypeOption(
       label: 'Electric',
       category: 'Electric Bikes',
-      icon: Icons.electric_bike_rounded,
+      icon: Icons.bolt_rounded,
     ),
     _BodyTypeOption(
       label: 'Adventure',
       category: 'Adventure Bikes',
-      icon: Icons.terrain_rounded,
+      icon: Icons.route_rounded,
     ),
   ];
 
@@ -469,7 +469,9 @@ class CustomDrawer extends StatelessWidget {
       ),
     );
   }
-  void _showLogoutConfirmation(BuildContext context, LoginController controller) {
+
+  void _showLogoutConfirmation(
+      BuildContext context, LoginController controller) {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,

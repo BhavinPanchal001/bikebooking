@@ -61,101 +61,124 @@ class _MyListingScreenState extends State<MyListingScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF9FBFF),
-      body: SafeArea(
-        child: Column(
-          children: [
-            Container(
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: AppColors.headerBackground,
-                borderRadius: const BorderRadius.only(
-                  bottomLeft: Radius.circular(15),
-                  bottomRight: Radius.circular(15),
+    return PopScope(
+      canPop: false,
+      onPopInvoked: (didPop) {
+        if (didPop) {
+          return;
+        }
+        _navigateBack();
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF9FBFF),
+        body: SafeArea(
+          child: Column(
+            children: [
+              Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: AppColors.headerBackground,
+                  borderRadius: const BorderRadius.only(
+                    bottomLeft: Radius.circular(15),
+                    bottomRight: Radius.circular(15),
+                  ),
+                ),
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    IconButton(
+                      onPressed: _navigateBack,
+                      icon: const Icon(Icons.arrow_back,
+                          color: Colors.white, size: 28),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                    const SizedBox(height: 20),
+                    const Text(
+                      'My Listing',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  IconButton(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.arrow_back,
-                        color: Colors.white, size: 28),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                  ),
-                  const SizedBox(height: 20),
-                  const Text(
-                    'My Listing',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: GetBuilder<MyListingController>(
-                builder: (controller) {
-                  if (controller.isLoading) {
-                    return _buildShimmerList();
-                  }
+              Expanded(
+                child: GetBuilder<MyListingController>(
+                  builder: (controller) {
+                    if (controller.isLoading) {
+                      return _buildShimmerList();
+                    }
 
-                  if (controller.errorMessage != null) {
-                    return _buildStateView(
-                      icon: Icons.cloud_off_outlined,
-                      title: 'Unable to load posts',
-                      message: controller.errorMessage!,
-                      actionLabel: 'Try again',
-                      onAction: controller.loadProducts,
-                    );
-                  }
+                    if (controller.errorMessage != null) {
+                      return _buildStateView(
+                        icon: Icons.cloud_off_outlined,
+                        title: 'Unable to load posts',
+                        message: controller.errorMessage!,
+                        actionLabel: 'Try again',
+                        onAction: controller.loadProducts,
+                      );
+                    }
 
-                  if (controller.products.isEmpty) {
-                    return _buildStateView(
-                      icon: Icons.inventory_2_outlined,
-                      title: 'No posts yet',
-                      message:
-                          'Your products will appear here once you publish your first listing.',
-                      actionLabel: 'Post a product',
-                      onAction: () => Navigator.pushNamed(
-                        context,
-                        '/list_product',
-                      ),
-                    );
-                  }
-
-                  return RefreshIndicator(
-                    color: const Color(0xFF233A66),
-                    onRefresh: controller.refreshProducts,
-                    child: ListView.builder(
-                      physics: const AlwaysScrollableScrollPhysics(
-                        parent: BouncingScrollPhysics(),
-                      ),
-                      padding: const EdgeInsets.all(16),
-                      itemCount: controller.products.length,
-                      itemBuilder: (context, index) {
-                        final product = controller.products[index];
-                        return _buildManagedListingCard(
+                    if (controller.products.isEmpty) {
+                      return _buildStateView(
+                        icon: Icons.inventory_2_outlined,
+                        title: 'No posts yet',
+                        message:
+                            'Your products will appear here once you publish your first listing.',
+                        actionLabel: 'Post a product',
+                        onAction: () => Navigator.pushNamed(
                           context,
-                          controller,
-                          product,
-                        );
-                      },
-                    ),
-                  );
-                },
+                          '/list_product',
+                        ),
+                      );
+                    }
+
+                    return RefreshIndicator(
+                      color: const Color(0xFF233A66),
+                      onRefresh: controller.refreshProducts,
+                      child: ListView.builder(
+                        physics: const AlwaysScrollableScrollPhysics(
+                          parent: BouncingScrollPhysics(),
+                        ),
+                        padding: const EdgeInsets.all(16),
+                        itemCount: controller.products.length,
+                        itemBuilder: (context, index) {
+                          final product = controller.products[index];
+                          return _buildManagedListingCard(
+                            context,
+                            controller,
+                            product,
+                          );
+                        },
+                      ),
+                    );
+                  },
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
+        bottomNavigationBar: const AppBottomNavBar(currentIndex: 3),
       ),
-      bottomNavigationBar: const AppBottomNavBar(currentIndex: 3),
     );
+  }
+
+  Future<bool> _handleBackNavigation() async {
+    final navigator = Navigator.of(context);
+    if (navigator.canPop()) {
+      navigator.pop();
+    } else {
+      navigator.pushNamedAndRemoveUntil('/home', (route) => false);
+    }
+    return false;
+  }
+
+  void _navigateBack() {
+    _handleBackNavigation();
   }
 
   Widget _buildManagedListingCard(

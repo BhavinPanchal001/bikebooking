@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:bikebooking/core/constants/bike_brand_catalog.dart';
 import 'package:bikebooking/core/constants/product_categories.dart';
 import 'package:bikebooking/features/auth/presentation/controllers/login_controller.dart';
 import 'package:bikebooking/features/home/data/models/product_filter_state.dart';
@@ -41,11 +42,15 @@ class FilterResultController extends GetxController {
 
   String get categoryLabel => _filterState.selectedCategoryLabel;
   List<String> get availableBrands {
-    final brands = _allProducts
+    final productBrands = _allProducts
         .map((product) => product.brand.trim())
         .where((brand) => brand.isNotEmpty)
-        .toSet()
-        .toList(growable: false)
+        .toList(growable: false);
+    if (_filterState.isBikeLike) {
+      return BikeBrandCatalog.mergeWith(productBrands);
+    }
+
+    final brands = productBrands.toSet().toList(growable: false)
       ..sort((first, second) =>
           first.toLowerCase().compareTo(second.toLowerCase()));
     return brands;

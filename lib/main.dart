@@ -61,136 +61,106 @@ class MyApp extends StatelessWidget {
       initialBinding: AuthBinding(),
       initialRoute: '/',
       onGenerateRoute: (settings) {
+        MaterialPageRoute<dynamic> buildRoute(Widget child) {
+          return MaterialPageRoute(
+            settings: settings,
+            builder: (context) => child,
+          );
+        }
+
         if (settings.name == '/') {
-          return MaterialPageRoute(builder: (context) => const SplashScreen());
+          return buildRoute(const SplashScreen());
         }
         if (settings.name == '/login') {
-          return MaterialPageRoute(builder: (context) => const LoginScreen());
+          return buildRoute(const LoginScreen());
         }
         if (settings.name == '/otp') {
           final phoneNumber = settings.arguments as String;
-          return MaterialPageRoute(
-            builder: (context) =>
-                OtpVerificationScreen(phoneNumber: phoneNumber),
-          );
+          return buildRoute(OtpVerificationScreen(phoneNumber: phoneNumber));
         }
         if (settings.name == '/select_location') {
-          return MaterialPageRoute(
-              builder: (context) => const SelectLocationScreen());
+          return buildRoute(const SelectLocationScreen());
         }
         if (settings.name == '/location_search') {
-          return MaterialPageRoute(
-              builder: (context) => const LocationSearchScreen());
+          return buildRoute(const LocationSearchScreen());
         }
         if (settings.name == '/home') {
-          return MaterialPageRoute(builder: (context) => const HomePage());
+          return buildRoute(const HomePage());
         }
         if (settings.name == '/select_category') {
-          return MaterialPageRoute(
-              settings: settings,
-              builder: (context) => const SelectCategoryScreen());
+          return buildRoute(const SelectCategoryScreen());
         }
         if (settings.name == '/search') {
-          return MaterialPageRoute(builder: (context) => const SearchScreen());
+          return buildRoute(const SearchScreen());
         }
         if (settings.name == '/filter') {
-          return MaterialPageRoute(
-              settings: settings, builder: (context) => const FilterScreen());
+          return buildRoute(const FilterScreen());
         }
         if (settings.name == '/filter_result') {
-          return MaterialPageRoute(
-              settings: settings,
-              builder: (context) => const FilterResultScreen());
+          return buildRoute(const FilterResultScreen());
         }
         if (settings.name == '/bike_detail') {
-          return MaterialPageRoute(
-            settings: settings,
-            builder: (context) => const BikeDetailScreen(),
-          );
+          return buildRoute(const BikeDetailScreen());
         }
         if (settings.name == '/chat_detail') {
-          return MaterialPageRoute(
-              settings: settings,
-              builder: (context) => const ChatDetailScreen());
+          return buildRoute(const ChatDetailScreen());
         }
         if (settings.name == '/messages') {
-          return MaterialPageRoute(
-              builder: (context) => const MessagesScreen());
+          return buildRoute(const MessagesScreen());
         }
         if (settings.name == '/list_product') {
-          return MaterialPageRoute(
-              builder: (context) => const ListProductScreen());
+          return buildRoute(const ListProductScreen());
         }
         if (settings.name == '/product_images') {
-          return MaterialPageRoute(
-              settings: settings,
-              builder: (context) => const ProductImagesScreen());
+          return buildRoute(const ProductImagesScreen());
         }
         if (settings.name == '/bike_detail_form') {
-          return MaterialPageRoute(
-              builder: (context) => const BikeDetailFormScreen());
+          return buildRoute(const BikeDetailFormScreen());
         }
         if (settings.name == '/spare_parts_detail_form') {
-          return MaterialPageRoute(
-              builder: (context) => const SparePartsDetailFormScreen());
+          return buildRoute(const SparePartsDetailFormScreen());
         }
         if (settings.name == '/accessories_detail_form') {
-          return MaterialPageRoute(
-              builder: (context) => const AccessoriesDetailFormScreen());
+          return buildRoute(const AccessoriesDetailFormScreen());
         }
         if (settings.name == '/bike_price_location') {
-          return MaterialPageRoute(
-              builder: (context) => const BikePriceLocationScreen());
+          return buildRoute(const BikePriceLocationScreen());
         }
         if (settings.name == '/product_preview') {
-          return MaterialPageRoute(
-              builder: (context) => const ProductPreviewScreen());
+          return buildRoute(const ProductPreviewScreen());
         }
         if (settings.name == '/my_listing') {
-          return MaterialPageRoute(
-              settings: settings,
-              builder: (context) => const MyListingScreen());
+          return buildRoute(const MyListingScreen());
         }
         if (settings.name == '/favorites') {
-          return MaterialPageRoute(
-              builder: (context) => const FavoritesScreen());
+          return buildRoute(const FavoritesScreen());
         }
         if (settings.name == '/notifications') {
-          return MaterialPageRoute(
-              builder: (context) => const NotificationsScreen());
+          return buildRoute(const NotificationsScreen());
         }
         if (settings.name == '/profile_overview') {
-          return MaterialPageRoute(
-              builder: (context) => const ProfileOverviewScreen());
+          return buildRoute(const ProfileOverviewScreen());
         }
         if (settings.name == '/edit_profile') {
-          return MaterialPageRoute(
-              builder: (context) => const EditProfileScreen());
+          return buildRoute(const EditProfileScreen());
         }
         if (settings.name == '/help_support') {
-          return MaterialPageRoute(
-              builder: (context) => const HelpSupportScreen());
+          return buildRoute(const HelpSupportScreen());
         }
         if (settings.name == '/privacy_policy') {
-          return MaterialPageRoute(
-              builder: (context) => const PrivacyPolicyScreen());
+          return buildRoute(const PrivacyPolicyScreen());
         }
         if (settings.name == '/manage_notifications') {
-          return MaterialPageRoute(
-              builder: (context) => const ManageNotificationsScreen());
+          return buildRoute(const ManageNotificationsScreen());
         }
         if (settings.name == '/subscription_status') {
-          return MaterialPageRoute(
-              builder: (context) => const SubscriptionStatusScreen());
+          return buildRoute(const SubscriptionStatusScreen());
         }
         if (settings.name == '/seller_profile') {
-          return MaterialPageRoute(
-              settings: settings,
-              builder: (context) => const SellerProfileScreen());
+          return buildRoute(const SellerProfileScreen());
         }
         if (settings.name == '/blocked_users') {
-          return MaterialPageRoute(
-              builder: (context) => const BlockedUsersScreen());
+          return buildRoute(const BlockedUsersScreen());
         }
         return null;
       },

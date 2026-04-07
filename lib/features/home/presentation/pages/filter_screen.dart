@@ -1,3 +1,4 @@
+import 'package:bikebooking/core/constants/bike_brand_catalog.dart';
 import 'package:bikebooking/core/constants/global.dart';
 import 'package:bikebooking/core/widgets/custom_button.dart';
 import 'package:bikebooking/features/home/data/models/product_filter_state.dart';
@@ -12,23 +13,6 @@ class FilterScreen extends StatefulWidget {
 }
 
 class _FilterScreenState extends State<FilterScreen> {
-  static const List<String> _bikeBrands = [
-    'Aprilia',
-    'TVS',
-    'Bajaj',
-    'Benelli',
-    'BSA',
-    'Ducati',
-    'Eider',
-    'Harley-Davidson',
-    'Honda',
-    'Jawa',
-    'Kawasaki',
-    'Royal Enfield',
-    'Suzuki',
-    'Yamaha',
-  ];
-
   static const List<String> _accessoryBrands = [
     'UNO Minda',
     '3M',
@@ -163,7 +147,8 @@ class _FilterScreenState extends State<FilterScreen> {
     _selectedSubCategory = initialFilters.selectedSubCategory;
     _selectedCondition = initialFilters.selectedCondition;
     _selectedSellerType = initialFilters.selectedSellerType;
-    _priceValue = initialFilters.maxPrice ?? _priceSliderMaxFor(initialFilters.baseCategory);
+    _priceValue = initialFilters.maxPrice ??
+        _priceSliderMaxFor(initialFilters.baseCategory);
     _kmValue = initialFilters.maxKilometers ?? _kmSliderMax;
     _hasCustomPrice = initialFilters.maxPrice != null;
     _hasCustomKm = initialFilters.maxKilometers != null;
@@ -202,20 +187,26 @@ class _FilterScreenState extends State<FilterScreen> {
     ];
   }
 
-  bool get _isAccessoryLike => category == 'Accessories' || category == 'Spare Parts';
+  bool get _isAccessoryLike =>
+      category == 'Accessories' || category == 'Spare Parts';
 
-  String get _baseCategory => ProductFilterState(category: category).baseCategory;
+  String get _baseCategory =>
+      ProductFilterState(category: category).baseCategory;
 
-  List<String> get _brandOptions => _isAccessoryLike ? _accessoryBrands : _bikeBrands;
+  List<String> get _brandOptions =>
+      _isAccessoryLike ? _accessoryBrands : BikeBrandCatalog.brands;
 
-  List<String> get _categoryOptions => category == 'Spare Parts' ? _sparePartCategories : _accessoryCategories;
+  List<String> get _categoryOptions =>
+      category == 'Spare Parts' ? _sparePartCategories : _accessoryCategories;
 
   List<String> get _filteredBrandOptions {
     final query = _brandSearchController.text.trim().toLowerCase();
     if (query.isEmpty) {
       return _brandOptions;
     }
-    return _brandOptions.where((brand) => brand.toLowerCase().contains(query)).toList(growable: false);
+    return _brandOptions
+        .where((brand) => brand.toLowerCase().contains(query))
+        .toList(growable: false);
   }
 
   List<String> get _filteredCategoryOptions {
@@ -223,7 +214,9 @@ class _FilterScreenState extends State<FilterScreen> {
     if (query.isEmpty) {
       return _categoryOptions;
     }
-    return _categoryOptions.where((item) => item.toLowerCase().contains(query)).toList(growable: false);
+    return _categoryOptions
+        .where((item) => item.toLowerCase().contains(query))
+        .toList(growable: false);
   }
 
   List<String> get _quickPriceOptions {
@@ -324,7 +317,9 @@ class _FilterScreenState extends State<FilterScreen> {
                           child: Container(
                             height: 50,
                             decoration: BoxDecoration(
-                              color: isSelected ? const Color(0xFFE8EAF6) : Colors.transparent,
+                              color: isSelected
+                                  ? const Color(0xFFE8EAF6)
+                                  : Colors.transparent,
                             ),
                             child: Stack(
                               children: [
@@ -345,13 +340,18 @@ class _FilterScreenState extends State<FilterScreen> {
                                   ),
                                 Container(
                                   alignment: Alignment.centerLeft,
-                                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 16),
                                   child: Text(
                                     _tabs[index],
                                     style: TextStyle(
                                       fontSize: 13,
-                                      fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                                      color: isSelected ? AppColors.primary : Colors.grey.shade500,
+                                      fontWeight: isSelected
+                                          ? FontWeight.bold
+                                          : FontWeight.w500,
+                                      color: isSelected
+                                          ? AppColors.primary
+                                          : Colors.grey.shade500,
                                     ),
                                   ),
                                 ),
@@ -398,7 +398,9 @@ class _FilterScreenState extends State<FilterScreen> {
                         ),
                       ),
                       Text(
-                        _activeFilterCount == 1 ? 'Filter selected' : 'Filters selected',
+                        _activeFilterCount == 1
+                            ? 'Filter selected'
+                            : 'Filters selected',
                         style: const TextStyle(
                           fontSize: 12,
                           color: Color(0xFF37474F),
@@ -577,7 +579,8 @@ class _FilterScreenState extends State<FilterScreen> {
                   isSelected: _selectedQuickPrice == option,
                   onTap: () {
                     setState(() {
-                      _selectedQuickPrice = _selectedQuickPrice == option ? null : option;
+                      _selectedQuickPrice =
+                          _selectedQuickPrice == option ? null : option;
                       _hasCustomPrice = false;
                     });
                   },
@@ -671,7 +674,8 @@ class _FilterScreenState extends State<FilterScreen> {
                   isSelected: _selectedKmRange == option,
                   onTap: () {
                     setState(() {
-                      _selectedKmRange = _selectedKmRange == option ? null : option;
+                      _selectedKmRange =
+                          _selectedKmRange == option ? null : option;
                       _hasCustomKm = false;
                     });
                   },
@@ -689,7 +693,8 @@ class _FilterScreenState extends State<FilterScreen> {
       children: [
         _buildSearchField(
           controller: _categorySearchController,
-          hintText: 'Search ${category == 'Accessories' ? 'Accessories' : 'Spare Parts'}',
+          hintText:
+              'Search ${category == 'Accessories' ? 'Accessories' : 'Spare Parts'}',
         ),
         const SizedBox(height: 20),
         Text(
@@ -709,7 +714,8 @@ class _FilterScreenState extends State<FilterScreen> {
                     selected: _selectedSubCategory == option,
                     onTap: () {
                       setState(() {
-                        _selectedSubCategory = _selectedSubCategory == option ? null : option;
+                        _selectedSubCategory =
+                            _selectedSubCategory == option ? null : option;
                       });
                     },
                   ),
@@ -740,7 +746,8 @@ class _FilterScreenState extends State<FilterScreen> {
             selected: _selectedFuelType == fuelType,
             onTap: () {
               setState(() {
-                _selectedFuelType = _selectedFuelType == fuelType ? null : fuelType;
+                _selectedFuelType =
+                    _selectedFuelType == fuelType ? null : fuelType;
               });
             },
           ),
@@ -801,7 +808,8 @@ class _FilterScreenState extends State<FilterScreen> {
                     isSelected: _selectedBikeAge == option,
                     onTap: () {
                       setState(() {
-                        _selectedBikeAge = _selectedBikeAge == option ? null : option;
+                        _selectedBikeAge =
+                            _selectedBikeAge == option ? null : option;
                       });
                     },
                   ),
@@ -864,7 +872,8 @@ class _FilterScreenState extends State<FilterScreen> {
             selected: _selectedCondition == condition,
             onTap: () {
               setState(() {
-                _selectedCondition = _selectedCondition == condition ? null : condition;
+                _selectedCondition =
+                    _selectedCondition == condition ? null : condition;
               });
             },
           ),
@@ -892,7 +901,8 @@ class _FilterScreenState extends State<FilterScreen> {
             selected: _selectedSellerType == sellerType,
             onTap: () {
               setState(() {
-                _selectedSellerType = _selectedSellerType == sellerType ? null : sellerType;
+                _selectedSellerType =
+                    _selectedSellerType == sellerType ? null : sellerType;
               });
             },
           ),
@@ -992,12 +1002,16 @@ class _FilterScreenState extends State<FilterScreen> {
                 label,
                 style: TextStyle(
                   fontWeight: FontWeight.w500,
-                  color: selected ? const Color(0xFF233A66) : const Color(0xFF262A36),
+                  color: selected
+                      ? const Color(0xFF233A66)
+                      : const Color(0xFF262A36),
                   fontSize: 14,
                 ),
               ),
             ),
-            if (selected) const Icon(Icons.check_circle, color: AppColors.primary, size: 18),
+            if (selected)
+              const Icon(Icons.check_circle,
+                  color: AppColors.primary, size: 18),
           ],
         ),
       ),
@@ -1065,7 +1079,8 @@ class _FilterScreenState extends State<FilterScreen> {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: isSelected ? AppColors.primary : const Color(0xFFD0D0D0),
+                  color:
+                      isSelected ? AppColors.primary : const Color(0xFFD0D0D0),
                   width: isSelected ? 2 : 1.5,
                 ),
               ),

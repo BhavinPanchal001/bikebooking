@@ -78,25 +78,21 @@ class ListProductScreen extends StatelessWidget {
                             context,
                             'Bikes',
                             const Color(0xFFE2F2D5), // Light Green
-                            'assets/images/bike_placeholder.png',
                           ),
                           _buildCategoryCard(
                             context,
                             'Scooter',
                             const Color(0xFFFFE0C2), // Light Peach
-                            'assets/images/scooter_placeholder.png',
                           ),
                           _buildCategoryCard(
                             context,
                             'Accessories',
                             const Color(0xFFE2E2F8), // Light Purple
-                            'assets/images/accessories_placeholder.png',
                           ),
                           _buildCategoryCard(
                             context,
                             'Spare Parts',
                             const Color(0xFFD9F2F9), // Light Blue
-                            'assets/images/spare_parts_placeholder.png',
                           ),
                         ],
                       ),
@@ -113,7 +109,10 @@ class ListProductScreen extends StatelessWidget {
   }
 
   Widget _buildCategoryCard(
-      BuildContext context, String title, Color bgColor, String imagePath) {
+    BuildContext context,
+    String title,
+    Color bgColor,
+  ) {
     return GestureDetector(
       onTap: () {
         final controller = Get.isRegistered<ListProductController>()
@@ -148,17 +147,10 @@ class ListProductScreen extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Center(
-                  child: Image.asset(
-                    imagePath,
-                    width: 100,
-                    fit: BoxFit.contain,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Icon(
-                        _getIconForCategory(title),
-                        size: 40,
-                        color: Colors.black.withOpacity(0.2),
-                      );
-                    },
+                  child: Icon(
+                    _getIconForCategory(title),
+                    size: 42,
+                    color: const Color(0xFF2E3E5C),
                   ),
                 ),
               ),
@@ -183,13 +175,13 @@ class ListProductScreen extends StatelessWidget {
   IconData _getIconForCategory(String title) {
     switch (title) {
       case 'Bikes':
-        return Icons.directions_bike;
+        return Icons.sports_motorsports_rounded;
       case 'Scooter':
-        return Icons.moped;
+        return Icons.moped_rounded;
       case 'Accessories':
-        return Icons.shopping_bag;
+        return Icons.shield_outlined;
       case 'Spare Parts':
-        return Icons.settings;
+        return Icons.build_circle_outlined;
       default:
         return Icons.category;
     }

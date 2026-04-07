@@ -1,3 +1,4 @@
+import 'package:bikebooking/core/constants/bike_brand_catalog.dart';
 import 'package:bikebooking/core/constants/product_categories.dart';
 import 'package:bikebooking/core/constants/global.dart';
 import 'package:bikebooking/core/widgets/custom_button.dart';
@@ -420,108 +421,230 @@ class BikeDetailFormScreen extends StatelessWidget {
     );
   }
 
-  void _showBrandBottomSheet(
-      BuildContext context, ListProductController controller) {
-    showModalBottomSheet(
+  Future<void> _showBrandBottomSheet(
+    BuildContext context,
+    ListProductController controller,
+  ) async {
+    final selectedBrand = await showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) {
-        return Container(
-          height: MediaQuery.of(context).size.height * 0.8,
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-          ),
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 8),
-              Center(
-                child: Container(
-                  width: 50,
-                  height: 5,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade300,
-                    borderRadius: BorderRadius.circular(10),
+      builder: (sheetContext) {
+        var searchQuery = '';
+
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final filteredBrands = BikeBrandCatalog.brands
+                .where(
+                  (brand) =>
+                      searchQuery.isEmpty ||
+                      brand.toLowerCase().contains(searchQuery.toLowerCase()),
+                )
+                .toList(growable: false);
+
+            return Container(
+              height: MediaQuery.of(context).size.height * 0.8,
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 8),
+                  Center(
+                    child: Container(
+                      width: 50,
+                      height: 5,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
                   ),
-                ),
-              ),
-              const SizedBox(height: 24),
-              const Text(
-                'Select a Brand',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF2E3E5C),
-                ),
-              ),
-              const SizedBox(height: 16),
-              // Search Bar
-              TextField(
-                decoration: InputDecoration(
-                  hintText: 'Search Brand',
-                  hintStyle:
-                      TextStyle(color: Colors.grey.shade400, fontSize: 14),
-                  prefixIcon:
-                      Icon(Icons.search, color: Colors.grey.shade400, size: 24),
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  border: OutlineInputBorder(
+                  const SizedBox(height: 24),
+                  const Text(
+                    'Select a Brand',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF2E3E5C),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    onChanged: (value) {
+                      setModalState(() {
+                        searchQuery = value.trim();
+                      });
+                    },
+                    decoration: InputDecoration(
+                      hintText: 'Search Brand',
+                      hintStyle:
+                          TextStyle(color: Colors.grey.shade400, fontSize: 14),
+                      prefixIcon: Icon(
+                        Icons.search,
+                        color: Colors.grey.shade400,
+                        size: 24,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Colors.grey.shade200),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Colors.grey.shade200),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  InkWell(
+                    onTap: () async {
+                      final sheetNavigator = Navigator.of(sheetContext);
+                      final customBrand = await _showCustomBrandDialog(
+                        context,
+                        initialValue: searchQuery,
+                      );
+                      if (customBrand == null || customBrand.isEmpty) {
+                        return;
+                      }
+
+                      if (sheetNavigator.canPop()) {
+                        sheetNavigator.pop(customBrand);
+                      }
+                    },
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.grey.shade200),
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 12,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF5F7FA),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFFE3E8EF)),
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(
+                            Icons.edit_rounded,
+                            color: Color(0xFF233A66),
+                            size: 20,
+                          ),
+                          SizedBox(width: 10),
+                          Text(
+                            'Type custom brand',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF2E3E5C),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.grey.shade200),
+                  const SizedBox(height: 24),
+                  const Text(
+                    'All Brand',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF2E3E5C),
+                    ),
                   ),
-                ),
+                  const SizedBox(height: 16),
+                  Expanded(
+                    child: filteredBrands.isEmpty
+                        ? const Center(
+                            child: Text(
+                              'No brands found.',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Color(0xFF5E6E8C),
+                              ),
+                            ),
+                          )
+                        : ListView.builder(
+                            physics: const BouncingScrollPhysics(),
+                            itemCount: filteredBrands.length,
+                            itemBuilder: (context, index) {
+                              return _buildBrandItem(
+                                filteredBrands[index],
+                                context,
+                              );
+                            },
+                          ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 24),
-              const Text(
-                'All Brand',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF2E3E5C),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Expanded(
-                child: ListView(
-                  physics: const BouncingScrollPhysics(),
-                  children: [
-                    _buildBrandItem('Aprilia', 'assets/brands/aprilia.png',
-                        context, controller),
-                    _buildBrandItem(
-                        'TVS', 'assets/brands/tvs.png', context, controller),
-                    _buildBrandItem('Bajaj', 'assets/brands/bajaj.png', context,
-                        controller),
-                    _buildBrandItem('Beneli', 'assets/brands/beneli.png',
-                        context, controller),
-                    _buildBrandItem(
-                        'BSA', 'assets/brands/bsa.png', context, controller),
-                    _buildBrandItem('Ducati', 'assets/brands/ducati.png',
-                        context, controller),
-                    _buildBrandItem('Eider', 'assets/brands/eider.png', context,
-                        controller),
-                  ],
-                ),
-              ),
-            ],
+            );
+          },
+        );
+      },
+    );
+
+    if (selectedBrand != null && selectedBrand.trim().isNotEmpty) {
+      controller.setBrand(selectedBrand.trim());
+    }
+  }
+
+  Future<String?> _showCustomBrandDialog(
+    BuildContext context, {
+    String initialValue = '',
+  }) async {
+    var brandValue = initialValue;
+
+    return showDialog<String>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Type Brand Name'),
+          content: TextFormField(
+            initialValue: initialValue,
+            autofocus: true,
+            textCapitalization: TextCapitalization.words,
+            onChanged: (value) {
+              brandValue = value;
+            },
+            decoration: const InputDecoration(
+              hintText: 'Enter bike brand',
+            ),
           ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final customBrand = brandValue.trim();
+                if (customBrand.isEmpty) {
+                  return;
+                }
+                Navigator.pop(dialogContext, customBrand);
+              },
+              child: const Text('Save'),
+            ),
+          ],
         );
       },
     );
   }
 
-  Widget _buildBrandItem(String name, String logoPath, BuildContext context,
-      ListProductController controller) {
+  Widget _buildBrandItem(
+    String name,
+    BuildContext context,
+  ) {
     return GestureDetector(
       onTap: () {
-        controller.setBrand(name);
-        Navigator.pop(context);
+        Navigator.pop(context, name);
       },
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
@@ -536,16 +659,13 @@ class BikeDetailFormScreen extends StatelessWidget {
             Container(
               width: 40,
               height: 22,
-              padding: const EdgeInsets.all(4),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: const Color(0xFFF5F7FA),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Image.asset(
-                logoPath,
-                fit: BoxFit.contain,
-                errorBuilder: (context, error, stackTrace) =>
-                    const Icon(Icons.directions_bike, color: Colors.grey),
+              child: const Icon(
+                Icons.two_wheeler_rounded,
+                color: Color(0xFF5E6E8C),
               ),
             ),
             const SizedBox(width: 16),
