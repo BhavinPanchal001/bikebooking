@@ -3,17 +3,17 @@
 <plist version="1.0">
 <dict>
 	<key>API_KEY</key>
-	<string>AIzaSyBf4B21HyNVNhOlL3bDsJ9l63C3-wNrgH8</string>
+	<string>AIzaSyBJZFDm-zkPvMmCPlUKgHF_5hytKh4FsUU</string>
 	<key>GCM_SENDER_ID</key>
-	<string>536779967703</string>
+	<string>121567378502</string>
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
 	<string>com.bikenest.app</string>
 	<key>PROJECT_ID</key>
-	<string>bikeseller-857b8</string>
+	<string>bikenest-app</string>
 	<key>STORAGE_BUCKET</key>
-	<string>bikeseller-857b8.firebasestorage.app</string>
+	<string>bikenest-app.firebasestorage.app</string>
 	<key>IS_ADS_ENABLED</key>
 	<false></false>
 	<key>IS_ANALYTICS_ENABLED</key>
@@ -25,6 +25,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:536779967703:ios:bce2a2dee5793de02bb492</string>
+	<string>1:121567378502:ios:ede2aa1803b0a4e7559e47</string>
 </dict>
 </plist>
