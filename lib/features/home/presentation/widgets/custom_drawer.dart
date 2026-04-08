@@ -472,11 +472,12 @@ class CustomDrawer extends StatelessWidget {
 
   void _showLogoutConfirmation(
       BuildContext context, LoginController controller) {
+    final drawerContext = context;
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) {
+      builder: (sheetContext) {
         return Container(
           width: double.infinity,
           padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
@@ -537,7 +538,7 @@ class CustomDrawer extends StatelessWidget {
                   children: [
                     Expanded(
                       child: OutlinedButton(
-                        onPressed: () => Navigator.pop(context),
+                        onPressed: () => Navigator.pop(sheetContext),
                         style: OutlinedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(
@@ -552,8 +553,8 @@ class CustomDrawer extends StatelessWidget {
                     Expanded(
                       child: ElevatedButton(
                         onPressed: () async {
-                          Navigator.pop(context); // Close bottom sheet
-                          Navigator.pop(context); // Close drawer
+                          Navigator.pop(sheetContext); // Close bottom sheet
+                          Navigator.pop(drawerContext); // Close drawer
                           await controller.logout();
                         },
                         style: ElevatedButton.styleFrom(

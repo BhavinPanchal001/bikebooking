@@ -121,6 +121,7 @@ class LoginController extends GetxController {
   bool isFetchingCurrentLocation = false;
   bool isSavingLocation = false;
   bool isDeletingAccount = false;
+  bool isLoggingOut = false;
   bool _isHandlingSplashNavigation = false;
   bool _isVerificationLoaderVisible = false;
   String? _firestoreSessionErrorMessage;
@@ -1103,24 +1104,16 @@ class LoginController extends GetxController {
   }
 
   Future<void> logout() async {
-    // Set user offline before signing out.
-    final userId = currentUserProfile?.id;
-    if (userId != null && userId.isNotEmpty) {
-      try {
-        final chatService = ChatFirestoreService();
-        await chatService.updateUserOnlineStatus(
-          userId: userId,
-          isOnline: false,
-        );
-      } catch (_) {
-        // Non-critical.
-      }
+    if (isLoggingOut) {
+      return;
     }
 
-    await _safeSignOut();
+    isLoggingOut = true;
+    final userId = currentUserProfile?.id.trim();
     _clearLocalSession();
     update();
-    Get.offAllNamed('/login');
+    _navigateToLogin();
+    unawaited(_performLogoutCleanup(userId));
   }
 
   void clearFeedback() {
@@ -1398,6 +1391,7 @@ class LoginController extends GetxController {
     isFetchingCurrentLocation = false;
     isSearchingPlaces = false;
     isDeletingAccount = false;
+    isLoggingOut = false;
     phoneController.clear();
     fullNameController.clear();
     emailController.clear();
@@ -1412,6 +1406,36 @@ class LoginController extends GetxController {
     } catch (_) {
       // Ignore sign-out issues while clearing local session state.
     }
+  }
+
+  Future<void> _performLogoutCleanup(String? userId) async {
+    final normalizedUserId = userId?.trim() ?? '';
+
+    if (normalizedUserId.isNotEmpty) {
+      try {
+        final chatService = ChatFirestoreService();
+        await chatService
+            .updateUserOnlineStatus(
+              userId: normalizedUserId,
+              isOnline: false,
+            )
+            .timeout(const Duration(seconds: 3));
+      } catch (_) {
+        // Non-critical.
+      }
+    }
+
+    await _safeSignOut();
+  }
+
+  void _navigateToLogin() {
+    final navigator = Get.key.currentState;
+    if (navigator != null) {
+      navigator.pushNamedAndRemoveUntil('/login', (route) => false);
+      return;
+    }
+
+    Get.offAllNamed('/login');
   }
 
   void _clearOtpFields() {
