@@ -51,6 +51,10 @@ class _ManageNotificationsScreenState extends State<ManageNotificationsScreen> {
                           padding: const EdgeInsets.all(16),
                           children: [
                             _buildStatusCard(notificationService),
+                            if (notificationService.hasSignedInUser) ...[
+                              const SizedBox(height: 16),
+                              _buildInboxCard(),
+                            ],
                             const SizedBox(height: 20),
                             if (!notificationService.hasSignedInUser)
                               _buildInfoCard(
@@ -318,6 +322,55 @@ class _ManageNotificationsScreenState extends State<ManageNotificationsScreen> {
               fontSize: 13,
               height: 1.45,
               color: Color(0xFF5E6E8C),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInboxCard() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.black.withOpacity(0.05)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Review Recent Updates',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF233A66),
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Open your notification inbox to review and execute each update one by one.',
+            style: TextStyle(
+              fontSize: 13,
+              height: 1.45,
+              color: Color(0xFF5E6E8C),
+            ),
+          ),
+          const SizedBox(height: 14),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () => Navigator.pushNamed(context, '/notifications'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF233A66),
+                foregroundColor: Colors.white,
+                minimumSize: const Size(0, 46),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: const Text('Open Notifications'),
             ),
           ),
         ],

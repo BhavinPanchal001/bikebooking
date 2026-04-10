@@ -6,7 +6,7 @@ import 'package:bikebooking/features/auth/data/services/user_firestore_service.d
 import 'package:bikebooking/features/auth/presentation/controllers/login_controller.dart';
 import 'package:bikebooking/features/home/data/models/app_notification_model.dart';
 import 'package:bikebooking/features/home/data/models/notification_preferences_model.dart';
-import 'package:bikebooking/features/home/data/models/product_model.dart';
+import 'package:bikebooking/features/home/data/services/notification_navigation_service.dart';
 import 'package:bikebooking/features/home/data/services/notification_firestore_service.dart';
 import 'package:bikebooking/features/home/data/services/product_firestore_service.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -169,6 +169,10 @@ class NotificationPushService extends GetxController
   Future<void> requestDevicePermission() async {
     final settings = await _requestPermissionIfNeeded();
     await _syncTokenForCurrentUser(settings: settings);
+  }
+
+  Future<void> syncCurrentUserToken() async {
+    await refreshPreferences(showLoader: false);
   }
 
   Future<void> _initializeLocalNotifications() async {
@@ -642,44 +646,14 @@ class NotificationPushService extends GetxController
       }
     }
 
-    final productId = (data['productId'] ?? '').toString().trim();
-    if (productId.isNotEmpty) {
-      final product = await _loadProduct(productId);
-      if (product != null) {
-        Get.toNamed('/bike_detail', arguments: product);
-        return;
-      }
-    }
-
-    final route = (data['targetRoute'] ?? '').toString().trim();
-    if (route.isNotEmpty) {
-      if (route == '/chat_detail') {
-        Get.toNamed(route, arguments: _nullableString(data['chatId']));
-      } else {
-        Get.toNamed(route);
-      }
-      return;
-    }
-
-    final type = (data['type'] ?? '').toString().trim();
-    switch (type) {
-      case 'message':
-        final chatId = _nullableString(data['chatId']);
-        if (chatId != null) {
-          Get.toNamed('/chat_detail', arguments: chatId);
-        } else {
-          Get.toNamed('/messages');
-        }
-        return;
-      case 'listing':
-      case 'listing_update':
-      case 'product_view':
-        Get.toNamed('/my_listing');
-        return;
-      default:
-        Get.toNamed('/notifications');
-        return;
-    }
+    await executeNotificationNavigation(
+      productFirestoreService: _productFirestoreService,
+      type: data['type']?.toString(),
+      targetRoute: data['targetRoute']?.toString(),
+      productId: data['productId']?.toString(),
+      chatId: _nullableString(data['chatId']),
+      fallbackRoute: '/notifications',
+    );
   }
 
   AppNotificationModel? _notificationFromRemoteMessage(RemoteMessage message) {
@@ -814,17 +788,6 @@ class NotificationPushService extends GetxController
   bool _isPermissionEnabled(AuthorizationStatus status) {
     return status == AuthorizationStatus.authorized ||
         status == AuthorizationStatus.provisional;
-  }
-
-  Future<ProductModel?> _loadProduct(String productId) async {
-    try {
-      return await _productFirestoreService.getProductById(productId);
-    } catch (error, stackTrace) {
-      debugPrint(
-        'Error loading product from push payload: $error\n$stackTrace',
-      );
-      return null;
-    }
   }
 
   void _handleLoginControllerChanged() {

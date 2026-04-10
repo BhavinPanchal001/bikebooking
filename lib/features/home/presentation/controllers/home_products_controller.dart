@@ -1,5 +1,6 @@
 import 'package:bikebooking/features/auth/presentation/controllers/login_controller.dart';
 import 'package:bikebooking/features/home/data/models/product_model.dart';
+import 'package:bikebooking/features/home/data/services/notification_dispatch_service.dart';
 import 'package:bikebooking/features/home/data/services/product_firestore_service.dart';
 import 'package:bikebooking/features/home/data/services/recently_viewed_service.dart';
 import 'package:bikebooking/features/home/data/services/seller_action_firestore_service.dart';
@@ -83,10 +84,31 @@ class HomeProductsController extends GetxController {
     if (userId == null) return;
 
     try {
-      await _recentlyViewedService.recordView(
+      final shouldNotifySeller = await _recentlyViewedService.recordView(
         userId: userId,
         product: product,
       );
+      if (shouldNotifySeller &&
+          product.sellerId.trim().isNotEmpty &&
+          product.sellerId.trim() != userId &&
+          Get.isRegistered<NotificationDispatchService>()) {
+        final viewer = _loginController.currentUserProfile;
+        final viewerName = viewer?.displayName ?? 'Someone';
+        await Get.find<NotificationDispatchService>().dispatchNotification(
+          recipientId: product.sellerId,
+          title: 'Someone viewed your ad',
+          body:
+              '$viewerName viewed ${product.title.trim().isNotEmpty ? product.title.trim() : 'your listing'}.',
+          type: 'product_view',
+          senderId: userId,
+          senderName: viewerName,
+          senderPhotoUrl: viewer?.photoUrl,
+          targetRoute: '/my_listing',
+          productId: product.id,
+          documentId:
+              'product_view_${product.id?.trim() ?? 'listing'}_${userId.trim()}',
+        );
+      }
       // Silently refresh recently-viewed in the background.
       await _loadRecentlyViewed();
       update();

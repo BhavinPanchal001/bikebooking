@@ -7,6 +7,7 @@ import 'package:bikebooking/features/auth/data/services/firebase_auth_service.da
 import 'package:bikebooking/features/auth/data/services/profile_photo_storage_service.dart';
 import 'package:bikebooking/features/auth/data/services/user_firestore_service.dart';
 import 'package:bikebooking/features/chat/data/services/chat_firestore_service.dart';
+import 'package:bikebooking/features/home/data/services/notification_push_service.dart';
 import 'package:bikebooking/features/home/data/services/product_firestore_service.dart';
 import 'package:bikebooking/features/home/presentation/controllers/favorites_controller.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -1305,6 +1306,9 @@ class LoginController extends GetxController {
     if (Get.isRegistered<FavoritesController>()) {
       unawaited(Get.find<FavoritesController>().bindToCurrentUser());
     }
+    if (Get.isRegistered<NotificationPushService>()) {
+      unawaited(Get.find<NotificationPushService>().syncCurrentUserToken());
+    }
   }
 
   AppUserModel _createOrUpdateLocalSession({
@@ -1710,13 +1714,6 @@ class LoginController extends GetxController {
       return null;
     }
     return '+91$formattedPhoneNumber';
-  }
-
-  String? _formatOptionalPhoneNumber(String rawPhoneNumber) {
-    if (rawPhoneNumber.trim().isEmpty) {
-      return '';
-    }
-    return _formatPhoneNumber(rawPhoneNumber);
   }
 
   String _resolveStoredPhoneNumber({

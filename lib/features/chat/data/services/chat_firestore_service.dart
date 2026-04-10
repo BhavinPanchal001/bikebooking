@@ -4,7 +4,9 @@ import 'package:bikebooking/features/auth/data/models/app_user_model.dart';
 import 'package:bikebooking/features/chat/data/models/chat_model.dart';
 import 'package:bikebooking/features/chat/data/models/message_model.dart';
 import 'package:bikebooking/features/home/data/models/product_model.dart';
+import 'package:bikebooking/features/home/data/services/notification_dispatch_service.dart';
 import 'package:bikebooking/features/home/data/services/seller_action_firestore_service.dart';
+import 'package:get/get.dart';
 
 class ChatFirestoreService {
   ChatFirestoreService({
@@ -239,6 +241,35 @@ class ChatFirestoreService {
     }
 
     await _chatsRef.doc(chatId).update(updates);
+
+    if (resolvedOtherUserId.isNotEmpty &&
+        resolvedOtherUserId != senderId &&
+        Get.isRegistered<NotificationDispatchService>()) {
+      try {
+        final chat = await getChatById(chatId);
+        final senderDetails = chat?.participantDetails[senderId];
+        final productId = chat?.productSnapshot?.productId.trim() ?? '';
+        await Get.find<NotificationDispatchService>().dispatchNotification(
+          recipientId: resolvedOtherUserId,
+          title: senderDetails?.name.trim().isNotEmpty == true
+              ? senderDetails!.name.trim()
+              : 'New message on your ad',
+          body: resolvedPreviewText,
+          type: 'message',
+          senderId: senderId,
+          senderName: senderDetails?.name,
+          senderPhotoUrl: senderDetails?.photoUrl,
+          targetRoute: '/chat_detail',
+          productId: productId.isEmpty ? null : productId,
+          chatId: chatId,
+          documentId:
+              'message_${chatId}_${normalizedClientMessageId.isNotEmpty ? normalizedClientMessageId : localSentAt.millisecondsSinceEpoch}',
+        );
+      } catch (_) {
+        // Non-blocking: message sending should not fail because notification
+        // delivery bookkeeping had an issue.
+      }
+    }
   }
 
   // ---------------------------------------------------------------------------

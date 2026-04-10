@@ -1,6 +1,7 @@
 import 'package:bikebooking/features/auth/presentation/controllers/login_controller.dart';
 import 'package:bikebooking/features/home/data/models/product_model.dart';
 import 'package:bikebooking/features/home/data/models/product_status.dart';
+import 'package:bikebooking/features/home/data/services/notification_dispatch_service.dart';
 import 'package:bikebooking/features/home/data/services/product_firestore_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
@@ -115,13 +116,40 @@ class MyListingController extends GetxController {
 
     try {
       final normalizedStatus = ProductStatus.normalize(status);
-      await _firestoreService.updateProductStatus(productId, normalizedStatus);
       final productIndex =
           _products.indexWhere((product) => product.id == productId);
+      final existingProduct =
+          productIndex >= 0 ? _products[productIndex] : null;
+      await _firestoreService.updateProductStatus(productId, normalizedStatus);
       if (productIndex >= 0) {
         _products[productIndex] = _products[productIndex].copyWith(
           status: normalizedStatus,
           updatedAt: DateTime.now(),
+        );
+      }
+      if (existingProduct != null &&
+          Get.isRegistered<NotificationDispatchService>()) {
+        final seller = Get.isRegistered<LoginController>()
+            ? Get.find<LoginController>().currentUserProfile
+            : null;
+        final title = normalizedStatus == ProductStatus.sold
+            ? 'Listing marked as sold'
+            : 'Listing reactivated';
+        final body = normalizedStatus == ProductStatus.sold
+            ? 'Your listing "${existingProduct.title}" is now marked as sold.'
+            : 'Your listing "${existingProduct.title}" is active again.';
+        await Get.find<NotificationDispatchService>().dispatchNotification(
+          recipientId: _resolveCurrentSellerId(),
+          title: title,
+          body: body,
+          type: 'listing_update',
+          senderId: seller?.id,
+          senderName: seller?.displayName ?? 'Bikebooking',
+          senderPhotoUrl: seller?.photoUrl,
+          targetRoute: '/my_listing',
+          productId: existingProduct.id,
+          documentId: 'listing_update_${productId}_$normalizedStatus',
+          allowSelfNotification: true,
         );
       }
       return true;

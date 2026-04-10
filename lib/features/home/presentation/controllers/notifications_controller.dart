@@ -4,7 +4,7 @@ import 'package:bikebooking/features/auth/data/models/app_user_model.dart';
 import 'package:bikebooking/features/auth/data/services/user_firestore_service.dart';
 import 'package:bikebooking/features/auth/presentation/controllers/login_controller.dart';
 import 'package:bikebooking/features/home/data/models/app_notification_model.dart';
-import 'package:bikebooking/features/home/data/models/product_model.dart';
+import 'package:bikebooking/features/home/data/services/notification_navigation_service.dart';
 import 'package:bikebooking/features/home/data/services/notification_firestore_service.dart';
 import 'package:bikebooking/features/home/data/services/product_firestore_service.dart';
 import 'package:flutter/foundation.dart';
@@ -153,52 +153,13 @@ class NotificationsController extends GetxController {
 
   Future<void> handleNotificationTap(AppNotificationModel notification) async {
     await markNotificationAsRead(notification);
-
-    final route = notification.targetRoute?.trim() ?? '';
-    if ((notification.productId ?? '').trim().isNotEmpty) {
-      final product = await _loadProduct(notification.productId!.trim());
-      if (product != null) {
-        Get.toNamed('/bike_detail', arguments: product);
-        return;
-      }
-    }
-
-    if (route.isEmpty) {
-      switch (notification.type.trim()) {
-        case 'message':
-          final chatId = notification.chatId?.trim() ?? '';
-          if (chatId.isNotEmpty) {
-            Get.toNamed('/chat_detail', arguments: chatId);
-          } else {
-            Get.toNamed('/messages');
-          }
-          return;
-        case 'listing':
-        case 'listing_update':
-        case 'product_view':
-          Get.toNamed('/my_listing');
-          return;
-        default:
-          return;
-      }
-    }
-
-    if (route == '/bike_detail' &&
-        (notification.productId ?? '').trim().isEmpty) {
-      return;
-    }
-
-    if (route == '/chat_detail') {
-      Get.toNamed(route, arguments: notification.chatId);
-      return;
-    }
-
-    if (route == '/messages') {
-      Get.toNamed(route);
-      return;
-    }
-
-    Get.toNamed(route);
+    await executeNotificationNavigation(
+      productFirestoreService: _productFirestoreService,
+      type: notification.type,
+      targetRoute: notification.targetRoute,
+      productId: notification.productId,
+      chatId: notification.chatId,
+    );
   }
 
   Future<List<AppNotificationModel>> _enrichNotifications(
@@ -233,16 +194,6 @@ class NotificationsController extends GetxController {
             : senderProfile?.photoUrl,
       );
     }).toList(growable: false);
-  }
-
-  Future<ProductModel?> _loadProduct(String productId) async {
-    try {
-      return await _productFirestoreService.getProductById(productId);
-    } catch (error, stackTrace) {
-      debugPrint(
-          'Error loading product for notification tap: $error\n$stackTrace');
-      return null;
-    }
   }
 
   String? _resolveCurrentUserId() {

@@ -1,6 +1,7 @@
 import 'package:bikebooking/features/auth/data/services/firebase_auth_service.dart';
 import 'package:bikebooking/features/auth/data/services/user_firestore_service.dart';
 import 'package:bikebooking/features/auth/presentation/controllers/login_controller.dart';
+import 'package:bikebooking/features/home/data/services/notification_dispatch_service.dart';
 import 'package:bikebooking/features/home/data/services/notification_push_service.dart';
 import 'package:bikebooking/features/home/presentation/controllers/favorites_controller.dart';
 import 'package:bikebooking/features/home/presentation/controllers/home_products_controller.dart';
@@ -29,10 +30,13 @@ class AuthBinding extends Bindings {
       () => NotificationsController(),
       fenix: true,
     );
+    Get.put<NotificationDispatchService>(
+      NotificationDispatchService(),
+      permanent: true,
+    );
     Get.put<NotificationPushService>(
       NotificationPushService(),
       permanent: true,
     ).initialize();
   }
 }
-

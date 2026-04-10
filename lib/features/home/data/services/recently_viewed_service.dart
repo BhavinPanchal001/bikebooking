@@ -14,6 +14,7 @@ class RecentlyViewedService {
   final FirebaseFirestore _firestore;
 
   static const int _maxRecentItems = 20;
+  static const Duration _sellerNotificationCooldown = Duration(hours: 24);
 
   CollectionReference<Map<String, dynamic>> _recentRef(String userId) =>
       _firestore.collection('users').doc(userId).collection('recentlyViewed');
@@ -22,14 +23,17 @@ class RecentlyViewedService {
   ///
   /// Uses the product's document ID as the doc key so a second view just
   /// bumps the timestamp instead of creating a duplicate.
-  Future<void> recordView({
+  Future<bool> recordView({
     required String userId,
     required ProductModel product,
   }) async {
     final productId = product.id?.trim() ?? '';
-    if (productId.isEmpty || userId.trim().isEmpty) return;
+    if (productId.isEmpty || userId.trim().isEmpty) return false;
 
     try {
+      final docRef = _recentRef(userId).doc(productId);
+      final existing = await docRef.get();
+      final previousViewedAt = _readViewedAt(existing.data());
       await _recentRef(userId).doc(productId).set({
         'productId': productId,
         'viewedAt': FieldValue.serverTimestamp(),
@@ -37,9 +41,15 @@ class RecentlyViewedService {
 
       // Housekeeping: trim old entries beyond the cap.
       await _trimOldEntries(userId);
+      if (!existing.exists || previousViewedAt == null) {
+        return true;
+      }
+
+      return DateTime.now().difference(previousViewedAt) >=
+          _sellerNotificationCooldown;
     } on FirebaseException catch (error) {
       if (_isPermissionDenied(error)) {
-        return;
+        return false;
       }
       rethrow;
     }
@@ -125,4 +135,12 @@ class RecentlyViewedService {
 
   bool _isPermissionDenied(FirebaseException error) =>
       error.code == 'permission-denied';
+
+  DateTime? _readViewedAt(Map<String, dynamic>? data) {
+    final rawViewedAt = data?['viewedAt'];
+    if (rawViewedAt is Timestamp) {
+      return rawViewedAt.toDate();
+    }
+    return null;
+  }
 }
