@@ -38,6 +38,17 @@ export function UsersPage({ data }) {
           </div>
         }
       >
+        <div className="live-note">
+          <span className={`dot dot-${data.source}`} />
+          {data.loading
+            ? 'Loading live users from Firestore.'
+            : data.source === 'firebase'
+              ? 'User cards are reading from the live Firestore users collection.'
+              : data.source === 'firebase-partial'
+                ? 'User data is live, but some related collections may not be readable.'
+                : 'User cards are showing demo data.'}
+        </div>
+
         <div className="toolbar">
           <input
             className="search-input"
@@ -50,45 +61,51 @@ export function UsersPage({ data }) {
         </div>
 
         <div className="user-grid">
-          {filteredUsers.map((user) => (
-            <article key={user.id} className="user-card">
-              <div className="user-card-head">
-                <div>
-                  <h4>{user.fullName}</h4>
-                  <p>{user.location?.address || 'Location not shared'}</p>
+          {data.loading ? (
+            <div className="empty-state">Loading live users...</div>
+          ) : filteredUsers.length > 0 ? (
+            filteredUsers.map((user) => (
+              <article key={user.id} className="user-card">
+                <div className="user-card-head">
+                  <div>
+                    <h4>{user.fullName}</h4>
+                    <p>{user.location?.address || 'Location not shared'}</p>
+                  </div>
+                  <span className={`status-pill status-${user.verificationStatus}`}>
+                    {user.verificationStatus}
+                  </span>
                 </div>
-                <span className={`status-pill status-${user.verificationStatus}`}>
-                  {user.verificationStatus}
-                </span>
-              </div>
-              <div className="user-card-body">
-                <div>
-                  <span>Email</span>
-                  <strong>{user.email || 'Not added'}</strong>
+                <div className="user-card-body">
+                  <div>
+                    <span>Email</span>
+                    <strong>{user.email || 'Not added'}</strong>
+                  </div>
+                  <div>
+                    <span>Phone</span>
+                    <strong>{user.phoneNumber || 'Not added'}</strong>
+                  </div>
+                  <div>
+                    <span>Joined</span>
+                    <strong>{formatDate(user.joinedAt)}</strong>
+                  </div>
+                  <div>
+                    <span>Active listings</span>
+                    <strong>{user.activeListings}</strong>
+                  </div>
+                  <div>
+                    <span>Total sales</span>
+                    <strong>{formatCurrency(user.totalSales)}</strong>
+                  </div>
+                  <div>
+                    <span>Seller rating</span>
+                    <strong>{user.rating > 0 ? user.rating.toFixed(1) : 'New'}</strong>
+                  </div>
                 </div>
-                <div>
-                  <span>Phone</span>
-                  <strong>{user.phoneNumber || 'Not added'}</strong>
-                </div>
-                <div>
-                  <span>Joined</span>
-                  <strong>{formatDate(user.joinedAt)}</strong>
-                </div>
-                <div>
-                  <span>Active listings</span>
-                  <strong>{user.activeListings}</strong>
-                </div>
-                <div>
-                  <span>Total sales</span>
-                  <strong>{formatCurrency(user.totalSales)}</strong>
-                </div>
-                <div>
-                  <span>Seller rating</span>
-                  <strong>{user.rating > 0 ? user.rating.toFixed(1) : 'New'}</strong>
-                </div>
-              </div>
-            </article>
-          ))}
+              </article>
+            ))
+          ) : (
+            <div className="empty-state">No users matched the current filters.</div>
+          )}
         </div>
       </PanelCard>
     </div>

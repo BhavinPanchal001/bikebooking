@@ -4,9 +4,13 @@ import { Topbar } from './components/Topbar';
 import { useAdminAuth } from './hooks/useAdminAuth';
 import { useAdminData } from './hooks/useAdminData';
 import { DashboardPage } from './pages/DashboardPage';
+import { BikeOwnerMasterPage } from './pages/BikeOwnerMasterPage';
+import { BrandMasterPage } from './pages/BrandMasterPage';
 import { InboxPage } from './pages/InboxPage';
 import { ListingsPage } from './pages/ListingsPage';
 import { LoginPage } from './pages/LoginPage';
+import { ProductDetailPage } from './pages/ProductDetailPage';
+import { PopularBikeAgeMasterPage } from './pages/PopularBikeAgeMasterPage';
 import { UsersPage } from './pages/UsersPage';
 
 const navItems = [
@@ -14,6 +18,13 @@ const navItems = [
   { to: '/listings', label: 'Listings', eyebrow: 'Inventory' },
   { to: '/users', label: 'Users', eyebrow: 'People' },
   { to: '/inbox', label: 'Inbox', eyebrow: 'Safety & chats' },
+  { to: '/masters/brands', label: 'Brand Master', eyebrow: 'Master data' },
+  {
+    to: '/masters/popular-bike-age',
+    label: 'Popular Bike Age',
+    eyebrow: 'Master data',
+  },
+  { to: '/masters/bike-owner', label: 'Bike Owner', eyebrow: 'Master data' },
 ];
 
 function AdminShell() {
@@ -76,12 +87,28 @@ function AdminShell() {
               element={<ListingsPage data={adminData} />}
             />
             <Route
+              path="/listings/:listingId"
+              element={<ProductDetailPage data={adminData} />}
+            />
+            <Route
               path="/users"
               element={<UsersPage data={adminData} />}
             />
             <Route
               path="/inbox"
               element={<InboxPage data={adminData} />}
+            />
+            <Route
+              path="/masters/brands"
+              element={<BrandMasterPage />}
+            />
+            <Route
+              path="/masters/popular-bike-age"
+              element={<PopularBikeAgeMasterPage />}
+            />
+            <Route
+              path="/masters/bike-owner"
+              element={<BikeOwnerMasterPage />}
             />
           </Routes>
         </main>

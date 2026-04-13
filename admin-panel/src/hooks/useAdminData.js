@@ -9,6 +9,55 @@ import {
 import { mockAdminData } from '../data/mockData';
 import { db, hasFirebaseConfig } from '../lib/firebase';
 
+const emptyAdminData = {
+  users: [],
+  listings: [],
+  conversations: [],
+  reports: [],
+  reviews: [],
+  notifications: [],
+  blockedUsers: [],
+};
+
+function createEmptySnapshot({
+  source = 'firebase',
+  loading = true,
+  error = '',
+} = {}) {
+  return {
+    source,
+    error,
+    loading,
+    lastUpdated: null,
+    users: [],
+    listings: [],
+    conversations: [],
+    reports: [],
+    reviews: [],
+    notifications: [],
+    blockedUsers: [],
+    categoryBreakdown: [],
+    brandLeaders: [],
+    recentActivity: [],
+    metrics: {
+      totalUsers: 0,
+      activeListings: 0,
+      soldListings: 0,
+      openReports: 0,
+      unreadChats: 0,
+      unreadNotifications: 0,
+      verifiedUsers: 0,
+      incompleteUsers: 0,
+      estimatedRevenue: 0,
+      averageActivePrice: 0,
+      approvalQueue: 0,
+      flaggedListings: 0,
+      blockedUsers: 0,
+      totalChats: 0,
+    },
+  };
+}
+
 function toIsoString(value) {
   if (!value) {
     return null;
@@ -34,7 +83,7 @@ function deriveModerationStatus(listing, reports) {
   const hasOpenReport = reports.some(
     (report) =>
       report.sellerId === listing.sellerId &&
-      ['open', 'reviewing'].includes(report.status),
+      ['open', 'reviewing', 'pending'].includes(report.status),
   );
 
   if (hasOpenReport) {
@@ -42,12 +91,6 @@ function deriveModerationStatus(listing, reports) {
   }
   if (listing.status === 'sold') {
     return 'closed';
-  }
-
-  const createdAt = new Date(listing.createdAt ?? 0).getTime();
-  const hoursSinceCreated = (Date.now() - createdAt) / (1000 * 60 * 60);
-  if (Number.isFinite(hoursSinceCreated) && hoursSinceCreated < 36) {
-    return 'pending';
   }
 
   return 'approved';
@@ -81,18 +124,26 @@ function buildAdminSnapshot(raw, source, error = '') {
       soldListings: soldListings.length,
       totalSales: soldListings.reduce((sum, listing) => sum + (listing.price ?? 0), 0),
       rating: averageRating,
-      verificationStatus:
-        user.email && user.phoneNumber && user.location?.address ? 'verified' : 'incomplete',
+      verificationStatus: user.phoneNumber ? 'verified' : 'incomplete',
     };
   });
 
   const conversations = sortByNewest(raw.conversations, 'updatedAt');
   const reports = sortByNewest(raw.reports, 'createdAt');
   const reviews = sortByNewest(raw.reviews, 'createdAt');
+  const notifications = sortByNewest(raw.notifications ?? [], 'createdAt');
+  const blockedUsers = sortByNewest(raw.blockedUsers ?? [], 'blockedAt');
 
   const totalRevenue = listings
     .filter((listing) => listing.status === 'sold')
     .reduce((sum, listing) => sum + (listing.price ?? 0), 0);
+  const averageActivePrice =
+    listings.filter((listing) => listing.status === 'active').reduce(
+      (sum, listing, index, items) => sum + (listing.price ?? 0) / (items.length || 1),
+      0,
+    ) || 0;
+  const verifiedUsers = users.filter((user) => user.verificationStatus === 'verified').length;
+  const unreadNotifications = notifications.filter((notification) => !notification.isRead).length;
 
   const categoryCounts = listings.reduce((accumulator, listing) => {
     accumulator[listing.category] = (accumulator[listing.category] ?? 0) + 1;
@@ -127,6 +178,13 @@ function buildAdminSnapshot(raw, source, error = '') {
         meta: chat.lastMessage,
         timestamp: chat.updatedAt,
       })),
+      ...notifications.slice(0, 3).map((notification) => ({
+        id: `notification-${notification.id}`,
+        type: 'Notification',
+        title: notification.title,
+        meta: notification.body,
+        timestamp: notification.createdAt,
+      })),
     ],
     'timestamp',
   ).slice(0, 6);
@@ -141,6 +199,8 @@ function buildAdminSnapshot(raw, source, error = '') {
     conversations,
     reports,
     reviews,
+    notifications,
+    blockedUsers,
     categoryBreakdown: Object.entries(categoryCounts)
       .map(([label, count]) => ({ label, count }))
       .sort((first, second) => second.count - first.count),
@@ -155,9 +215,15 @@ function buildAdminSnapshot(raw, source, error = '') {
       soldListings: listings.filter((listing) => listing.status === 'sold').length,
       openReports: reports.filter((report) => report.status !== 'resolved').length,
       unreadChats: conversations.reduce((sum, chat) => sum + (chat.unread ?? 0), 0),
+      unreadNotifications,
+      verifiedUsers,
+      incompleteUsers: users.length - verifiedUsers,
       estimatedRevenue: totalRevenue,
+      averageActivePrice,
       approvalQueue: listings.filter((listing) => listing.moderationStatus === 'pending').length,
       flaggedListings: listings.filter((listing) => listing.moderationStatus === 'flagged').length,
+      blockedUsers: blockedUsers.length,
+      totalChats: conversations.length,
     },
   };
 }
@@ -188,16 +254,57 @@ async function loadCollectionGroup(groupName, sortField) {
   }
 }
 
+async function loadCollectionResult(name, loader) {
+  try {
+    const docs = await loader();
+    return {
+      name,
+      ok: true,
+      docs,
+      error: '',
+    };
+  } catch (error) {
+    console.error(`Unable to load ${name}.`, error);
+    return {
+      name,
+      ok: false,
+      docs: [],
+      error: error?.message || `Unable to load ${name}.`,
+    };
+  }
+}
+
 async function fetchFirebaseAdminData() {
-  const [userDocs, productDocs, chatDocs, reportDocs, reviewDocs] = await Promise.all([
-    loadCollection('users', 'updatedAt').catch(() => []),
-    loadCollection('products', 'updatedAt'),
-    loadCollection('chats', 'updatedAt').catch(() => []),
-    loadCollection('seller_reports', 'createdAt').catch(() => []),
-    loadCollectionGroup('reviews', 'createdAt').catch(() => []),
+  const results = await Promise.all([
+    loadCollectionResult('users', () => loadCollection('users', 'updatedAt')),
+    loadCollectionResult('products', () => loadCollection('products', 'updatedAt')),
+    loadCollectionResult('chats', () => loadCollection('chats', 'updatedAt')),
+    loadCollectionResult('seller_reports', () => loadCollection('seller_reports', 'createdAt')),
+    loadCollectionResult('reviews', () => loadCollectionGroup('reviews', 'createdAt')),
+    loadCollectionResult('notifications', () => loadCollectionGroup('notifications', 'createdAt')),
+    loadCollectionResult('user_blocks', () => loadCollection('user_blocks', 'blockedAt')),
   ]);
 
+  const resultMap = Object.fromEntries(results.map((result) => [result.name, result]));
+  const loadErrors = results
+    .filter((result) => !result.ok)
+    .map((result) => result.name);
+
+  const userDocs = resultMap.users.docs;
+  const productDocs = resultMap.products.docs;
+  const chatDocs = resultMap.chats.docs;
+  const reportDocs = resultMap.seller_reports.docs;
+  const reviewDocs = resultMap.reviews.docs;
+  const notificationDocs = resultMap.notifications.docs;
+  const blockedUserDocs = resultMap.user_blocks.docs;
+
   return {
+    source:
+      loadErrors.length > 0 && loadErrors.length < results.length ? 'firebase-partial' : 'firebase',
+    error:
+      loadErrors.length > 0
+        ? `Some Firestore collections could not be read: ${loadErrors.join(', ')}.`
+        : '',
     users: userDocs.map((doc) => {
       const data = doc.data();
       return {
@@ -220,15 +327,30 @@ async function fetchFirebaseAdminData() {
         category: data.category?.toString().trim() ?? 'Uncategorized',
         title: data.title?.toString().trim() ?? 'Untitled listing',
         brand: data.brand?.toString().trim() ?? 'Unknown',
+        description: data.description?.toString().trim() ?? '',
         price: typeof data.price === 'number' ? data.price : Number(data.price ?? 0),
         location: data.location?.toString().trim() ?? 'Unknown',
         sellerId: data.sellerId?.toString().trim() ?? '',
         sellerName: data.sellerName?.toString().trim() ?? 'Seller',
+        year: typeof data.year === 'number' ? data.year : Number(data.year ?? 0) || null,
         status: data.status?.toString().trim().toLowerCase() ?? 'active',
         createdAt: toIsoString(data.createdAt) ?? toIsoString(data.updatedAt),
+        updatedAt: toIsoString(data.updatedAt) ?? toIsoString(data.createdAt),
         views: Number(data.views ?? 0),
         inquiries: Number(data.inquiries ?? 0),
         imageUrls: Array.isArray(data.imageUrls) ? data.imageUrls : [],
+        fuelType: data.fuelType?.toString().trim() ?? '',
+        kilometerDriven:
+          typeof data.kilometerDriven === 'number'
+            ? data.kilometerDriven
+            : Number(data.kilometerDriven ?? 0) || null,
+        numberOfOwners:
+          typeof data.numberOfOwners === 'number'
+            ? data.numberOfOwners
+            : Number(data.numberOfOwners ?? 0) || null,
+        subCategory: data.subCategory?.toString().trim() ?? '',
+        condition: data.condition?.toString().trim() ?? '',
+        sellerType: data.sellerType?.toString().trim() ?? '',
       };
     }),
     conversations: chatDocs.map((doc) => {
@@ -280,14 +402,42 @@ async function fetchFirebaseAdminData() {
         createdAt: toIsoString(data.createdAt) ?? toIsoString(data.updatedAt),
       };
     }),
+    notifications: notificationDocs.map((doc) => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        recipientId: data.recipientId?.toString().trim() ?? '',
+        title: data.title?.toString().trim() ?? 'Notification',
+        body: data.body?.toString().trim() ?? '',
+        type: data.type?.toString().trim() ?? 'system',
+        isRead: data.isRead === true,
+        senderName: data.senderName?.toString().trim() ?? '',
+        createdAt: toIsoString(data.createdAt) ?? toIsoString(data.updatedAt),
+      };
+    }),
+    blockedUsers: blockedUserDocs.map((doc) => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        blockerId: data.blockerId?.toString().trim() ?? '',
+        blockedUserId: data.blockedUserId?.toString().trim() ?? '',
+        sellerName:
+          data.sellerName?.toString().trim() ||
+          data.fullName?.toString().trim() ||
+          'Blocked user',
+        photoUrl: data.photoUrl?.toString().trim() ?? '',
+        blockedAt: toIsoString(data.blockedAt) ?? toIsoString(data.updatedAt),
+      };
+    }),
   };
 }
 
 export function useAdminData({ enabled = true } = {}) {
-  const [state, setState] = useState({
-    ...buildAdminSnapshot(mockAdminData, 'mock'),
-    loading: true,
-  });
+  const [state, setState] = useState(() =>
+    enabled && hasFirebaseConfig
+      ? createEmptySnapshot({ source: 'firebase', loading: true })
+      : createEmptySnapshot({ source: 'mock', loading: false }),
+  );
 
   useEffect(() => {
     let isCancelled = false;
@@ -295,10 +445,7 @@ export function useAdminData({ enabled = true } = {}) {
     async function hydrate() {
       if (!enabled) {
         if (!isCancelled) {
-          setState({
-            ...buildAdminSnapshot(mockAdminData, 'mock'),
-            loading: false,
-          });
+          setState(createEmptySnapshot({ source: 'mock', loading: false }));
         }
         return;
       }
@@ -313,20 +460,33 @@ export function useAdminData({ enabled = true } = {}) {
         return;
       }
 
+      if (!isCancelled) {
+        setState(createEmptySnapshot({ source: 'firebase', loading: true }));
+      }
+
       try {
         const firebaseData = await fetchFirebaseAdminData();
         if (!isCancelled) {
-          setState(buildAdminSnapshot(firebaseData, 'firebase'));
+          setState(
+            buildAdminSnapshot(
+              {
+                ...emptyAdminData,
+                ...firebaseData,
+              },
+              firebaseData.source,
+              firebaseData.error,
+            ),
+          );
         }
       } catch (error) {
         console.error('Unable to load Firebase admin data.', error);
         if (!isCancelled) {
           setState(
-            buildAdminSnapshot(
-              mockAdminData,
-              'mock',
-              'Firebase data could not be loaded, so the demo dataset is shown.',
-            ),
+            createEmptySnapshot({
+              source: 'firebase-partial',
+              loading: false,
+              error: 'Firebase data could not be loaded for the admin panel.',
+            }),
           );
         }
       }

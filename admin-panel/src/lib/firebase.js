@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { browserLocalPersistence, getAuth, setPersistence } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { initializeFirestore } from 'firebase/firestore';
 
 const fallbackConfig = {
   apiKey: 'AIzaSyBOjWZF-VCYSHksyZ6x3ScJNtZcG_gKMsw',
@@ -24,7 +24,12 @@ const firebaseConfig = {
 export const hasFirebaseConfig = Object.values(firebaseConfig).every(Boolean);
 
 const app = hasFirebaseConfig ? initializeApp(firebaseConfig) : null;
-const db = app ? getFirestore(app) : null;
+const db = app
+  ? initializeFirestore(app, {
+      experimentalAutoDetectLongPolling: true,
+      useFetchStreams: false,
+    })
+  : null;
 const auth = app ? getAuth(app) : null;
 
 if (auth) {
