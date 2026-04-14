@@ -1,23 +1,151 @@
-import { useDeferredValue, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useDeferredValue, useMemo, useState } from 'react';
+import { ActionMenu } from '../components/ActionMenu';
+import { ConfirmDialog } from '../components/ConfirmDialog';
+import { FeedbackBanner } from '../components/FeedbackBanner';
 import { PanelCard } from '../components/PanelCard';
+import { adminListingsService } from '../services/adminListingsService';
 import { formatCurrency, formatDateTime } from '../utils/format';
 
-export function ListingsPage({ data }) {
+function getDialogConfig(action) {
+  if (!action?.listing) {
+    return null;
+  }
+
+  const listingTitle = action.listing.title || action.listing.id;
+
+  switch (action.type) {
+    case 'approve':
+      return {
+        title: 'Approve listing',
+        message: `Approve "${listingTitle}" and restore it to active marketplace status?`,
+        confirmLabel: 'Approve listing',
+        busyLabel: 'Approving...',
+        confirmButtonClassName: 'secondary-button',
+      };
+    case 'flag':
+      return {
+        title: 'Flag listing',
+        message: `Flag "${listingTitle}" for moderation follow-up?`,
+        confirmLabel: 'Flag listing',
+        busyLabel: 'Flagging...',
+        confirmButtonClassName: 'danger-button',
+      };
+    case 'close':
+      return {
+        title: 'Close listing',
+        message: `Close "${listingTitle}" and mark it sold in Firestore?`,
+        confirmLabel: 'Close listing',
+        busyLabel: 'Closing...',
+        confirmButtonClassName: 'danger-button',
+      };
+    case 'reopen':
+      return {
+        title: 'Reopen listing',
+        message: `Reopen "${listingTitle}" and return it to active status?`,
+        confirmLabel: 'Reopen listing',
+        busyLabel: 'Reopening...',
+        confirmButtonClassName: 'secondary-button',
+      };
+    case 'delete':
+      return {
+        title: 'Delete listing',
+        message: `Delete "${listingTitle}" and clean up saved references and related chats? This action cannot be undone.`,
+        confirmLabel: 'Delete listing',
+        busyLabel: 'Deleting...',
+        confirmButtonClassName: 'danger-button',
+      };
+    default:
+      return null;
+  }
+}
+
+export function ListingsPage({ data, adminEmail }) {
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('all');
+  const [pendingAction, setPendingAction] = useState(null);
+  const [busyActionKey, setBusyActionKey] = useState('');
+  const [actionError, setActionError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   const deferredSearch = useDeferredValue(search);
 
-  const filteredListings = data.listings.filter((listing) => {
-    const matchesSearch =
-      !deferredSearch ||
-      `${listing.title} ${listing.brand} ${listing.sellerName} ${listing.location}`
-        .toLowerCase()
-        .includes(deferredSearch.toLowerCase());
+  const filteredListings = useMemo(
+    () =>
+      data.listings.filter((listing) => {
+        const matchesSearch =
+          !deferredSearch ||
+          `${listing.title} ${listing.brand} ${listing.sellerName} ${listing.location}`
+            .toLowerCase()
+            .includes(deferredSearch.toLowerCase());
 
-    const matchesFilter = filter === 'all' || listing.moderationStatus === filter;
-    return matchesSearch && matchesFilter;
-  });
+        const matchesFilter = filter === 'all' || listing.moderationStatus === filter;
+        return matchesSearch && matchesFilter;
+      }),
+    [data.listings, deferredSearch, filter],
+  );
+
+  const dialogConfig = getDialogConfig(pendingAction);
+
+  function clearFeedback() {
+    setActionError('');
+    setSuccessMessage('');
+  }
+
+  async function handleConfirmedAction() {
+    if (!pendingAction?.listing) {
+      return;
+    }
+
+    const { listing, type } = pendingAction;
+    const busyKey = `${type}:${listing.id}`;
+    setBusyActionKey(busyKey);
+    clearFeedback();
+
+    try {
+      if (type === 'approve') {
+        await adminListingsService.approveListing({
+          listingId: listing.id,
+          adminEmail,
+        });
+        setSuccessMessage(`${listing.title} was approved successfully.`);
+      }
+
+      if (type === 'flag') {
+        await adminListingsService.flagListing({
+          listingId: listing.id,
+          adminEmail,
+        });
+        setSuccessMessage(`${listing.title} was flagged successfully.`);
+      }
+
+      if (type === 'close') {
+        await adminListingsService.closeListing({
+          listingId: listing.id,
+          adminEmail,
+        });
+        setSuccessMessage(`${listing.title} was closed successfully.`);
+      }
+
+      if (type === 'reopen') {
+        await adminListingsService.reopenListing({
+          listingId: listing.id,
+          adminEmail,
+        });
+        setSuccessMessage(`${listing.title} was reopened successfully.`);
+      }
+
+      if (type === 'delete') {
+        await adminListingsService.deleteListing({ listingId: listing.id });
+        setSuccessMessage(`${listing.title} was deleted successfully.`);
+      }
+
+      setPendingAction(null);
+      data.refresh?.();
+    } catch (error) {
+      setActionError(error?.message || 'Unable to complete this listing action.');
+    } finally {
+      setBusyActionKey('');
+    }
+  }
 
   return (
     <div className="page-stack">
@@ -26,7 +154,7 @@ export function ListingsPage({ data }) {
         subtitle="Review live inventory, trace seller performance, and inspect listing details."
         actions={
           <div className="filter-row">
-            {['all', 'approved', 'flagged', 'closed'].map((status) => (
+            {['all', 'approved', 'flagged', 'pending', 'closed'].map((status) => (
               <button
                 key={status}
                 type="button"
@@ -49,6 +177,9 @@ export function ListingsPage({ data }) {
                 ? 'Listings are partially loaded from Firestore. Some related collections may be blocked.'
                 : 'Listings are showing demo data because Firebase could not be read.'}
         </div>
+
+        <FeedbackBanner tone="error">{actionError}</FeedbackBanner>
+        <FeedbackBanner tone="success">{successMessage}</FeedbackBanner>
 
         <div className="toolbar">
           <input
@@ -102,9 +233,62 @@ export function ListingsPage({ data }) {
                     </td>
                     <td>{formatDateTime(listing.createdAt)}</td>
                     <td className="table-actions-cell">
-                      <Link to={`/listings/${listing.id}`} className="secondary-button">
-                        View details
-                      </Link>
+                      <ActionMenu
+                        items={[
+                          {
+                            key: 'details',
+                            label: 'Open details',
+                            to: `/listings/${listing.id}`,
+                          },
+                          listing.moderationStatus !== 'approved' || listing.status !== 'active'
+                            ? {
+                                key: 'approve',
+                                label: 'Approve listing',
+                                disabled: busyActionKey === `approve:${listing.id}`,
+                                onSelect() {
+                                  clearFeedback();
+                                  setPendingAction({ type: 'approve', listing });
+                                },
+                              }
+                            : null,
+                          listing.moderationStatus !== 'flagged'
+                            ? {
+                                key: 'flag',
+                                label: 'Flag listing',
+                                tone: 'danger',
+                                disabled: busyActionKey === `flag:${listing.id}`,
+                                onSelect() {
+                                  clearFeedback();
+                                  setPendingAction({ type: 'flag', listing });
+                                },
+                              }
+                            : null,
+                          {
+                            key: listing.status === 'sold' ? 'reopen' : 'close',
+                            label: listing.status === 'sold' ? 'Reopen listing' : 'Close listing',
+                            tone: listing.status === 'sold' ? 'default' : 'danger',
+                            disabled:
+                              busyActionKey === `${listing.status === 'sold' ? 'reopen' : 'close'}:${listing.id}`,
+                            onSelect() {
+                              clearFeedback();
+                              setPendingAction({
+                                type: listing.status === 'sold' ? 'reopen' : 'close',
+                                listing,
+                              });
+                            },
+                          },
+                          {
+                            key: 'delete',
+                            label: 'Delete listing',
+                            tone: 'danger',
+                            disabled: busyActionKey === `delete:${listing.id}`,
+                            onSelect() {
+                              clearFeedback();
+                              setPendingAction({ type: 'delete', listing });
+                            },
+                          },
+                        ]}
+                      />
                     </td>
                   </tr>
                 ))
@@ -119,6 +303,22 @@ export function ListingsPage({ data }) {
           </table>
         </div>
       </PanelCard>
+
+      <ConfirmDialog
+        open={Boolean(dialogConfig)}
+        title={dialogConfig?.title}
+        message={dialogConfig?.message}
+        confirmLabel={dialogConfig?.confirmLabel}
+        busyLabel={dialogConfig?.busyLabel}
+        busy={Boolean(pendingAction?.listing) && busyActionKey === `${pendingAction?.type}:${pendingAction?.listing?.id}`}
+        confirmButtonClassName={dialogConfig?.confirmButtonClassName}
+        onConfirm={handleConfirmedAction}
+        onClose={() => {
+          if (!busyActionKey) {
+            setPendingAction(null);
+          }
+        }}
+      />
     </div>
   );
 }

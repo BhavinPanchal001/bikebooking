@@ -10,6 +10,7 @@ import { InboxPage } from './pages/InboxPage';
 import { ListingsPage } from './pages/ListingsPage';
 import { LoginPage } from './pages/LoginPage';
 import { ProductDetailPage } from './pages/ProductDetailPage';
+import { PlansMasterPage } from './pages/PlansMasterPage';
 import { PopularBikeAgeMasterPage } from './pages/PopularBikeAgeMasterPage';
 import { UsersPage } from './pages/UsersPage';
 
@@ -18,6 +19,7 @@ const navItems = [
   { to: '/listings', label: 'Listings', eyebrow: 'Inventory' },
   { to: '/users', label: 'Users', eyebrow: 'People' },
   { to: '/inbox', label: 'Inbox', eyebrow: 'Safety & chats' },
+  { to: '/masters/plans', label: 'Plans Master', eyebrow: 'Master data' },
   { to: '/masters/brands', label: 'Brand Master', eyebrow: 'Master data' },
   {
     to: '/masters/popular-bike-age',
@@ -84,19 +86,38 @@ function AdminShell() {
             />
             <Route
               path="/listings"
-              element={<ListingsPage data={adminData} />}
+              element={
+                <ListingsPage
+                  data={adminData}
+                  adminEmail={adminAuth.user.email}
+                />
+              }
             />
             <Route
               path="/listings/:listingId"
-              element={<ProductDetailPage data={adminData} />}
+              element={
+                <ProductDetailPage
+                  data={adminData}
+                  adminEmail={adminAuth.user.email}
+                />
+              }
             />
             <Route
               path="/users"
-              element={<UsersPage data={adminData} />}
+              element={
+                <UsersPage
+                  data={adminData}
+                  adminEmail={adminAuth.user.email}
+                />
+              }
             />
             <Route
               path="/inbox"
               element={<InboxPage data={adminData} />}
+            />
+            <Route
+              path="/masters/plans"
+              element={<PlansMasterPage />}
             />
             <Route
               path="/masters/brands"

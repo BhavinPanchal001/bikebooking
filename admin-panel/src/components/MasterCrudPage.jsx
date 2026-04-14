@@ -219,6 +219,7 @@ export function MasterCrudPage({ config, model, service }) {
         title={config.deleteDialogTitle}
         message={`Delete "${deletingLabel}" from ${config.collectionName}? This action cannot be undone.`}
         confirmLabel="Delete record"
+        busyLabel="Deleting..."
         busy={deletingId === recordPendingDelete?.id}
         onConfirm={handleDelete}
         onClose={closeDeleteDialog}
@@ -226,4 +227,3 @@ export function MasterCrudPage({ config, model, service }) {
     </div>
   );
 }
-

@@ -1,5 +1,10 @@
+import { useState } from 'react';
 import { Link, Navigate, useParams } from 'react-router-dom';
+import { ActionMenu } from '../components/ActionMenu';
+import { ConfirmDialog } from '../components/ConfirmDialog';
+import { FeedbackBanner } from '../components/FeedbackBanner';
 import { PanelCard } from '../components/PanelCard';
+import { adminListingsService } from '../services/adminListingsService';
 import { formatCurrency, formatDateTime } from '../utils/format';
 
 function DetailItem({ label, value }) {
@@ -11,13 +16,133 @@ function DetailItem({ label, value }) {
   );
 }
 
-export function ProductDetailPage({ data }) {
+function getDialogConfig(action) {
+  if (!action?.listing) {
+    return null;
+  }
+
+  const listingTitle = action.listing.title || action.listing.id;
+
+  switch (action.type) {
+    case 'approve':
+      return {
+        title: 'Approve listing',
+        message: `Approve "${listingTitle}" and restore it to active marketplace status?`,
+        confirmLabel: 'Approve listing',
+        busyLabel: 'Approving...',
+        confirmButtonClassName: 'secondary-button',
+      };
+    case 'flag':
+      return {
+        title: 'Flag listing',
+        message: `Flag "${listingTitle}" for moderation follow-up?`,
+        confirmLabel: 'Flag listing',
+        busyLabel: 'Flagging...',
+        confirmButtonClassName: 'danger-button',
+      };
+    case 'close':
+      return {
+        title: 'Close listing',
+        message: `Close "${listingTitle}" and mark it sold in Firestore?`,
+        confirmLabel: 'Close listing',
+        busyLabel: 'Closing...',
+        confirmButtonClassName: 'danger-button',
+      };
+    case 'reopen':
+      return {
+        title: 'Reopen listing',
+        message: `Reopen "${listingTitle}" and return it to active status?`,
+        confirmLabel: 'Reopen listing',
+        busyLabel: 'Reopening...',
+        confirmButtonClassName: 'secondary-button',
+      };
+    case 'delete':
+      return {
+        title: 'Delete listing',
+        message: `Delete "${listingTitle}" and clean up saved references and related chats? This action cannot be undone.`,
+        confirmLabel: 'Delete listing',
+        busyLabel: 'Deleting...',
+        confirmButtonClassName: 'danger-button',
+      };
+    default:
+      return null;
+  }
+}
+
+export function ProductDetailPage({ data, adminEmail }) {
   const { listingId } = useParams();
+  const [pendingAction, setPendingAction] = useState(null);
+  const [busyActionKey, setBusyActionKey] = useState('');
+  const [actionError, setActionError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   const listing = data.listings.find((item) => item.id === listingId);
   const seller = listing ? data.users.find((user) => user.id === listing.sellerId) : null;
   const relatedReports = listing
     ? data.reports.filter((report) => report.sellerId === listing.sellerId)
     : [];
+  const dialogConfig = getDialogConfig(pendingAction);
+
+  function clearFeedback() {
+    setActionError('');
+    setSuccessMessage('');
+  }
+
+  async function handleConfirmedAction() {
+    if (!pendingAction?.listing) {
+      return;
+    }
+
+    const { listing: actionListing, type } = pendingAction;
+    const busyKey = `${type}:${actionListing.id}`;
+    setBusyActionKey(busyKey);
+    clearFeedback();
+
+    try {
+      if (type === 'approve') {
+        await adminListingsService.approveListing({
+          listingId: actionListing.id,
+          adminEmail,
+        });
+        setSuccessMessage(`${actionListing.title} was approved successfully.`);
+      }
+
+      if (type === 'flag') {
+        await adminListingsService.flagListing({
+          listingId: actionListing.id,
+          adminEmail,
+        });
+        setSuccessMessage(`${actionListing.title} was flagged successfully.`);
+      }
+
+      if (type === 'close') {
+        await adminListingsService.closeListing({
+          listingId: actionListing.id,
+          adminEmail,
+        });
+        setSuccessMessage(`${actionListing.title} was closed successfully.`);
+      }
+
+      if (type === 'reopen') {
+        await adminListingsService.reopenListing({
+          listingId: actionListing.id,
+          adminEmail,
+        });
+        setSuccessMessage(`${actionListing.title} was reopened successfully.`);
+      }
+
+      if (type === 'delete') {
+        await adminListingsService.deleteListing({ listingId: actionListing.id });
+        setSuccessMessage(`${actionListing.title} was deleted successfully.`);
+      }
+
+      setPendingAction(null);
+      data.refresh?.();
+    } catch (error) {
+      setActionError(error?.message || 'Unable to complete this listing action.');
+    } finally {
+      setBusyActionKey('');
+    }
+  }
 
   if (!listingId) {
     return <Navigate to="/listings" replace />;
@@ -77,11 +202,68 @@ export function ProductDetailPage({ data }) {
         title="Product details"
         subtitle="A full admin view of the selected marketplace listing."
         actions={
-          <Link to="/listings" className="secondary-button">
-            Back to listings
-          </Link>
+          <div className="row-actions">
+            <Link to="/listings" className="secondary-button">
+              Back to listings
+            </Link>
+            <ActionMenu
+              label="Listing actions"
+              items={[
+                listing.moderationStatus !== 'approved' || listing.status !== 'active'
+                  ? {
+                      key: 'approve',
+                      label: 'Approve listing',
+                      disabled: busyActionKey === `approve:${listing.id}`,
+                      onSelect() {
+                        clearFeedback();
+                        setPendingAction({ type: 'approve', listing });
+                      },
+                    }
+                  : null,
+                listing.moderationStatus !== 'flagged'
+                  ? {
+                      key: 'flag',
+                      label: 'Flag listing',
+                      tone: 'danger',
+                      disabled: busyActionKey === `flag:${listing.id}`,
+                      onSelect() {
+                        clearFeedback();
+                        setPendingAction({ type: 'flag', listing });
+                      },
+                    }
+                  : null,
+                {
+                  key: listing.status === 'sold' ? 'reopen' : 'close',
+                  label: listing.status === 'sold' ? 'Reopen listing' : 'Close listing',
+                  tone: listing.status === 'sold' ? 'default' : 'danger',
+                  disabled:
+                    busyActionKey === `${listing.status === 'sold' ? 'reopen' : 'close'}:${listing.id}`,
+                  onSelect() {
+                    clearFeedback();
+                    setPendingAction({
+                      type: listing.status === 'sold' ? 'reopen' : 'close',
+                      listing,
+                    });
+                  },
+                },
+                {
+                  key: 'delete',
+                  label: 'Delete listing',
+                  tone: 'danger',
+                  disabled: busyActionKey === `delete:${listing.id}`,
+                  onSelect() {
+                    clearFeedback();
+                    setPendingAction({ type: 'delete', listing });
+                  },
+                },
+              ]}
+            />
+          </div>
         }
       >
+        <FeedbackBanner tone="error">{actionError}</FeedbackBanner>
+        <FeedbackBanner tone="success">{successMessage}</FeedbackBanner>
+
         <div className="detail-hero">
           <div>
             <span className={`status-pill status-${listing.moderationStatus}`}>
@@ -111,6 +293,9 @@ export function ProductDetailPage({ data }) {
               <DetailItem label="Location" value={listing.location} />
               <DetailItem label="Views" value={listing.views?.toString()} />
               <DetailItem label="Inquiries" value={listing.inquiries?.toString()} />
+              <DetailItem label="Review status" value={listing.adminReviewStatus || listing.moderationStatus} />
+              <DetailItem label="Moderated by" value={listing.moderatedBy} />
+              <DetailItem label="Moderated at" value={formatDateTime(listing.moderatedAt)} />
               <DetailItem label="Last updated" value={formatDateTime(listing.updatedAt)} />
             </div>
           </PanelCard>
@@ -203,6 +388,22 @@ export function ProductDetailPage({ data }) {
           )}
         </PanelCard>
       </PanelCard>
+
+      <ConfirmDialog
+        open={Boolean(dialogConfig)}
+        title={dialogConfig?.title}
+        message={dialogConfig?.message}
+        confirmLabel={dialogConfig?.confirmLabel}
+        busyLabel={dialogConfig?.busyLabel}
+        busy={Boolean(pendingAction?.listing) && busyActionKey === `${pendingAction?.type}:${pendingAction?.listing?.id}`}
+        confirmButtonClassName={dialogConfig?.confirmButtonClassName}
+        onConfirm={handleConfirmedAction}
+        onClose={() => {
+          if (!busyActionKey) {
+            setPendingAction(null);
+          }
+        }}
+      />
     </div>
   );
 }

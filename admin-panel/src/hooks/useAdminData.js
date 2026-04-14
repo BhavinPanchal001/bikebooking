@@ -80,17 +80,27 @@ function sortByNewest(items, key) {
 }
 
 function deriveModerationStatus(listing, reports) {
+  const manualStatus = listing.adminReviewStatus?.toString().trim().toLowerCase() ?? '';
   const hasOpenReport = reports.some(
     (report) =>
       report.sellerId === listing.sellerId &&
       ['open', 'reviewing', 'pending'].includes(report.status),
   );
 
-  if (hasOpenReport) {
+  if (listing.status === 'sold' || manualStatus === 'closed') {
+    return 'closed';
+  }
+  if (manualStatus === 'flagged') {
     return 'flagged';
   }
-  if (listing.status === 'sold') {
-    return 'closed';
+  if (manualStatus === 'pending') {
+    return 'pending';
+  }
+  if (manualStatus === 'approved') {
+    return 'approved';
+  }
+  if (hasOpenReport) {
+    return 'flagged';
   }
 
   return 'approved';
@@ -314,6 +324,13 @@ async function fetchFirebaseAdminData() {
         phoneNumber: data.phoneNumber?.toString().trim() ?? '',
         photoUrl: data.photoUrl?.toString().trim() ?? '',
         joinedAt: toIsoString(data.createdAt) ?? toIsoString(data.updatedAt),
+        accountStatus:
+          data.adminBlocked === true || data.accountStatus?.toString().trim().toLowerCase() === 'blocked'
+            ? 'blocked'
+            : 'active',
+        adminBlocked: data.adminBlocked === true,
+        adminBlockedAt: toIsoString(data.adminBlockedAt) ?? null,
+        adminBlockedBy: data.adminBlockedBy?.toString().trim() ?? '',
         location:
           data.location && typeof data.location === 'object'
             ? { address: data.location.address?.toString().trim() ?? '' }
@@ -334,6 +351,9 @@ async function fetchFirebaseAdminData() {
         sellerName: data.sellerName?.toString().trim() ?? 'Seller',
         year: typeof data.year === 'number' ? data.year : Number(data.year ?? 0) || null,
         status: data.status?.toString().trim().toLowerCase() ?? 'active',
+        adminReviewStatus: data.adminReviewStatus?.toString().trim().toLowerCase() ?? '',
+        moderatedAt: toIsoString(data.moderatedAt) ?? null,
+        moderatedBy: data.moderatedBy?.toString().trim() ?? '',
         createdAt: toIsoString(data.createdAt) ?? toIsoString(data.updatedAt),
         updatedAt: toIsoString(data.updatedAt) ?? toIsoString(data.createdAt),
         views: Number(data.views ?? 0),
@@ -433,6 +453,7 @@ async function fetchFirebaseAdminData() {
 }
 
 export function useAdminData({ enabled = true } = {}) {
+  const [refreshKey, setRefreshKey] = useState(0);
   const [state, setState] = useState(() =>
     enabled && hasFirebaseConfig
       ? createEmptySnapshot({ source: 'firebase', loading: true })
@@ -497,7 +518,12 @@ export function useAdminData({ enabled = true } = {}) {
     return () => {
       isCancelled = true;
     };
-  }, [enabled]);
+  }, [enabled, refreshKey]);
 
-  return state;
+  return {
+    ...state,
+    refresh() {
+      setRefreshKey((current) => current + 1);
+    },
+  };
 }

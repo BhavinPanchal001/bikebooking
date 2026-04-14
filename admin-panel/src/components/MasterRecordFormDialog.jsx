@@ -97,6 +97,10 @@ export function MasterRecordFormDialog({
                   required={field.required}
                   disabled={isSaving}
                   autoComplete="off"
+                  inputMode={field.inputMode}
+                  min={field.min}
+                  max={field.max}
+                  step={field.step}
                 />
                 {field.helperText ? <small>{field.helperText}</small> : null}
                 {errors[field.name] ? (
@@ -129,4 +133,3 @@ export function MasterRecordFormDialog({
     </div>
   );
 }
-
