@@ -1,5 +1,6 @@
 import 'package:bikebooking/core/constants/global.dart';
 import 'package:bikebooking/core/widgets/custom_button.dart';
+import 'package:bikebooking/core/widgets/product_cached_image.dart';
 import 'package:bikebooking/features/auth/presentation/controllers/login_controller.dart';
 import 'package:bikebooking/features/chat/data/models/chat_model.dart';
 import 'package:bikebooking/features/chat/data/models/message_model.dart';
@@ -328,12 +329,17 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
               height: 40,
               color: const Color(0xFFF1F4F8),
               child: product.imageUrl.isNotEmpty
-                  ? Image.network(product.imageUrl,
+                  ? ProductCachedImage(
+                      imageUrl: product.imageUrl,
                       fit: BoxFit.cover,
-                      errorBuilder: (c, e, s) => const Icon(
-                          Icons.directions_bike,
-                          size: 20,
-                          color: Colors.grey))
+                      errorBuilder: (_) => const Icon(Icons.directions_bike,
+                          size: 20, color: Colors.grey),
+                      placeholderBuilder: (_) => const Icon(
+                        Icons.directions_bike,
+                        size: 20,
+                        color: Colors.grey,
+                      ),
+                    )
                   : const Icon(Icons.directions_bike,
                       size: 20, color: Colors.grey),
             ),

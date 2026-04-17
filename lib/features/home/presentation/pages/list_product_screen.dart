@@ -14,7 +14,7 @@ class ListProductScreen extends StatelessWidget {
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light.copyWith(
-        statusBarColor: Colors.transparent,
+        statusBarColor: Colors.black,
         statusBarBrightness: Brightness.dark,
         statusBarIconBrightness: Brightness.light,
       ),
@@ -33,18 +33,10 @@ class ListProductScreen extends StatelessWidget {
                 ),
               ),
               padding: EdgeInsets.fromLTRB(16, topPadding + 12, 16, 24),
-              child: Column(
+              child: const Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  IconButton(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.arrow_back,
-                        color: Colors.white, size: 28),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                  ),
-                  const SizedBox(height: 20),
-                  const Text(
+                  Text(
                     'List Product',
                     style: TextStyle(
                       color: Colors.white,
@@ -139,10 +131,10 @@ class ListProductScreen extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.black.withValues(alpha: 0.05)),
+          border: Border.all(color: Colors.black.withOpacity(0.05)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.02),
+              color: Colors.black.withOpacity(0.02),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),

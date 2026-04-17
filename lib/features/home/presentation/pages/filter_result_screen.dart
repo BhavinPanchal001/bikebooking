@@ -1,4 +1,5 @@
 import 'package:bikebooking/core/constants/global.dart';
+import 'package:bikebooking/core/widgets/product_cached_image.dart';
 import 'package:bikebooking/features/home/data/models/product_filter_state.dart';
 import 'package:bikebooking/features/home/data/models/product_model.dart';
 import 'package:bikebooking/features/home/presentation/controllers/favorites_controller.dart';
@@ -123,21 +124,6 @@ class _FilterResultScreenState extends State<FilterResultScreen>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        children: [
-                          IconButton(
-                            onPressed: () => Navigator.pop(context),
-                            icon: const Icon(
-                              Icons.arrow_back,
-                              color: Colors.white,
-                              size: 28,
-                            ),
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
                       Text(
                         controller.screenTitle,
                         style: const TextStyle(
@@ -362,11 +348,11 @@ class _FilterResultScreenState extends State<FilterResultScreen>
                   height: 108,
                   color: const Color(0xFFF1F4F8),
                   child: primaryImage != null
-                      ? Image.network(
-                          primaryImage,
+                      ? ProductCachedImage(
+                          imageUrl: primaryImage,
                           fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) =>
-                              _buildImageFallback(),
+                          errorBuilder: (_) => _buildImageFallback(),
+                          placeholderBuilder: (_) => _buildImageFallback(),
                         )
                       : _buildImageFallback(),
                 ),

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:bikebooking/core/constants/global.dart';
+import 'package:bikebooking/core/widgets/product_cached_image.dart';
 import 'package:bikebooking/features/auth/presentation/controllers/login_controller.dart';
 import 'package:bikebooking/features/home/data/models/product_model.dart';
 import 'package:bikebooking/features/home/presentation/controllers/favorites_controller.dart';
@@ -404,11 +405,11 @@ class _SearchScreenState extends State<SearchScreen> {
                   height: 108,
                   color: const Color(0xFFF1F4F8),
                   child: primaryImage != null
-                      ? Image.network(
-                          primaryImage,
+                      ? ProductCachedImage(
+                          imageUrl: primaryImage,
                           fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) =>
-                              _buildImageFallback(),
+                          errorBuilder: (_) => _buildImageFallback(),
+                          placeholderBuilder: (_) => _buildImageFallback(),
                         )
                       : _buildImageFallback(),
                 ),

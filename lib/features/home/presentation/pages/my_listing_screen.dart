@@ -1,5 +1,6 @@
 import 'package:bikebooking/core/constants/global.dart';
 import 'package:bikebooking/core/widgets/custom_button.dart';
+import 'package:bikebooking/core/widgets/product_cached_image.dart';
 import 'package:bikebooking/features/home/data/models/boost_plan.dart';
 import 'package:bikebooking/features/home/data/models/product_model.dart';
 import 'package:bikebooking/features/home/data/models/product_status.dart';
@@ -8,6 +9,7 @@ import 'package:bikebooking/features/home/presentation/controllers/boost_control
 import 'package:bikebooking/features/home/presentation/controllers/home_products_controller.dart';
 import 'package:bikebooking/features/home/presentation/controllers/list_product_controller.dart';
 import 'package:bikebooking/features/home/presentation/controllers/my_listing_controller.dart';
+import 'package:bikebooking/features/home/presentation/controllers/favorites_controller.dart';
 import 'package:bikebooking/features/home/presentation/widgets/app_bottom_nav_bar.dart';
 import 'package:bikebooking/features/home/presentation/widgets/product_status_badge.dart';
 import 'package:flutter/material.dart';
@@ -23,8 +25,11 @@ class MyListingScreen extends StatefulWidget {
 class _MyListingScreenState extends State<MyListingScreen>
     with SingleTickerProviderStateMixin {
   late final MyListingController _listingController;
+  late final FavoritesController _favoritesController;
   late final AnimationController _shimmerController;
+  late final TabController _tabController;
   late final bool _ownsListingController;
+  late final bool _ownsFavoritesController;
 
   @override
   void initState() {
@@ -37,6 +42,16 @@ class _MyListingScreenState extends State<MyListingScreen>
       _listingController = Get.put(MyListingController());
       _ownsListingController = true;
     }
+
+    if (Get.isRegistered<FavoritesController>()) {
+      _favoritesController = Get.find<FavoritesController>();
+      _ownsFavoritesController = false;
+    } else {
+      _favoritesController = Get.put(FavoritesController());
+      _ownsFavoritesController = true;
+    }
+
+    _tabController = TabController(length: 2, vsync: this);
 
     _shimmerController = AnimationController(
       vsync: this,
@@ -60,8 +75,12 @@ class _MyListingScreenState extends State<MyListingScreen>
   @override
   void dispose() {
     _shimmerController.dispose();
+    _tabController.dispose();
     if (_ownsListingController && Get.isRegistered<MyListingController>()) {
       Get.delete<MyListingController>();
+    }
+    if (_ownsFavoritesController && Get.isRegistered<FavoritesController>()) {
+      Get.delete<FavoritesController>();
     }
     super.dispose();
   }
@@ -90,20 +109,12 @@ class _MyListingScreenState extends State<MyListingScreen>
                     bottomRight: Radius.circular(15),
                   ),
                 ),
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
-                child: Column(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+                child: const Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    IconButton(
-                      onPressed: _navigateBack,
-                      icon: const Icon(Icons.arrow_back,
-                          color: Colors.white, size: 28),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                    ),
-                    const SizedBox(height: 20),
-                    const Text(
-                      'My Listing',
+                    Text(
+                      'My Ads',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 20,
@@ -113,57 +124,40 @@ class _MyListingScreenState extends State<MyListingScreen>
                   ],
                 ),
               ),
-              Expanded(
-                child: GetBuilder<MyListingController>(
-                  builder: (controller) {
-                    if (controller.isLoading) {
-                      return _buildShimmerList();
-                    }
-
-                    if (controller.errorMessage != null) {
-                      return _buildStateView(
-                        icon: Icons.cloud_off_outlined,
-                        title: 'Unable to load posts',
-                        message: controller.errorMessage!,
-                        actionLabel: 'Try again',
-                        onAction: controller.loadProducts,
-                      );
-                    }
-
-                    if (controller.products.isEmpty) {
-                      return _buildStateView(
-                        icon: Icons.inventory_2_outlined,
-                        title: 'No posts yet',
-                        message:
-                            'Your products will appear here once you publish your first listing.',
-                        actionLabel: 'Post a product',
-                        onAction: () => Navigator.pushNamed(
-                          context,
-                          '/list_product',
-                        ),
-                      );
-                    }
-
-                    return RefreshIndicator(
-                      color: const Color(0xFF233A66),
-                      onRefresh: controller.refreshProducts,
-                      child: ListView.builder(
-                        physics: const AlwaysScrollableScrollPhysics(
-                          parent: BouncingScrollPhysics(),
-                        ),
-                        padding: const EdgeInsets.all(16),
-                        itemCount: controller.products.length,
-                        itemBuilder: (context, index) {
-                          final product = controller.products[index];
-                          return _buildManagedListingCard(
-                            context,
-                            controller,
-                            product,
-                          );
-                        },
+              Container(
+                color: Colors.white,
+                child: TabBar(
+                  controller: _tabController,
+                  indicatorColor: const Color(0xFF233A66),
+                  indicatorWeight: 3,
+                  labelColor: const Color(0xFF233A66),
+                  unselectedLabelColor: Colors.grey.shade600,
+                  labelStyle: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  tabs: [
+                    const Tab(text: 'ADS'),
+                    Tab(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: const [
+                          Icon(Icons.favorite_outline, size: 20),
+                          SizedBox(width: 8),
+                          Text('FAVOURITES'),
+                        ],
                       ),
-                    );
-                  },
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: TabBarView(
+                  controller: _tabController,
+                  children: [
+                    _buildAdsTabContent(),
+                    _buildFavoritesTabContent(),
+                  ],
                 ),
               ),
             ],
@@ -198,7 +192,8 @@ class _MyListingScreenState extends State<MyListingScreen>
     final isDeleting = controller.isDeleting(productId);
     final isUpdatingStatus = controller.isUpdatingStatus(productId);
     final isBusy = isDeleting || isUpdatingStatus;
-    final canEdit = productId != null && product.isActive && !isBusy;
+    final canMarkSold = productId != null && product.isActive && !isBusy;
+    final canBoost = product.isActive && productId != null && !isBusy;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -224,11 +219,11 @@ class _MyListingScreenState extends State<MyListingScreen>
                       height: 90,
                       color: Colors.white,
                       child: primaryImage != null
-                          ? Image.network(
-                              primaryImage,
+                          ? ProductCachedImage(
+                              imageUrl: primaryImage,
                               fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) =>
-                                  _buildImageFallback(),
+                              errorBuilder: (_) => _buildImageFallback(),
+                              placeholderBuilder: (_) => _buildImageFallback(),
                             )
                           : _buildImageFallback(),
                     ),
@@ -272,7 +267,7 @@ class _MyListingScreenState extends State<MyListingScreen>
                               )
                             else
                               PopupMenuButton<_ListingStatusMenuAction>(
-                                tooltip: 'Manage status',
+                                tooltip: 'More actions',
                                 onSelected: (action) => _handleStatusAction(
                                   context,
                                   controller,
@@ -341,44 +336,16 @@ class _MyListingScreenState extends State<MyListingScreen>
             child: Row(
               children: [
                 Expanded(
-                  child: OutlinedButton(
-                    onPressed: productId == null || isBusy
-                        ? null
-                        : () => _confirmDeleteProduct(
-                              context,
-                              controller,
-                              product,
-                            ),
-                    style: OutlinedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      side: BorderSide(color: Colors.black.withOpacity(0.05)),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(15),
-                      ),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                    ),
-                    child: isDeleting
-                        ? const SizedBox(
-                            height: 18,
-                            width: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Text(
-                            'Remove',
-                            style: TextStyle(
-                              color: Color(0xFF5E6E8C),
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: canEdit
+                  child: canMarkSold
                       ? CustomGradientButton(
                           height: 42,
-                          text: 'Edit',
-                          onPressed: () => _openEditProduct(context, product),
+                          text: 'Mark as Sold',
+                          onPressed: () => _handleStatusAction(
+                            context,
+                            controller,
+                            product,
+                            _ListingStatusMenuAction.markSold,
+                          ),
                         )
                       : OutlinedButton(
                           onPressed: null,
@@ -394,16 +361,14 @@ class _MyListingScreenState extends State<MyListingScreen>
                             padding: const EdgeInsets.symmetric(vertical: 12),
                           ),
                           child: Text(
-                            product.isActive ? 'Edit' : 'Reactivate to edit',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                            ),
+                            product.isSold ? 'Sold' : 'Mark as Sold',
+                            style: const TextStyle(fontWeight: FontWeight.bold),
                           ),
                         ),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: product.isActive && productId != null && !isBusy
+                  child: canBoost
                       ? product.isCurrentlyBoosted
                           ? OutlinedButton(
                               onPressed: () =>
@@ -428,7 +393,7 @@ class _MyListingScreenState extends State<MyListingScreen>
                                       size: 16, color: Color(0xFFFF8C00)),
                                   SizedBox(width: 2),
                                   Text(
-                                    'Boosted',
+                                    'Boost Ad',
                                     style: TextStyle(
                                       color: Color(0xFFFF8C00),
                                       fontWeight: FontWeight.bold,
@@ -460,7 +425,7 @@ class _MyListingScreenState extends State<MyListingScreen>
                                       size: 16, color: Color(0xFF2E4475)),
                                   SizedBox(width: 2),
                                   Text(
-                                    'Boost',
+                                    'Boost Ad',
                                     style: TextStyle(
                                       color: Color(0xFF2E4475),
                                       fontWeight: FontWeight.bold,
@@ -484,10 +449,251 @@ class _MyListingScreenState extends State<MyListingScreen>
                             padding: const EdgeInsets.symmetric(vertical: 12),
                           ),
                           child: const Text(
-                            'Boost',
+                            'Boost Ad',
                             style: TextStyle(fontWeight: FontWeight.bold),
                           ),
                         ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAdsTabContent() {
+    return GetBuilder<MyListingController>(
+      builder: (controller) {
+        if (controller.isLoading) {
+          return _buildShimmerList();
+        }
+
+        if (controller.errorMessage != null) {
+          return _buildStateView(
+            icon: Icons.cloud_off_outlined,
+            title: 'Unable to load posts',
+            message: controller.errorMessage!,
+            actionLabel: 'Try again',
+            onAction: controller.loadProducts,
+          );
+        }
+
+        if (controller.products.isEmpty) {
+          return _buildStateView(
+            icon: Icons.inventory_2_outlined,
+            title: 'No posts yet',
+            message:
+                'Your products will appear here once you publish your first listing.',
+            actionLabel: 'Post a product',
+            onAction: () => Navigator.pushNamed(
+              context,
+              '/list_product',
+            ),
+          );
+        }
+
+        return RefreshIndicator(
+          color: const Color(0xFF233A66),
+          onRefresh: controller.refreshProducts,
+          child: ListView.builder(
+            physics: const AlwaysScrollableScrollPhysics(
+              parent: BouncingScrollPhysics(),
+            ),
+            padding: const EdgeInsets.all(16),
+            itemCount: controller.products.length,
+            itemBuilder: (context, index) {
+              final product = controller.products[index];
+              return _buildManagedListingCard(
+                context,
+                controller,
+                product,
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildFavoritesTabContent() {
+    return GetBuilder<FavoritesController>(
+      builder: (controller) {
+        if (!controller.hasFavorites) {
+          return _buildEmptyFavoritesState();
+        }
+
+        return RefreshIndicator(
+          color: const Color(0xFF233A66),
+          onRefresh: () async => controller.update(),
+          child: ListView.builder(
+            physics: const AlwaysScrollableScrollPhysics(
+              parent: BouncingScrollPhysics(),
+            ),
+            padding: const EdgeInsets.all(16),
+            itemCount: controller.favorites.length,
+            itemBuilder: (context, index) {
+              final product = controller.favorites[index];
+              return _buildFavoriteCard(context, controller, product);
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildEmptyFavoritesState() {
+    return _buildStateView(
+      icon: Icons.favorite_border,
+      title: 'No favorites yet',
+      message:
+          'Tap the heart icon on any product card to save it here for later.',
+      actionLabel: 'Browse products',
+      onAction: () =>
+          Navigator.pushNamed(context, '/filter_result', arguments: 'Bikes'),
+    );
+  }
+
+  Widget _buildFavoriteCard(
+    BuildContext context,
+    FavoritesController controller,
+    ProductModel product,
+  ) {
+    final primaryImage = _resolveDisplayableImage(product.imageUrls);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF1F4F8).withOpacity(0.5),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.black.withOpacity(0.05)),
+      ),
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    width: 100,
+                    height: 80,
+                    color: Colors.white,
+                    child: primaryImage != null
+                        ? ProductCachedImage(
+                            imageUrl: primaryImage,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_) => _buildImageFallback(),
+                            placeholderBuilder: (_) => _buildImageFallback(),
+                          )
+                        : _buildImageFallback(),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _buildTitle(product),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: Color(0xFF5E6E8C),
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 6),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: ProductStatusBadge(
+                          status: product.status,
+                          compact: true,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        _buildPrice(product),
+                        style: const TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF151314),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.location_on_outlined,
+                            size: 12,
+                            color: Color(0xFF37474F),
+                          ),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              _buildLocation(product),
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: Color(0xFF37474F),
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(
+                  Icons.favorite,
+                  color: Colors.red,
+                  size: 24,
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+            child: Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => controller.removeFavorite(product),
+                    style: OutlinedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      side: BorderSide(color: Colors.black.withOpacity(0.05)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                    child: const Text(
+                      'Remove',
+                      style: TextStyle(
+                        color: Color(0xFF5E6E8C),
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: CustomGradientButton(
+                    height: 42,
+                    text: 'View Details',
+                    onPressed: () {
+                      Navigator.pushNamed(
+                        context,
+                        '/bike_detail',
+                        arguments: <String, dynamic>{
+                          'product': product,
+                        },
+                      );
+                    },
+                  ),
                 ),
               ],
             ),
@@ -525,13 +731,25 @@ class _MyListingScreenState extends State<MyListingScreen>
     if (product.isActive) {
       return const [
         PopupMenuItem<_ListingStatusMenuAction>(
+          value: _ListingStatusMenuAction.edit,
+          child: Text('Edit'),
+        ),
+        PopupMenuItem<_ListingStatusMenuAction>(
+          value: _ListingStatusMenuAction.remove,
+          child: Text('Remove'),
+        ),
+        PopupMenuItem<_ListingStatusMenuAction>(
           value: _ListingStatusMenuAction.markSold,
-          child: Text('Mark sold'),
+          child: Text('Mark as sold'),
         ),
       ];
     }
 
     return const [
+      PopupMenuItem<_ListingStatusMenuAction>(
+        value: _ListingStatusMenuAction.remove,
+        child: Text('Remove'),
+      ),
       PopupMenuItem<_ListingStatusMenuAction>(
         value: _ListingStatusMenuAction.reactivate,
         child: Text('Reactivate'),
@@ -547,6 +765,16 @@ class _MyListingScreenState extends State<MyListingScreen>
   ) async {
     final productId = product.id;
     if (productId == null) {
+      return;
+    }
+
+    if (action == _ListingStatusMenuAction.edit) {
+      _openEditProduct(context, product);
+      return;
+    }
+
+    if (action == _ListingStatusMenuAction.remove) {
+      await _confirmDeleteProduct(context, controller, product);
       return;
     }
 
@@ -567,6 +795,8 @@ class _MyListingScreenState extends State<MyListingScreen>
           successTitle: 'Listing reactivated',
           successMessage: 'Your listing is active again.'
         ),
+      _ListingStatusMenuAction.edit => throw UnimplementedError(),
+      _ListingStatusMenuAction.remove => throw UnimplementedError(),
     };
 
     final confirmed = await showDialog<bool>(
@@ -982,8 +1212,9 @@ class _MyListingScreenState extends State<MyListingScreen>
     final expiresAt = product.boostExpiresAt;
     final daysLeft =
         expiresAt != null ? expiresAt.difference(DateTime.now()).inDays : 0;
-    final hoursLeft =
-        expiresAt != null ? expiresAt.difference(DateTime.now()).inHours % 24 : 0;
+    final hoursLeft = expiresAt != null
+        ? expiresAt.difference(DateTime.now()).inHours % 24
+        : 0;
 
     String remainingText;
     if (daysLeft > 0) {
@@ -1199,14 +1430,23 @@ class _MyListingScreenState extends State<MyListingScreen>
 
   String _formatDetailDate(DateTime date) {
     const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
     ];
     return '${date.day} ${months[date.month - 1]} ${date.year}';
   }
 
   void _showBoostBottomSheet(BuildContext context, ProductModel product) {
-
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -1497,9 +1737,11 @@ class _MyListingScreenState extends State<MyListingScreen>
                             }
                           };
                           // Pass user contact info for Razorpay prefill
-                          final userProfile = Get.isRegistered<LoginController>()
-                              ? Get.find<LoginController>().currentUserProfile
-                              : null;
+                          final userProfile =
+                              Get.isRegistered<LoginController>()
+                                  ? Get.find<LoginController>()
+                                      .currentUserProfile
+                                  : null;
                           ctrl.startBoostPayment(
                             userPhone: userProfile?.phoneNumber,
                             userEmail: userProfile?.email,
@@ -1524,10 +1766,15 @@ class _MyListingScreenState extends State<MyListingScreen>
         );
 
     if (imageUrl.isNotEmpty) {
-      return Image.network(
-        imageUrl,
+      return ProductCachedImage(
+        imageUrl: imageUrl,
         fit: BoxFit.contain,
-        errorBuilder: (_, __, ___) => Icon(
+        errorBuilder: (_) => Icon(
+          Icons.image_outlined,
+          size: 40,
+          color: Colors.grey.shade400,
+        ),
+        placeholderBuilder: (_) => Icon(
           Icons.image_outlined,
           size: 40,
           color: Colors.grey.shade400,
@@ -1738,6 +1985,8 @@ class _MyListingScreenState extends State<MyListingScreen>
 }
 
 enum _ListingStatusMenuAction {
+  edit,
+  remove,
   markSold,
   reactivate,
 }

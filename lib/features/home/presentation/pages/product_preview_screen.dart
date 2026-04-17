@@ -1,6 +1,7 @@
 import 'package:bikebooking/core/constants/product_categories.dart';
 import 'package:bikebooking/core/widgets/custom_button.dart';
 import 'package:bikebooking/core/constants/global.dart';
+import 'package:bikebooking/core/widgets/product_cached_image.dart';
 import 'package:bikebooking/features/home/presentation/controllers/list_product_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -83,17 +84,20 @@ class ProductPreviewScreen extends StatelessWidget {
                                         controller.selectProductImage,
                                     itemBuilder: (context, index) {
                                       if (showRemoteImages) {
-                                        return Image.network(
-                                          previewImageUrls[index],
+                                        return ProductCachedImage(
+                                          imageUrl: previewImageUrls[index],
                                           fit: BoxFit.contain,
-                                          errorBuilder:
-                                              (context, error, stackTrace) {
-                                            return Icon(
-                                              Icons.image_outlined,
-                                              size: 100,
-                                              color: Colors.grey.shade300,
-                                            );
-                                          },
+                                          errorBuilder: (_) => Icon(
+                                            Icons.image_outlined,
+                                            size: 100,
+                                            color: Colors.grey.shade300,
+                                          ),
+                                          placeholderBuilder: (_) =>
+                                              const Center(
+                                            child: CircularProgressIndicator(
+                                              color: Color(0xFF233A66),
+                                            ),
+                                          ),
                                         );
                                       }
 

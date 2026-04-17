@@ -1,4 +1,5 @@
 import 'package:bikebooking/core/constants/global.dart';
+import 'package:bikebooking/core/widgets/product_cached_image.dart';
 import 'package:bikebooking/features/auth/presentation/controllers/login_controller.dart';
 import 'package:bikebooking/features/home/data/models/boost_plan.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -15,7 +16,6 @@ class SubscriptionStatusScreen extends StatefulWidget {
 }
 
 class _SubscriptionStatusScreenState extends State<SubscriptionStatusScreen> {
-
   List<Map<String, dynamic>> _boostedProducts = [];
   bool _isLoadingBoosts = true;
 
@@ -232,8 +232,7 @@ class _SubscriptionStatusScreenState extends State<SubscriptionStatusScreen> {
                             text: 'Save favorite bikes and sellers',
                           ),
                           _SubscriptionBullet(
-                            text:
-                                'Receive listing and message notifications',
+                            text: 'Receive listing and message notifications',
                           ),
                         ],
                       ),
@@ -271,8 +270,8 @@ class _SubscriptionStatusScreenState extends State<SubscriptionStatusScreen> {
                             SizedBox(
                               width: double.infinity,
                               child: ElevatedButton(
-                                onPressed: () => Navigator.pushNamed(
-                                    context, '/my_listing'),
+                                onPressed: () =>
+                                    Navigator.pushNamed(context, '/my_listing'),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: AppColors.primary,
                                   foregroundColor: Colors.white,
@@ -413,9 +412,7 @@ class _SubscriptionStatusScreenState extends State<SubscriptionStatusScreen> {
     final boostPlanId = product['boostPlanId'] ?? '';
     final expiresAt = (product['boostExpiresAt'] as Timestamp?)?.toDate();
     final imageUrls = List<String>.from(product['imageUrls'] ?? []);
-    final imageUrl = imageUrls
-        .map((url) => url.trim())
-        .firstWhere(
+    final imageUrl = imageUrls.map((url) => url.trim()).firstWhere(
           (url) => url.startsWith('http://') || url.startsWith('https://'),
           orElse: () => '',
         );
@@ -435,7 +432,8 @@ class _SubscriptionStatusScreenState extends State<SubscriptionStatusScreen> {
         daysLeft > 0 ? '$daysLeft days left' : '${hoursLeft}h left';
 
     return Container(
-      margin: EdgeInsets.only(bottom: index < _boostedProducts.length - 1 ? 10 : 0),
+      margin:
+          EdgeInsets.only(bottom: index < _boostedProducts.length - 1 ? 10 : 0),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: const Color(0xFFFFFBF5),
@@ -454,10 +452,12 @@ class _SubscriptionStatusScreenState extends State<SubscriptionStatusScreen> {
               width: 52,
               color: const Color(0xFFF5F5F5),
               child: imageUrl.isNotEmpty
-                  ? Image.network(
-                      imageUrl,
+                  ? ProductCachedImage(
+                      imageUrl: imageUrl,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) =>
+                      errorBuilder: (_) =>
+                          const Icon(Icons.pedal_bike, color: Colors.grey),
+                      placeholderBuilder: (_) =>
                           const Icon(Icons.pedal_bike, color: Colors.grey),
                     )
                   : const Icon(Icons.pedal_bike, color: Colors.grey),
@@ -499,8 +499,7 @@ class _SubscriptionStatusScreenState extends State<SubscriptionStatusScreen> {
                       ),
                     ),
                     const SizedBox(width: 8),
-                    Icon(Icons.schedule,
-                        size: 12, color: Colors.grey.shade500),
+                    Icon(Icons.schedule, size: 12, color: Colors.grey.shade500),
                     const SizedBox(width: 3),
                     Text(
                       remainingText,
@@ -614,8 +613,18 @@ class _SubscriptionStatusScreenState extends State<SubscriptionStatusScreen> {
     }
 
     const monthNames = <String>[
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
     ];
     return '${monthNames[value.month - 1]} ${value.year}';
   }

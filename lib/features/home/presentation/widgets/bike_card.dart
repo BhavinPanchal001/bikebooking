@@ -1,3 +1,4 @@
+import 'package:bikebooking/core/widgets/product_cached_image.dart';
 import 'package:bikebooking/features/home/data/models/product_model.dart';
 import 'package:bikebooking/features/home/presentation/controllers/favorites_controller.dart';
 import 'package:bikebooking/features/home/presentation/widgets/product_status_badge.dart';
@@ -218,12 +219,13 @@ class BikeCard extends StatelessWidget {
         .firstWhere((url) => url.isNotEmpty, orElse: () => '');
 
     if (imageUrl.isNotEmpty) {
-      return Image.network(
-        imageUrl,
+      return ProductCachedImage(
+        imageUrl: imageUrl,
         height: 85,
         width: double.infinity,
         fit: BoxFit.contain,
-        errorBuilder: (c, e, s) => _buildImageFallback(),
+        errorBuilder: (_) => _buildImageFallback(),
+        placeholderBuilder: (_) => _buildImageFallback(),
       );
     }
 

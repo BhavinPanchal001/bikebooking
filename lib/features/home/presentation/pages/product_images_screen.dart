@@ -1,5 +1,6 @@
 import 'package:bikebooking/core/constants/global.dart';
 import 'package:bikebooking/core/widgets/custom_button.dart';
+import 'package:bikebooking/core/widgets/product_cached_image.dart';
 import 'package:bikebooking/features/home/presentation/controllers/list_product_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -192,11 +193,12 @@ class ProductImagesScreen extends StatelessWidget {
     if (previewImageUrl != null) {
       return ClipRRect(
         borderRadius: BorderRadius.circular(20),
-        child: Image.network(
-          previewImageUrl,
+        child: ProductCachedImage(
+          imageUrl: previewImageUrl,
           width: double.infinity,
           fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) => _buildEmptyPreview(),
+          errorBuilder: (_) => _buildEmptyPreview(),
+          placeholderBuilder: (_) => _buildEmptyPreview(),
         ),
       );
     }
@@ -233,7 +235,8 @@ class ProductImagesScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildThumbnail(BuildContext context, ListProductController controller, int index) {
+  Widget _buildThumbnail(
+      BuildContext context, ListProductController controller, int index) {
     final existingImageCount = controller.existingImageUrls.length;
 
     Widget thumbnailImage;
@@ -241,17 +244,25 @@ class ProductImagesScreen extends StatelessWidget {
       final imageUrl = controller.existingImageUrls[index];
       thumbnailImage = ClipRRect(
         borderRadius: BorderRadius.circular(11),
-        child: Image.network(
-          imageUrl,
+        child: ProductCachedImage(
+          imageUrl: imageUrl,
           fit: BoxFit.cover,
           width: 60,
           height: 60,
-          errorBuilder: (context, error, stackTrace) => Container(
+          errorBuilder: (_) => Container(
             color: const Color(0xFFF1F4F8),
             alignment: Alignment.center,
             child: const Icon(
               Icons.image_not_supported_outlined,
               color: Color(0xFF94A3B8),
+            ),
+          ),
+          placeholderBuilder: (_) => Container(
+            color: const Color(0xFFF1F4F8),
+            alignment: Alignment.center,
+            child: const CircularProgressIndicator(
+              strokeWidth: 2,
+              color: Color(0xFF233A66),
             ),
           ),
         ),
@@ -298,8 +309,7 @@ class ProductImagesScreen extends StatelessWidget {
               top: -6,
               right: -6,
               child: GestureDetector(
-                onTap: () =>
-                    _confirmRemoveImage(context, controller, index),
+                onTap: () => _confirmRemoveImage(context, controller, index),
                 child: Container(
                   width: 20,
                   height: 20,
@@ -355,8 +365,7 @@ class ProductImagesScreen extends StatelessWidget {
       builder: (dialogContext) {
         return AlertDialog(
           title: const Text('Remove image'),
-          content:
-              const Text('Are you sure you want to remove this image?'),
+          content: const Text('Are you sure you want to remove this image?'),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext, false),

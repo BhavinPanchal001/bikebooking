@@ -1,5 +1,6 @@
 import 'package:bikebooking/core/constants/product_categories.dart';
 import 'package:bikebooking/core/widgets/custom_button.dart';
+import 'package:bikebooking/core/widgets/product_cached_image.dart';
 import 'package:bikebooking/features/auth/data/models/app_user_model.dart';
 import 'package:bikebooking/features/auth/data/services/user_firestore_service.dart';
 import 'package:bikebooking/features/auth/presentation/controllers/login_controller.dart';
@@ -313,8 +314,7 @@ class _BikeDetailScreenState extends State<BikeDetailScreen> {
                             child: const Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(Icons.bolt,
-                                    size: 14, color: Colors.white),
+                                Icon(Icons.bolt, size: 14, color: Colors.white),
                                 SizedBox(width: 2),
                                 Text(
                                   'Boosted',
@@ -409,13 +409,18 @@ class _BikeDetailScreenState extends State<BikeDetailScreen> {
       );
     }
 
-    return Image.network(
-      _imageUrls[_selectedIndex],
+    return ProductCachedImage(
+      imageUrl: _imageUrls[_selectedIndex],
       fit: BoxFit.contain,
-      errorBuilder: (context, error, stackTrace) => const Icon(
+      errorBuilder: (_) => const Icon(
         Icons.image_outlined,
         size: 100,
         color: Colors.grey,
+      ),
+      placeholderBuilder: (_) => const Center(
+        child: CircularProgressIndicator(
+          color: Color(0xFF2E3E5C),
+        ),
       ),
     );
   }
@@ -561,10 +566,14 @@ class _BikeDetailScreenState extends State<BikeDetailScreen> {
           borderRadius: BorderRadius.circular(8),
           child: Padding(
             padding: const EdgeInsets.all(2),
-            child: Image.network(
-              imageUrl,
+            child: ProductCachedImage(
+              imageUrl: imageUrl,
               fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) => const Icon(
+              errorBuilder: (_) => const Icon(
+                Icons.image_outlined,
+                color: Colors.grey,
+              ),
+              placeholderBuilder: (_) => const Icon(
                 Icons.image_outlined,
                 color: Colors.grey,
               ),

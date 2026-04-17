@@ -1,5 +1,6 @@
 import 'package:bikebooking/core/constants/global.dart';
 import 'package:bikebooking/core/widgets/app_snackbar.dart';
+import 'package:bikebooking/core/widgets/product_cached_image.dart';
 import 'package:bikebooking/features/home/data/models/product_model.dart';
 import 'package:bikebooking/features/home/data/models/seller_review_model.dart';
 import 'package:bikebooking/features/home/presentation/controllers/seller_profile_controller.dart';
@@ -639,11 +640,11 @@ class _SellerProfileScreenState extends State<SellerProfileScreen> {
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(12),
                 child: primaryImage.isNotEmpty
-                    ? Image.network(
-                        primaryImage,
+                    ? ProductCachedImage(
+                        imageUrl: primaryImage,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) =>
-                            _buildListingImageFallback(),
+                        errorBuilder: (_) => _buildListingImageFallback(),
+                        placeholderBuilder: (_) => _buildListingImageFallback(),
                       )
                     : _buildListingImageFallback(),
               ),

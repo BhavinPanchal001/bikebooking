@@ -1,5 +1,6 @@
 import 'package:bikebooking/core/constants/global.dart';
 import 'package:bikebooking/core/widgets/custom_button.dart';
+import 'package:bikebooking/core/widgets/product_cached_image.dart';
 import 'package:bikebooking/features/home/data/models/product_model.dart';
 import 'package:bikebooking/features/home/presentation/controllers/favorites_controller.dart';
 import 'package:bikebooking/features/home/presentation/widgets/product_status_badge.dart';
@@ -167,11 +168,11 @@ class FavoritesScreen extends StatelessWidget {
                     height: 80,
                     color: Colors.white,
                     child: primaryImage != null
-                        ? Image.network(
-                            primaryImage,
+                        ? ProductCachedImage(
+                            imageUrl: primaryImage,
                             fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) =>
-                                _buildImageFallback(),
+                            errorBuilder: (_) => _buildImageFallback(),
+                            placeholderBuilder: (_) => _buildImageFallback(),
                           )
                         : _buildImageFallback(),
                   ),
