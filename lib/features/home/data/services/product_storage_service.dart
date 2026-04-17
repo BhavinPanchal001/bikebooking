@@ -57,26 +57,24 @@ class ProductStorageService {
         ),
       );
 
-      try {
-        downloadUrls.add(await taskSnapshot.ref.getDownloadURL());
-      } on FirebaseException catch (error) {
-        if (_canFallbackToStorageUri(error.code)) {
-          downloadUrls.add(
-            'gs://${taskSnapshot.ref.bucket}/${taskSnapshot.ref.fullPath}',
-          );
-          continue;
-        }
-        rethrow;
-      }
+      downloadUrls.add(await taskSnapshot.ref.getDownloadURL());
     }
 
     return downloadUrls;
   }
 
-  bool _canFallbackToStorageUri(String code) {
-    final normalizedCode = code.toLowerCase();
-    return normalizedCode == 'object-not-found' ||
-        normalizedCode == 'unauthorized' ||
-        normalizedCode == 'unauthenticated';
+  /// Deletes a single product image from Firebase Storage by its download URL.
+  ///
+  /// Returns `true` if the image was successfully deleted, `false` otherwise.
+  Future<bool> deleteImageByUrl(String imageUrl) async {
+    try {
+      final ref =
+          (_storage ?? FirebaseStorage.instance).refFromURL(imageUrl);
+      await ref.delete();
+      return true;
+    } catch (_) {
+      // The image may already have been deleted or the URL may be invalid.
+      return false;
+    }
   }
 }

@@ -1,10 +1,86 @@
 import 'package:bikebooking/core/constants/global.dart';
 import 'package:bikebooking/features/auth/presentation/controllers/login_controller.dart';
+import 'package:bikebooking/features/home/data/models/boost_plan.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-class SubscriptionStatusScreen extends StatelessWidget {
+class SubscriptionStatusScreen extends StatefulWidget {
   const SubscriptionStatusScreen({super.key});
+
+  @override
+  State<SubscriptionStatusScreen> createState() =>
+      _SubscriptionStatusScreenState();
+}
+
+class _SubscriptionStatusScreenState extends State<SubscriptionStatusScreen> {
+
+  List<Map<String, dynamic>> _boostedProducts = [];
+  bool _isLoadingBoosts = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBoostedProducts();
+  }
+
+  Future<void> _loadBoostedProducts() async {
+    // Resolve seller ID using the same logic as MyListingController
+    String sellerId = '';
+    final firebaseUser = FirebaseAuth.instance.currentUser;
+    if (firebaseUser != null) {
+      sellerId = firebaseUser.uid;
+    }
+    if (sellerId.isEmpty && Get.isRegistered<LoginController>()) {
+      sellerId = Get.find<LoginController>().currentUserProfile?.id ?? '';
+    }
+
+    if (sellerId.isEmpty) {
+      debugPrint('No seller ID found, skipping boost load');
+      setState(() => _isLoadingBoosts = false);
+      return;
+    }
+
+    try {
+      debugPrint('Fetching boosted products for seller: $sellerId');
+
+      // Query only by sellerId (single field, no composite index needed)
+      // Then filter for active boosts locally
+      final snapshot = await FirebaseFirestore.instance
+          .collection('products')
+          .where('sellerId', isEqualTo: sellerId)
+          .get();
+
+      final now = DateTime.now();
+      final boosted = <Map<String, dynamic>>[];
+
+      for (final doc in snapshot.docs) {
+        final data = doc.data();
+        final isBoosted = data['isBoosted'] == true;
+        if (!isBoosted) continue;
+
+        final expiresAt = (data['boostExpiresAt'] as Timestamp?)?.toDate();
+        if (expiresAt != null && expiresAt.isAfter(now)) {
+          boosted.add({...data, 'id': doc.id});
+        }
+      }
+
+      debugPrint(
+        'Found ${boosted.length} active boosts out of ${snapshot.docs.length} products',
+      );
+
+      if (mounted) {
+        setState(() {
+          _boostedProducts = boosted;
+          _isLoadingBoosts = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading boosted products: $e');
+      if (mounted) setState(() => _isLoadingBoosts = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -142,6 +218,9 @@ class SubscriptionStatusScreen extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 18),
+                      // ── Active Boosts Section ──
+                      _buildBoostedProductsSection(),
+                      const SizedBox(height: 16),
                       _buildInfoCard(
                         title: 'Current access',
                         icon: Icons.workspace_premium_outlined,
@@ -153,23 +232,12 @@ class SubscriptionStatusScreen extends StatelessWidget {
                             text: 'Save favorite bikes and sellers',
                           ),
                           _SubscriptionBullet(
-                            text: 'Receive listing and message notifications',
+                            text:
+                                'Receive listing and message notifications',
                           ),
                         ],
                       ),
-                      const SizedBox(height: 16),
-                      _buildInfoCard(
-                        title: 'Upgrade options',
-                        icon: Icons.rocket_launch_outlined,
-                        children: const [
-                          _SubscriptionBullet(
-                            text: 'Use boost plans to promote listings faster',
-                          ),
-                          _SubscriptionBullet(
-                            text: 'Track premium plans from this screen later',
-                          ),
-                        ],
-                      ),
+
                       const SizedBox(height: 16),
                       Container(
                         padding: const EdgeInsets.all(18),
@@ -203,8 +271,8 @@ class SubscriptionStatusScreen extends StatelessWidget {
                             SizedBox(
                               width: double.infinity,
                               child: ElevatedButton(
-                                onPressed: () =>
-                                    Navigator.pushNamed(context, '/my_listing'),
+                                onPressed: () => Navigator.pushNamed(
+                                    context, '/my_listing'),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: AppColors.primary,
                                   foregroundColor: Colors.white,
@@ -229,6 +297,235 @@ class SubscriptionStatusScreen extends StatelessWidget {
       },
     );
   }
+
+  // ── Boosted Products Section ───────────────────────────────────────────
+
+  Widget _buildBoostedProductsSection() {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.black.withOpacity(0.05)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                height: 38,
+                width: 38,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFFFF3E0),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.bolt_rounded,
+                    color: Color(0xFFFF8C00), size: 20),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Text(
+                  'Active Boosts',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF233A66),
+                  ),
+                ),
+              ),
+              if (!_isLoadingBoosts)
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: _boostedProducts.isNotEmpty
+                        ? const Color(0xFFFF8C00).withOpacity(0.12)
+                        : Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '${_boostedProducts.length}',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: _boostedProducts.isNotEmpty
+                          ? const Color(0xFFFF8C00)
+                          : Colors.grey.shade500,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          if (_isLoadingBoosts)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 20),
+              child: Center(
+                child: SizedBox(
+                  height: 22,
+                  width: 22,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ),
+            )
+          else if (_boostedProducts.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Center(
+                child: Column(
+                  children: [
+                    Icon(Icons.bolt_outlined,
+                        size: 32, color: Colors.grey.shade300),
+                    const SizedBox(height: 8),
+                    Text(
+                      'No active boosts',
+                      style: TextStyle(
+                        color: Colors.grey.shade500,
+                        fontSize: 13,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Boost your listings to get more visibility',
+                      style: TextStyle(
+                        color: Colors.grey.shade400,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else
+            ...List.generate(_boostedProducts.length, (index) {
+              final product = _boostedProducts[index];
+              return _buildBoostedProductTile(product, index);
+            }),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBoostedProductTile(Map<String, dynamic> product, int index) {
+    final title = product['title'] ?? 'Untitled';
+    final brand = product['brand'] ?? '';
+    final boostPlanId = product['boostPlanId'] ?? '';
+    final expiresAt = (product['boostExpiresAt'] as Timestamp?)?.toDate();
+    final imageUrls = List<String>.from(product['imageUrls'] ?? []);
+    final imageUrl = imageUrls
+        .map((url) => url.trim())
+        .firstWhere(
+          (url) => url.startsWith('http://') || url.startsWith('https://'),
+          orElse: () => '',
+        );
+
+    // Resolve plan name
+    final plan = BoostPlan.allPlans.firstWhere(
+      (p) => p.id == boostPlanId,
+      orElse: () => BoostPlan.basic,
+    );
+
+    // Calculate remaining days
+    final daysLeft =
+        expiresAt != null ? expiresAt.difference(DateTime.now()).inDays : 0;
+    final hoursLeft =
+        expiresAt != null ? expiresAt.difference(DateTime.now()).inHours : 0;
+    final remainingText =
+        daysLeft > 0 ? '$daysLeft days left' : '${hoursLeft}h left';
+
+    return Container(
+      margin: EdgeInsets.only(bottom: index < _boostedProducts.length - 1 ? 10 : 0),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFFBF5),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: const Color(0xFFFF8C00).withOpacity(0.15),
+        ),
+      ),
+      child: Row(
+        children: [
+          // Product image thumbnail
+          ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: Container(
+              height: 52,
+              width: 52,
+              color: const Color(0xFFF5F5F5),
+              child: imageUrl.isNotEmpty
+                  ? Image.network(
+                      imageUrl,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) =>
+                          const Icon(Icons.pedal_bike, color: Colors.grey),
+                    )
+                  : const Icon(Icons.pedal_bike, color: Colors.grey),
+            ),
+          ),
+          const SizedBox(width: 12),
+          // Title + plan info
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  brand.isNotEmpty ? '$brand $title' : title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF2E3E5C),
+                    fontSize: 13,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFF8C00).withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        plan.name,
+                        style: const TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFFFF8C00),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Icon(Icons.schedule,
+                        size: 12, color: Colors.grey.shade500),
+                    const SizedBox(width: 3),
+                    Text(
+                      remainingText,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: daysLeft <= 1
+                            ? Colors.red.shade400
+                            : Colors.grey.shade600,
+                        fontWeight:
+                            daysLeft <= 1 ? FontWeight.w600 : FontWeight.normal,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          // Bolt icon
+          const Icon(Icons.bolt, color: Color(0xFFFF8C00), size: 20),
+        ],
+      ),
+    );
+  }
+
+  // ── Helpers ─────────────────────────────────────────────────────────────
 
   Widget _buildPlanMetric({
     required String label,
@@ -317,18 +614,8 @@ class SubscriptionStatusScreen extends StatelessWidget {
     }
 
     const monthNames = <String>[
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
     ];
     return '${monthNames[value.month - 1]} ${value.year}';
   }

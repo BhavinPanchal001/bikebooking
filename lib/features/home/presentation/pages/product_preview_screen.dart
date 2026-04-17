@@ -103,16 +103,12 @@ class ProductPreviewScreen extends StatelessWidget {
                                       );
                                     },
                                   )
-                                : Image.asset(
-                                    'assets/images/bike.png',
-                                    fit: BoxFit.contain,
-                                    errorBuilder: (context, error, stackTrace) {
-                                      return Icon(
-                                        Icons.image_outlined,
-                                        size: 100,
-                                        color: Colors.grey.shade300,
-                                      );
-                                    },
+                                : Center(
+                                    child: Icon(
+                                      Icons.image_outlined,
+                                      size: 100,
+                                      color: Colors.grey.shade300,
+                                    ),
                                   ),
                           ),
                         ),

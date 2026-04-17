@@ -38,6 +38,10 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
+  void _dismissKeyboard() {
+    FocusManager.instance.primaryFocus?.unfocus();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -292,7 +296,10 @@ class _LoginScreenState extends State<LoginScreen> {
                             : 'Get OTP',
                         onPressed: controller.isSendingOtp
                             ? () {}
-                            : controller.sendOtp,
+                            : () {
+                                _dismissKeyboard();
+                                controller.sendOtp();
+                              },
                       ),
                       const Spacer(),
                       Center(

@@ -186,6 +186,46 @@ class ListProductController extends GetxController {
     update();
   }
 
+  /// URLs of existing images that have been removed by the user.
+  /// These are cleaned up from Firebase Storage when the product is submitted.
+  final List<String> _removedExistingImageUrls = [];
+  List<String> get removedExistingImageUrls =>
+      List.unmodifiable(_removedExistingImageUrls);
+
+  /// Removes the image at [index] from the combined image list
+  /// (existing URLs first, then locally-picked images).
+  void removeImage(int index) {
+    if (index < 0 || index >= totalImageCount) {
+      return;
+    }
+
+    final existingCount = existingImageUrls.length;
+
+    if (index < existingCount) {
+      // Remove an existing (remote) image URL.
+      // Find the actual position in the _imageUrls list (which may contain
+      // empty-string entries that existingImageUrls filters out).
+      final urlToRemove = existingImageUrls[index];
+      _imageUrls.remove(urlToRemove);
+      _removedExistingImageUrls.add(urlToRemove);
+    } else {
+      // Remove a locally-picked image.
+      final pickedIndex = index - existingCount;
+      if (pickedIndex >= 0 && pickedIndex < _pickedImages.length) {
+        _pickedImages.removeAt(pickedIndex);
+      }
+    }
+
+    // Adjust the selected index so it stays in bounds.
+    if (totalImageCount == 0) {
+      _selectedImageIndex = 0;
+    } else if (_selectedImageIndex >= totalImageCount) {
+      _selectedImageIndex = totalImageCount - 1;
+    }
+
+    update();
+  }
+
   // ── Step 3: Bike / Scooter Detail Fields ──
   final TextEditingController titleController = TextEditingController();
   final TextEditingController descriptionController = TextEditingController();
@@ -336,6 +376,9 @@ class ListProductController extends GetxController {
         await _firestoreService.addProduct(product);
       }
 
+      // Clean up any images the user removed during this session.
+      _deleteRemovedImagesFromStorage();
+
       _isLoading = false;
       _submissionErrorMessage = null;
       _submissionSuccessMessage ??= isEditing
@@ -395,6 +438,7 @@ class ListProductController extends GetxController {
     _sellerType = null;
     _imageUrls = [];
     _pickedImages.clear();
+    _removedExistingImageUrls.clear();
     _selectedImageIndex = 0;
     _isLoading = false;
     _isFetchingCurrentLocation = false;
@@ -456,6 +500,7 @@ class ListProductController extends GetxController {
     _sellerType = product.sellerType;
     _imageUrls = List<String>.from(product.imageUrls);
     _pickedImages.clear();
+    _removedExistingImageUrls.clear();
     _selectedImageIndex = 0;
     _isLoading = false;
     _isFetchingCurrentLocation = false;
@@ -572,26 +617,28 @@ class ListProductController extends GetxController {
       return existingImageUrls;
     }
 
-    if (existingImageUrls.length == _pickedImages.length) {
-      return existingImageUrls;
+    final uploadedImageUrls = await _storageService.uploadProductImages(
+      sellerId: sellerId,
+      imageBytes: _pickedImages.map((image) => image.bytes).toList(),
+    );
+    _imageUrls = [...existingImageUrls, ...uploadedImageUrls];
+    return _imageUrls;
+  }
+
+  /// Fire-and-forget cleanup of images the user removed during this session.
+  void _deleteRemovedImagesFromStorage() {
+    if (_removedExistingImageUrls.isEmpty) {
+      return;
     }
 
-    try {
-      final uploadedImageUrls = await _storageService.uploadProductImages(
-        sellerId: sellerId,
-        imageBytes: _pickedImages.map((image) => image.bytes).toList(),
-      );
-      _imageUrls = uploadedImageUrls;
-      return uploadedImageUrls;
-    } on FirebaseException catch (error, stackTrace) {
-      if (_canPostWithoutUploadedImages(error.code)) {
-        debugPrint(
-          'Falling back to posting without uploaded images: $error\n$stackTrace',
-        );
-        _imageUrls = [];
-        return const [];
-      }
-      rethrow;
+    final urlsToDelete = List<String>.from(_removedExistingImageUrls);
+    _removedExistingImageUrls.clear();
+
+    for (final url in urlsToDelete) {
+      _storageService.deleteImageByUrl(url).catchError((_) {
+        debugPrint('Failed to delete removed image from storage: $url');
+        return false;
+      });
     }
   }
 
@@ -769,14 +816,7 @@ class ListProductController extends GetxController {
     return fallback;
   }
 
-  bool _canPostWithoutUploadedImages(String code) {
-    final normalizedCode = code.toLowerCase();
-    return normalizedCode == 'object-not-found' ||
-        normalizedCode == 'bucket-not-found' ||
-        normalizedCode == 'no-default-bucket' ||
-        normalizedCode == 'unauthorized' ||
-        normalizedCode == 'unauthenticated';
-  }
+
 
   static String _joinAddressParts(List<String?> parts) {
     return parts

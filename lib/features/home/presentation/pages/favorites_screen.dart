@@ -288,13 +288,10 @@ class FavoritesScreen extends StatelessWidget {
 
   Widget _buildImageFallback() {
     return Center(
-      child: Image.asset(
-        'assets/images/bike.png',
-        fit: BoxFit.contain,
-        errorBuilder: (context, error, stackTrace) => const Icon(
-          Icons.directions_bike,
-          color: Colors.grey,
-        ),
+      child: Icon(
+        Icons.image_outlined,
+        size: 40,
+        color: Colors.grey.shade400,
       ),
     );
   }

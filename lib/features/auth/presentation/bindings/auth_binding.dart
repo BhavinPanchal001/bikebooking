@@ -3,6 +3,7 @@ import 'package:bikebooking/features/auth/data/services/user_firestore_service.d
 import 'package:bikebooking/features/auth/presentation/controllers/login_controller.dart';
 import 'package:bikebooking/features/home/data/services/notification_dispatch_service.dart';
 import 'package:bikebooking/features/home/data/services/notification_push_service.dart';
+import 'package:bikebooking/features/home/presentation/controllers/boost_controller.dart';
 import 'package:bikebooking/features/home/presentation/controllers/favorites_controller.dart';
 import 'package:bikebooking/features/home/presentation/controllers/home_products_controller.dart';
 import 'package:bikebooking/features/home/presentation/controllers/notifications_controller.dart';
@@ -38,5 +39,6 @@ class AuthBinding extends Bindings {
       NotificationPushService(),
       permanent: true,
     ).initialize();
+    Get.lazyPut<BoostController>(() => BoostController(), fenix: true);
   }
 }

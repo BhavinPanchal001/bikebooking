@@ -96,21 +96,55 @@ class ProductImagesScreen extends StatelessWidget {
                               ),
                             ],
                           ),
-                          child: _buildMainPreview(controller),
+                          child: Stack(
+                            children: [
+                              Positioned.fill(
+                                child: _buildMainPreview(controller),
+                              ),
+                              if (controller.hasAnyImages)
+                                Positioned(
+                                  top: 8,
+                                  right: 8,
+                                  child: GestureDetector(
+                                    onTap: () => _confirmRemoveImage(
+                                      context,
+                                      controller,
+                                      controller.selectedImageIndex,
+                                    ),
+                                    child: Container(
+                                      width: 32,
+                                      height: 32,
+                                      decoration: BoxDecoration(
+                                        color: Colors.black.withOpacity(0.55),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(
+                                        Icons.delete_outline,
+                                        color: Colors.white,
+                                        size: 18,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
                         ),
                         const SizedBox(height: 16),
                         SingleChildScrollView(
                           scrollDirection: Axis.horizontal,
                           physics: const BouncingScrollPhysics(),
-                          child: Row(
-                            children: [
-                              for (var index = 0;
-                                  index < controller.totalImageCount;
-                                  index++)
-                                _buildThumbnail(controller, index),
-                              if (controller.totalImageCount < 6)
-                                _buildAddThumbnail(controller),
-                            ],
+                          child: Padding(
+                            padding: const EdgeInsets.only(top: 8, right: 8),
+                            child: Row(
+                              children: [
+                                for (var index = 0;
+                                    index < controller.totalImageCount;
+                                    index++)
+                                  _buildThumbnail(context, controller, index),
+                                if (controller.totalImageCount < 6)
+                                  _buildAddThumbnail(controller),
+                              ],
+                            ),
                           ),
                         ),
                       ],
@@ -199,70 +233,90 @@ class ProductImagesScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildThumbnail(ListProductController controller, int index) {
+  Widget _buildThumbnail(BuildContext context, ListProductController controller, int index) {
     final existingImageCount = controller.existingImageUrls.length;
 
+    Widget thumbnailImage;
     if (index < existingImageCount) {
       final imageUrl = controller.existingImageUrls[index];
-      return GestureDetector(
-        onTap: () => controller.selectProductImage(index),
-        child: Container(
+      thumbnailImage = ClipRRect(
+        borderRadius: BorderRadius.circular(11),
+        child: Image.network(
+          imageUrl,
+          fit: BoxFit.cover,
           width: 60,
           height: 60,
-          margin: const EdgeInsets.only(right: 12),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: controller.selectedImageIndex == index
-                  ? AppColors.primary
-                  : Colors.grey.shade200,
-              width: controller.selectedImageIndex == index ? 1.5 : 1,
-            ),
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(11),
-            child: Image.network(
-              imageUrl,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) => Container(
-                color: const Color(0xFFF1F4F8),
-                alignment: Alignment.center,
-                child: const Icon(
-                  Icons.image_not_supported_outlined,
-                  color: Color(0xFF94A3B8),
-                ),
-              ),
+          errorBuilder: (context, error, stackTrace) => Container(
+            color: const Color(0xFFF1F4F8),
+            alignment: Alignment.center,
+            child: const Icon(
+              Icons.image_not_supported_outlined,
+              color: Color(0xFF94A3B8),
             ),
           ),
         ),
       );
+    } else {
+      final image = controller.pickedImages[index - existingImageCount];
+      thumbnailImage = ClipRRect(
+        borderRadius: BorderRadius.circular(11),
+        child: Image.memory(
+          image.bytes,
+          fit: BoxFit.cover,
+          width: 60,
+          height: 60,
+        ),
+      );
     }
-
-    final image = controller.pickedImages[index - existingImageCount];
 
     return GestureDetector(
       onTap: () => controller.selectProductImage(index),
+      onLongPress: () => _confirmRemoveImage(context, controller, index),
       child: Container(
         width: 60,
         height: 60,
         margin: const EdgeInsets.only(right: 12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: controller.selectedImageIndex == index
-                ? AppColors.primary
-                : Colors.grey.shade200,
-            width: controller.selectedImageIndex == index ? 1.5 : 1,
-          ),
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(11),
-          child: Image.memory(
-            image.bytes,
-            fit: BoxFit.cover,
-          ),
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Container(
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: controller.selectedImageIndex == index
+                      ? AppColors.primary
+                      : Colors.grey.shade200,
+                  width: controller.selectedImageIndex == index ? 1.5 : 1,
+                ),
+              ),
+              child: thumbnailImage,
+            ),
+            Positioned(
+              top: -6,
+              right: -6,
+              child: GestureDetector(
+                onTap: () =>
+                    _confirmRemoveImage(context, controller, index),
+                child: Container(
+                  width: 20,
+                  height: 20,
+                  decoration: BoxDecoration(
+                    color: Colors.red.shade500,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 1.5),
+                  ),
+                  child: const Icon(
+                    Icons.close,
+                    color: Colors.white,
+                    size: 12,
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -289,6 +343,40 @@ class ProductImagesScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  void _confirmRemoveImage(
+    BuildContext context,
+    ListProductController controller,
+    int index,
+  ) {
+    showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Remove image'),
+          content:
+              const Text('Are you sure you want to remove this image?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.red,
+              ),
+              child: const Text('Remove'),
+            ),
+          ],
+        );
+      },
+    ).then((confirmed) {
+      if (confirmed == true) {
+        controller.removeImage(index);
+      }
+    });
   }
 }
 

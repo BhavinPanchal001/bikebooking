@@ -45,6 +45,10 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
     super.dispose();
   }
 
+  void _dismissKeyboard() {
+    FocusManager.instance.primaryFocus?.unfocus();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -253,7 +257,10 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                           GestureDetector(
                             onTap: controller.isSendingOtp
                                 ? null
-                                : controller.resendOtp,
+                                : () {
+                                    _dismissKeyboard();
+                                    controller.resendOtp();
+                                  },
                             child: Text(
                               controller.isSendingOtp
                                   ? 'Sending...'
@@ -275,7 +282,10 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                             : 'Verify',
                         onPressed: controller.isVerifyingOtp
                             ? () {}
-                            : controller.verifyOtp,
+                            : () {
+                                _dismissKeyboard();
+                                controller.verifyOtp();
+                              },
                       ),
                     ],
                   ),

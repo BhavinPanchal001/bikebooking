@@ -61,9 +61,48 @@ class BikeCard extends StatelessWidget {
                 Positioned(
                   top: 8,
                   left: 8,
-                  child: ProductStatusBadge(
-                    status: product.status,
-                    compact: true,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      ProductStatusBadge(
+                        status: product.status,
+                        compact: true,
+                      ),
+                      if (product.isCurrentlyBoosted) ...[
+                        const SizedBox(width: 4),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFFFF8C00), Color(0xFFFFAD33)],
+                            ),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.bolt,
+                                size: 10,
+                                color: Colors.white,
+                              ),
+                              SizedBox(width: 2),
+                              Text(
+                                'Boosted',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 8,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
                 Positioned(
@@ -196,12 +235,11 @@ class BikeCard extends StatelessWidget {
       margin: const EdgeInsets.only(top: 0),
       height: 85,
       width: double.infinity,
-      // color: Colors.grey.shade100,
       alignment: Alignment.center,
-      child: Image.asset(
-        'assets/images/pngwing.com (18) 3.png',
-        height: 85,
-        fit: BoxFit.contain,
+      child: Icon(
+        Icons.image_outlined,
+        size: 40,
+        color: Colors.grey.shade400,
       ),
     );
   }

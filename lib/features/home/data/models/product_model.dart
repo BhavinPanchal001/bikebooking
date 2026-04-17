@@ -28,6 +28,13 @@ class ProductModel {
   final String? condition;
   final String? sellerType;
 
+  // Boost fields
+  final bool isBoosted;
+  final String? boostPlanId;
+  final DateTime? boostStartedAt;
+  final DateTime? boostExpiresAt;
+  final String? boostPaymentId;
+
   ProductModel({
     this.id,
     required this.category,
@@ -49,6 +56,11 @@ class ProductModel {
     this.subCategory,
     this.condition,
     this.sellerType,
+    this.isBoosted = false,
+    this.boostPlanId,
+    this.boostStartedAt,
+    this.boostExpiresAt,
+    this.boostPaymentId,
   }) : status = ProductStatus.normalize(status);
 
   bool get isActive => ProductStatus.isActive(status);
@@ -58,6 +70,9 @@ class ProductModel {
   bool get allowsBuyerActions => ProductStatus.allowsBuyerActions(status);
 
   String get statusLabel => ProductStatus.label(status);
+
+  /// Returns `true` when the product has an active, non-expired boost.
+  bool get isCurrentlyBoosted => isBoosted && boostExpiresAt != null && boostExpiresAt!.isAfter(DateTime.now());
 
   ProductModel copyWith({
     String? id,
@@ -80,6 +95,11 @@ class ProductModel {
     String? subCategory,
     String? condition,
     String? sellerType,
+    bool? isBoosted,
+    String? boostPlanId,
+    DateTime? boostStartedAt,
+    DateTime? boostExpiresAt,
+    String? boostPaymentId,
   }) {
     return ProductModel(
       id: id ?? this.id,
@@ -102,6 +122,11 @@ class ProductModel {
       subCategory: subCategory ?? this.subCategory,
       condition: condition ?? this.condition,
       sellerType: sellerType ?? this.sellerType,
+      isBoosted: isBoosted ?? this.isBoosted,
+      boostPlanId: boostPlanId ?? this.boostPlanId,
+      boostStartedAt: boostStartedAt ?? this.boostStartedAt,
+      boostExpiresAt: boostExpiresAt ?? this.boostExpiresAt,
+      boostPaymentId: boostPaymentId ?? this.boostPaymentId,
     );
   }
 
@@ -126,6 +151,11 @@ class ProductModel {
       'subCategory': subCategory,
       'condition': condition,
       'sellerType': sellerType,
+      'isBoosted': isBoosted,
+      'boostPlanId': boostPlanId,
+      'boostStartedAt': boostStartedAt != null ? Timestamp.fromDate(boostStartedAt!) : null,
+      'boostExpiresAt': boostExpiresAt != null ? Timestamp.fromDate(boostExpiresAt!) : null,
+      'boostPaymentId': boostPaymentId,
     };
   }
 
@@ -147,6 +177,11 @@ class ProductModel {
       'subCategory': subCategory,
       'condition': condition,
       'sellerType': sellerType,
+      'isBoosted': isBoosted,
+      'boostPlanId': boostPlanId,
+      'boostStartedAt': boostStartedAt != null ? Timestamp.fromDate(boostStartedAt!) : null,
+      'boostExpiresAt': boostExpiresAt != null ? Timestamp.fromDate(boostExpiresAt!) : null,
+      'boostPaymentId': boostPaymentId,
     };
   }
 
@@ -172,6 +207,11 @@ class ProductModel {
       subCategory: map['subCategory'],
       condition: map['condition'],
       sellerType: map['sellerType'],
+      isBoosted: map['isBoosted'] == true,
+      boostPlanId: map['boostPlanId'],
+      boostStartedAt: (map['boostStartedAt'] as Timestamp?)?.toDate(),
+      boostExpiresAt: (map['boostExpiresAt'] as Timestamp?)?.toDate(),
+      boostPaymentId: map['boostPaymentId'],
     );
   }
 }

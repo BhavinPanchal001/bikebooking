@@ -2,6 +2,7 @@ import 'package:bikebooking/core/constants/global.dart';
 import 'package:bikebooking/features/home/presentation/controllers/list_product_controller.dart';
 import 'package:bikebooking/features/home/presentation/widgets/app_bottom_nav_bar.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
 class ListProductScreen extends StatelessWidget {
@@ -9,10 +10,17 @@ class ListProductScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF9FBFF),
-      body: SafeArea(
-        child: Column(
+    final topPadding = MediaQuery.paddingOf(context).top;
+
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light.copyWith(
+        statusBarColor: Colors.transparent,
+        statusBarBrightness: Brightness.dark,
+        statusBarIconBrightness: Brightness.light,
+      ),
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF9FBFF),
+        body: Column(
           children: [
             // Top Header
             Container(
@@ -24,7 +32,7 @@ class ListProductScreen extends StatelessWidget {
                   bottomRight: Radius.circular(15),
                 ),
               ),
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+              padding: EdgeInsets.fromLTRB(16, topPadding + 12, 16, 24),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -71,28 +79,32 @@ class ListProductScreen extends StatelessWidget {
                         physics: const NeverScrollableScrollPhysics(),
                         crossAxisCount: 2,
                         crossAxisSpacing: 16,
-                        mainAxisSpacing: 16,
-                        childAspectRatio: 1.08,
+                        mainAxisSpacing: 22,
+                        childAspectRatio: 1.06,
                         children: [
                           _buildCategoryCard(
                             context,
                             'Bikes',
-                            const Color(0xFFE2F2D5), // Light Green
+                            'assets/images/Group 1171278014.png',
+                            const Color(0xFFD4E7C5),
                           ),
                           _buildCategoryCard(
                             context,
                             'Scooter',
-                            const Color(0xFFFFE0C2), // Light Peach
+                            'assets/images/Group 1171278015.png',
+                            const Color(0xFFFFD1A5),
                           ),
                           _buildCategoryCard(
                             context,
                             'Accessories',
-                            const Color(0xFFE2E2F8), // Light Purple
+                            'assets/images/Group 1171278016.png',
+                            const Color(0xFFC9C9EB),
                           ),
                           _buildCategoryCard(
                             context,
                             'Spare Parts',
-                            const Color(0xFFD9F2F9), // Light Blue
+                            'assets/images/Group 1171278017.png',
+                            const Color(0xFFB9E5F3),
                           ),
                         ],
                       ),
@@ -103,14 +115,15 @@ class ListProductScreen extends StatelessWidget {
             ),
           ],
         ),
+        bottomNavigationBar: const AppBottomNavBar(currentIndex: 2),
       ),
-      bottomNavigationBar: const AppBottomNavBar(currentIndex: 2),
     );
   }
 
   Widget _buildCategoryCard(
     BuildContext context,
     String title,
+    String imagePath,
     Color bgColor,
   ) {
     return GestureDetector(
@@ -118,9 +131,7 @@ class ListProductScreen extends StatelessWidget {
         final controller = Get.isRegistered<ListProductController>()
             ? Get.find<ListProductController>()
             : Get.put(ListProductController());
-        if (controller.isEditing) {
-          controller.resetForm();
-        }
+        controller.resetForm();
         controller.setCategory(title);
         Navigator.pushNamed(context, '/product_images', arguments: title);
       },
@@ -128,10 +139,10 @@ class ListProductScreen extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.black.withOpacity(0.05)),
+          border: Border.all(color: Colors.black.withValues(alpha: 0.05)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.02),
+              color: Colors.black.withValues(alpha: 0.02),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -139,29 +150,41 @@ class ListProductScreen extends StatelessWidget {
         ),
         child: Column(
           children: [
-            Expanded(
-              child: Container(
-                margin: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: bgColor,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Center(
-                  child: Icon(
-                    _getIconForCategory(title),
-                    size: 42,
-                    color: const Color(0xFF2E3E5C),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(10, 10, 10, 0),
+              child: AspectRatio(
+                aspectRatio: 1.53,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: bgColor,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: Image.asset(
+                    imagePath,
+                    width: double.infinity,
+                    height: double.infinity,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => Container(
+                      color: bgColor,
+                      alignment: Alignment.center,
+                      child: const Icon(
+                        Icons.image_not_supported_outlined,
+                        color: Color(0xFF94A3B8),
+                      ),
+                    ),
                   ),
                 ),
               ),
             ),
+            const SizedBox(height: 9),
             Padding(
-              padding: const EdgeInsets.only(bottom: 16),
+              padding: const EdgeInsets.only(bottom: 14),
               child: Text(
                 title,
                 style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
                   color: Color(0xFF121926),
                 ),
               ),
@@ -170,20 +193,5 @@ class ListProductScreen extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  IconData _getIconForCategory(String title) {
-    switch (title) {
-      case 'Bikes':
-        return Icons.sports_motorsports_rounded;
-      case 'Scooter':
-        return Icons.moped_rounded;
-      case 'Accessories':
-        return Icons.shield_outlined;
-      case 'Spare Parts':
-        return Icons.build_circle_outlined;
-      default:
-        return Icons.category;
-    }
   }
 }

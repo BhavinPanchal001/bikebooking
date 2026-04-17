@@ -29,11 +29,13 @@ class FirebaseAuthService {
     required PhoneVerificationFailed verificationFailed,
     required PhoneCodeSent codeSent,
     required PhoneCodeAutoRetrievalTimeout codeAutoRetrievalTimeout,
+    Duration timeout = const Duration(seconds: 30),
     int? forceResendingToken,
   }) {
     return _auth.verifyPhoneNumber(
       phoneNumber: phoneNumber,
       forceResendingToken: forceResendingToken,
+      timeout: timeout,
       verificationCompleted: verificationCompleted,
       verificationFailed: verificationFailed,
       codeSent: codeSent,

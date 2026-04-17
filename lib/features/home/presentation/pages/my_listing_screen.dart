@@ -1,7 +1,11 @@
 import 'package:bikebooking/core/constants/global.dart';
 import 'package:bikebooking/core/widgets/custom_button.dart';
+import 'package:bikebooking/features/home/data/models/boost_plan.dart';
 import 'package:bikebooking/features/home/data/models/product_model.dart';
 import 'package:bikebooking/features/home/data/models/product_status.dart';
+import 'package:bikebooking/features/auth/presentation/controllers/login_controller.dart';
+import 'package:bikebooking/features/home/presentation/controllers/boost_controller.dart';
+import 'package:bikebooking/features/home/presentation/controllers/home_products_controller.dart';
 import 'package:bikebooking/features/home/presentation/controllers/list_product_controller.dart';
 import 'package:bikebooking/features/home/presentation/controllers/my_listing_controller.dart';
 import 'package:bikebooking/features/home/presentation/widgets/app_bottom_nav_bar.dart';
@@ -45,7 +49,10 @@ class _MyListingScreenState extends State<MyListingScreen>
       final args =
           ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
       if (args != null && args['showBoost'] == true) {
-        _showBoostBottomSheet(context);
+        final product = args['product'] as ProductModel?;
+        if (product != null) {
+          _showBoostBottomSheet(context, product);
+        }
       }
     });
   }
@@ -365,7 +372,7 @@ class _MyListingScreenState extends State<MyListingScreen>
                           ),
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 8),
                 Expanded(
                   child: canEdit
                       ? CustomGradientButton(
@@ -391,6 +398,94 @@ class _MyListingScreenState extends State<MyListingScreen>
                             style: const TextStyle(
                               fontWeight: FontWeight.bold,
                             ),
+                          ),
+                        ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: product.isActive && productId != null && !isBusy
+                      ? product.isCurrentlyBoosted
+                          ? OutlinedButton(
+                              onPressed: () =>
+                                  _showBoostDetailsSheet(context, product),
+                              style: OutlinedButton.styleFrom(
+                                backgroundColor: const Color(0xFFFFF3E0),
+                                side: const BorderSide(
+                                  color: Color(0xFFFF8C00),
+                                  width: 1.2,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(15),
+                                ),
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 12),
+                              ),
+                              child: const Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.bolt,
+                                      size: 16, color: Color(0xFFFF8C00)),
+                                  SizedBox(width: 2),
+                                  Text(
+                                    'Boosted',
+                                    style: TextStyle(
+                                      color: Color(0xFFFF8C00),
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )
+                          : OutlinedButton(
+                              onPressed: () =>
+                                  _showBoostBottomSheet(context, product),
+                              style: OutlinedButton.styleFrom(
+                                backgroundColor: Colors.white,
+                                side: BorderSide(
+                                  color: Colors.black.withOpacity(0.05),
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(15),
+                                ),
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 12),
+                              ),
+                              child: const Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.bolt,
+                                      size: 16, color: Color(0xFF2E4475)),
+                                  SizedBox(width: 2),
+                                  Text(
+                                    'Boost',
+                                    style: TextStyle(
+                                      color: Color(0xFF2E4475),
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )
+                      : OutlinedButton(
+                          onPressed: null,
+                          style: OutlinedButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            disabledForegroundColor: const Color(0xFF9AA6BC),
+                            side: BorderSide(
+                              color: Colors.black.withOpacity(0.05),
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(15),
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                          ),
+                          child: const Text(
+                            'Boost',
+                            style: TextStyle(fontWeight: FontWeight.bold),
                           ),
                         ),
                 ),
@@ -545,11 +640,10 @@ class _MyListingScreenState extends State<MyListingScreen>
     return Container(
       color: Colors.white,
       child: Center(
-        child: Image.asset(
-          'assets/images/bike.png',
-          fit: BoxFit.contain,
-          errorBuilder: (context, error, stackTrace) =>
-              const Icon(Icons.directions_bike, color: Colors.grey),
+        child: Icon(
+          Icons.image_outlined,
+          size: 40,
+          color: Colors.grey.shade400,
         ),
       ),
     );
@@ -878,7 +972,241 @@ class _MyListingScreenState extends State<MyListingScreen>
     return 'Location not set';
   }
 
-  void _showBoostBottomSheet(BuildContext context) {
+  void _showBoostDetailsSheet(BuildContext context, ProductModel product) {
+    final plan = BoostPlan.allPlans.firstWhere(
+      (p) => p.id == product.boostPlanId,
+      orElse: () => BoostPlan.basic,
+    );
+
+    final startedAt = product.boostStartedAt;
+    final expiresAt = product.boostExpiresAt;
+    final daysLeft =
+        expiresAt != null ? expiresAt.difference(DateTime.now()).inDays : 0;
+    final hoursLeft =
+        expiresAt != null ? expiresAt.difference(DateTime.now()).inHours % 24 : 0;
+
+    String remainingText;
+    if (daysLeft > 0) {
+      remainingText = '$daysLeft day${daysLeft > 1 ? 's' : ''} remaining';
+    } else if (hoursLeft > 0) {
+      remainingText = '$hoursLeft hour${hoursLeft > 1 ? 's' : ''} remaining';
+    } else {
+      remainingText = 'Expiring soon';
+    }
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          width: double.infinity,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 8),
+              Center(
+                child: Container(
+                  width: 50,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              // Status icon
+              Container(
+                height: 80,
+                width: 80,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFF8C00).withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.bolt_rounded,
+                  size: 40,
+                  color: Color(0xFFFF8C00),
+                ),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'Boost Active',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFFFF8C00),
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                _buildTitle(product),
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: Color(0xFF5E6E8C),
+                ),
+              ),
+              const SizedBox(height: 24),
+              // Plan details card
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFFBF5),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: const Color(0xFFFF8C00).withOpacity(0.15),
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    _buildDetailRow(
+                      icon: Icons.workspace_premium_outlined,
+                      label: 'Plan',
+                      value: plan.name,
+                    ),
+                    const SizedBox(height: 14),
+                    _buildDetailRow(
+                      icon: Icons.calendar_today_outlined,
+                      label: 'Started',
+                      value: startedAt != null
+                          ? _formatDetailDate(startedAt)
+                          : 'N/A',
+                    ),
+                    const SizedBox(height: 14),
+                    _buildDetailRow(
+                      icon: Icons.event_outlined,
+                      label: 'Expires',
+                      value: expiresAt != null
+                          ? _formatDetailDate(expiresAt)
+                          : 'N/A',
+                    ),
+                    const SizedBox(height: 14),
+                    _buildDetailRow(
+                      icon: Icons.timer_outlined,
+                      label: 'Remaining',
+                      value: remainingText,
+                      valueColor: daysLeft <= 1
+                          ? Colors.red.shade400
+                          : const Color(0xFF10B981),
+                    ),
+                    if (product.boostPaymentId != null) ...[
+                      const SizedBox(height: 14),
+                      _buildDetailRow(
+                        icon: Icons.receipt_long_outlined,
+                        label: 'Payment ID',
+                        value: product.boostPaymentId!,
+                        valueSize: 11,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              // Info text
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE3F2FD),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.info_outline,
+                        size: 18, color: Color(0xFF2E4475)),
+                    SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'Your listing is featured at the top of the home feed during the boost period.',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF2E4475),
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFF2E4475),
+                    side: const BorderSide(color: Color(0xFFCED4DE)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    minimumSize: const Size(0, 48),
+                  ),
+                  child: const Text(
+                    'Close',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildDetailRow({
+    required IconData icon,
+    required String label,
+    required String value,
+    Color? valueColor,
+    double valueSize = 13,
+  }) {
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: Colors.grey.shade500),
+        const SizedBox(width: 10),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 13,
+            color: Colors.grey.shade600,
+          ),
+        ),
+        const Spacer(),
+        Flexible(
+          child: Text(
+            value,
+            textAlign: TextAlign.end,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: valueSize,
+              fontWeight: FontWeight.w600,
+              color: valueColor ?? const Color(0xFF2E3E5C),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _formatDetailDate(DateTime date) {
+    const months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    ];
+    return '${date.day} ${months[date.month - 1]} ${date.year}';
+  }
+
+  void _showBoostBottomSheet(BuildContext context, ProductModel product) {
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -914,7 +1242,14 @@ class _MyListingScreenState extends State<MyListingScreen>
                   shape: BoxShape.circle,
                 ),
                 child: Center(
-                  child: Image.asset('assets/images/Frame 1171275371.png'),
+                  child: Image.asset(
+                    'assets/images/Frame 1171275371.png',
+                    errorBuilder: (_, __, ___) => const Icon(
+                      Icons.bolt,
+                      size: 60,
+                      color: Color(0xFF2E4475),
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(height: 24),
@@ -930,7 +1265,7 @@ class _MyListingScreenState extends State<MyListingScreen>
               const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 20),
                 child: Text(
-                  'Increase visibility and get more booking by boosting',
+                  'Increase visibility and get more bookings by boosting',
                   textAlign: TextAlign.center,
                   style: TextStyle(fontSize: 14, color: Color(0xFF5E6E8C)),
                 ),
@@ -958,19 +1293,19 @@ class _MyListingScreenState extends State<MyListingScreen>
                 child: const Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('1. + 1x extra listing',
+                    Text('1. Priority placement in search results',
                         style:
                             TextStyle(color: Color(0xFF5E6E8C), height: 1.8)),
                     SizedBox(height: 3),
-                    Text('2. Free featured ads',
+                    Text('2. Featured ad badge on your listing',
                         style:
                             TextStyle(color: Color(0xFF5E6E8C), height: 1.8)),
                     SizedBox(height: 3),
-                    Text('3. Priority Visibility',
+                    Text('3. Appear at the top of the home feed',
                         style:
                             TextStyle(color: Color(0xFF5E6E8C), height: 1.8)),
                     SizedBox(height: 3),
-                    Text('4. Priority Visibility',
+                    Text('4. More views & faster selling',
                         style:
                             TextStyle(color: Color(0xFF5E6E8C), height: 1.8)),
                   ],
@@ -981,7 +1316,7 @@ class _MyListingScreenState extends State<MyListingScreen>
                 text: 'Choose Boost Plan',
                 onPressed: () {
                   Navigator.pop(context);
-                  _showBoostPlansSheet(context);
+                  _showBoostPlansSheet(context, product);
                 },
               ),
             ],
@@ -991,136 +1326,240 @@ class _MyListingScreenState extends State<MyListingScreen>
     );
   }
 
-  void _showBoostPlansSheet(BuildContext context) {
+  void _showBoostPlansSheet(BuildContext context, ProductModel product) {
+    final boostController = Get.find<BoostController>();
+    boostController.setTargetProduct(product);
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) {
-        return Container(
-          width: double.infinity,
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-          ),
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 8),
-              Center(
-                child: Container(
-                  width: 50,
-                  height: 5,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade300,
-                    borderRadius: BorderRadius.circular(10),
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (stateContext, setLocalState) {
+            return Container(
+              width: double.infinity,
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 8),
+                  Center(
+                    child: Container(
+                      width: 50,
+                      height: 5,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
                   ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'Boost Your Ad',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF233A66),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.black.withOpacity(0.05)),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: Container(
-                        height: 140,
-                        width: double.infinity,
-                        color: const Color(0xFFF9FBFF),
-                        child: Center(
-                          child: Image.asset(
-                            'assets/images/bike.png',
-                            fit: BoxFit.contain,
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Boost Your Ad',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF233A66),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  // Product card with real data
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.black.withOpacity(0.05)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: Container(
+                            height: 140,
+                            width: double.infinity,
+                            color: const Color(0xFFF9FBFF),
+                            child: _buildBoostProductImage(product),
                           ),
                         ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    const Text(
-                      '2021 Royal Enfield Hunter 350',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF2E3E5C),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        _buildSmallTag('15,255 KM'),
-                        const SizedBox(width: 8),
-                        _buildSmallTag('Petrol'),
-                        const SizedBox(width: 8),
-                        _buildSmallTag('2021'),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
+                        const SizedBox(height: 12),
+                        Text(
+                          _buildTitle(product),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF2E3E5C),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 4,
+                          children: _buildBoostTags(product)
+                              .map(_buildSmallTag)
+                              .toList(growable: false),
+                        ),
+                        const SizedBox(height: 8),
                         Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Icon(Icons.location_on_outlined,
-                                size: 14, color: Colors.grey.shade400),
-                            const SizedBox(width: 4),
+                            Row(
+                              children: [
+                                Icon(Icons.location_on_outlined,
+                                    size: 14, color: Colors.grey.shade400),
+                                const SizedBox(width: 4),
+                                Text(
+                                  _buildLocation(product),
+                                  style: TextStyle(
+                                    color: Colors.grey.shade400,
+                                    fontSize: 11,
+                                  ),
+                                ),
+                              ],
+                            ),
                             Text(
-                              'Madhya Pradesh 458468',
-                              style: TextStyle(
-                                color: Colors.grey.shade400,
-                                fontSize: 11,
+                              _buildPrice(product),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w800,
+                                color: Color(0xFF2E4475),
+                                fontSize: 14,
                               ),
                             ),
                           ],
                         ),
-                        const Text(
-                          '₹1.85 Lakh',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w800,
-                            color: Color(0xFF2E4475),
-                            fontSize: 14,
-                          ),
-                        ),
                       ],
                     ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 20),
+                  // Interactive plan selection
+                  ...BoostPlan.allPlans.map((plan) {
+                    final isSelected =
+                        boostController.selectedPlan.id == plan.id;
+                    return GestureDetector(
+                      onTap: () {
+                        boostController.selectPlan(plan);
+                        setLocalState(() {});
+                      },
+                      child: _buildPlanOption(
+                        plan.name,
+                        plan.subtitle,
+                        plan.displayPrice,
+                        isSelected,
+                      ),
+                    );
+                  }),
+                  const SizedBox(height: 24),
+                  GetBuilder<BoostController>(
+                    builder: (ctrl) {
+                      return CustomGradientButton(
+                        text: ctrl.isProcessing
+                            ? 'Processing...'
+                            : 'Pay ${ctrl.selectedPlan.displayPrice}',
+                        isLoading: ctrl.isProcessing,
+                        onPressed: () {
+                          // Set up callbacks before starting payment
+                          ctrl.onBoostSuccess = () {
+                            final selectedPlan = ctrl.selectedPlan;
+
+                            if (sheetContext.mounted) {
+                              Navigator.of(sheetContext).pop();
+                            }
+
+                            WidgetsBinding.instance.addPostFrameCallback((_) {
+                              if (!mounted) return;
+
+                              _showPaymentSuccessSheet(
+                                this.context,
+                                selectedPlan,
+                              );
+                              _listingController.loadProducts();
+                              // Also refresh home feed so boosted product moves to top
+                              if (Get.isRegistered<HomeProductsController>()) {
+                                Get.find<HomeProductsController>()
+                                    .loadProducts(showLoader: false);
+                              }
+                            });
+                          };
+                          ctrl.onBoostError = (message) {
+                            if (message.isNotEmpty) {
+                              Get.snackbar(
+                                'Boost Failed',
+                                message,
+                                snackPosition: SnackPosition.BOTTOM,
+                                backgroundColor: Colors.red.shade600,
+                                colorText: Colors.white,
+                              );
+                            }
+                          };
+                          // Pass user contact info for Razorpay prefill
+                          final userProfile = Get.isRegistered<LoginController>()
+                              ? Get.find<LoginController>().currentUserProfile
+                              : null;
+                          ctrl.startBoostPayment(
+                            userPhone: userProfile?.phoneNumber,
+                            userEmail: userProfile?.email,
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ],
               ),
-              const SizedBox(height: 20),
-              _buildPlanOption(
-                  'Basic Boost', '3 Days Boost', 'Rs.99.00', false),
-              _buildPlanOption(
-                  'Popular Boost', '7 Days Boost', 'Rs.199.00', true),
-              _buildPlanOption(
-                  'Premium Boost', '15 Days Boost', 'Rs.399.00', false),
-              const SizedBox(height: 24),
-              CustomGradientButton(
-                text: 'Choose Boost Plan',
-                onPressed: () {
-                  Navigator.pop(context);
-                  _showPaymentSuccessSheet(context);
-                },
-              ),
-            ],
-          ),
+            );
+          },
         );
       },
     );
+  }
+
+  Widget _buildBoostProductImage(ProductModel product) {
+    final imageUrl = product.imageUrls.map((url) => url.trim()).firstWhere(
+          (url) => url.startsWith('http://') || url.startsWith('https://'),
+          orElse: () => '',
+        );
+
+    if (imageUrl.isNotEmpty) {
+      return Image.network(
+        imageUrl,
+        fit: BoxFit.contain,
+        errorBuilder: (_, __, ___) => Icon(
+          Icons.image_outlined,
+          size: 40,
+          color: Colors.grey.shade400,
+        ),
+      );
+    }
+
+    return Icon(
+      Icons.image_outlined,
+      size: 40,
+      color: Colors.grey.shade400,
+    );
+  }
+
+  List<String> _buildBoostTags(ProductModel product) {
+    final tags = <String>[];
+    if (product.kilometerDriven != null) {
+      tags.add('${product.kilometerDriven} KM');
+    }
+    if (product.fuelType?.trim().isNotEmpty == true) {
+      tags.add(product.fuelType!.trim());
+    }
+    if (product.year != null) {
+      tags.add(product.year.toString());
+    }
+    if (product.condition?.trim().isNotEmpty == true) {
+      tags.add(product.condition!.trim());
+    }
+    if (tags.isEmpty) {
+      tags.add(product.category);
+    }
+    return tags.take(3).toList(growable: false);
   }
 
   Widget _buildSmallTag(String text) {
@@ -1206,10 +1645,12 @@ class _MyListingScreenState extends State<MyListingScreen>
     );
   }
 
-  void _showPaymentSuccessSheet(BuildContext context) {
+  void _showPaymentSuccessSheet(BuildContext context, BoostPlan plan) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      isDismissible: false,
+      enableDrag: false,
       backgroundColor: Colors.transparent,
       builder: (context) {
         return Container(
@@ -1268,15 +1709,19 @@ class _MyListingScreenState extends State<MyListingScreen>
                 ),
               ),
               const SizedBox(height: 12),
-              const Text(
-                'Success! Your listing will stay at the top for the next 7 days.',
+              Text(
+                'Success! Your listing will stay at the top for the next ${plan.durationDays} days.',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Color(0xFF5E6E8C), fontSize: 14),
+                style: const TextStyle(color: Color(0xFF5E6E8C), fontSize: 14),
               ),
               const SizedBox(height: 40),
               CustomGradientButton(
                 text: 'Go to Home',
                 onPressed: () {
+                  // Reset boost state
+                  if (Get.isRegistered<BoostController>()) {
+                    Get.find<BoostController>().resetBoostState();
+                  }
                   Navigator.pushNamedAndRemoveUntil(
                     context,
                     '/home',

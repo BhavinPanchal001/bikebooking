@@ -1,6 +1,7 @@
 import 'package:bikebooking/features/auth/presentation/controllers/login_controller.dart';
 import 'package:bikebooking/features/home/data/models/product_model.dart';
 import 'package:bikebooking/features/home/data/services/notification_dispatch_service.dart';
+import 'package:bikebooking/features/home/data/services/boost_firestore_service.dart';
 import 'package:bikebooking/features/home/data/services/product_firestore_service.dart';
 import 'package:bikebooking/features/home/data/services/recently_viewed_service.dart';
 import 'package:bikebooking/features/home/data/services/seller_action_firestore_service.dart';
@@ -14,10 +15,8 @@ class HomeProductsController extends GetxController {
     SellerActionFirestoreService? sellerActionService,
     LoginController? loginController,
   })  : _firestoreService = firestoreService ?? ProductFirestoreService(),
-        _recentlyViewedService =
-            recentlyViewedService ?? RecentlyViewedService(),
-        _sellerActionService =
-            sellerActionService ?? SellerActionFirestoreService(),
+        _recentlyViewedService = recentlyViewedService ?? RecentlyViewedService(),
+        _sellerActionService = sellerActionService ?? SellerActionFirestoreService(),
         _loginController = loginController ?? Get.find<LoginController>();
 
   final ProductFirestoreService _firestoreService;
@@ -28,8 +27,7 @@ class HomeProductsController extends GetxController {
 
   // ── Recently Viewed ──────────────────────────────────────────────────
   List<ProductModel> _recentlyViewed = [];
-  List<ProductModel> get recentlyViewedProducts =>
-      List.unmodifiable(_recentlyViewed);
+  List<ProductModel> get recentlyViewedProducts => List.unmodifiable(_recentlyViewed);
 
   // ── Just Added ───────────────────────────────────────────────────────
   List<ProductModel> _justAdded = [];
@@ -49,8 +47,7 @@ class HomeProductsController extends GetxController {
     return id.isNotEmpty ? id : null;
   }
 
-  String get userPhotoUrl =>
-      _loginController.currentUserProfile?.photoUrl ?? '';
+  String get userPhotoUrl => _loginController.currentUserProfile?.photoUrl ?? '';
 
   // ── Public API ───────────────────────────────────────────────────────
 
@@ -97,16 +94,14 @@ class HomeProductsController extends GetxController {
         await Get.find<NotificationDispatchService>().dispatchNotification(
           recipientId: product.sellerId,
           title: 'Someone viewed your ad',
-          body:
-              '$viewerName viewed ${product.title.trim().isNotEmpty ? product.title.trim() : 'your listing'}.',
+          body: '$viewerName viewed ${product.title.trim().isNotEmpty ? product.title.trim() : 'your listing'}.',
           type: 'product_view',
           senderId: userId,
           senderName: viewerName,
           senderPhotoUrl: viewer?.photoUrl,
           targetRoute: '/my_listing',
           productId: product.id,
-          documentId:
-              'product_view_${product.id?.trim() ?? 'listing'}_${userId.trim()}',
+          documentId: 'product_view_${product.id?.trim() ?? 'listing'}_${userId.trim()}',
         );
       }
       // Silently refresh recently-viewed in the background.
@@ -127,8 +122,7 @@ class HomeProductsController extends GetxController {
     }
 
     try {
-      final products =
-          await _recentlyViewedService.getRecentProducts(userId, limit: 10);
+      final products = await _recentlyViewedService.getRecentProducts(userId, limit: 10);
       _recentlyViewed = _filterHiddenProducts(products);
     } catch (error, stackTrace) {
       debugPrint('Error loading recently viewed: $error\n$stackTrace');
@@ -141,10 +135,36 @@ class HomeProductsController extends GetxController {
       // getProducts() already orders by createdAt descending.
       final allProducts = await _firestoreService.getProducts();
       final visibleProducts = _filterHiddenProducts(allProducts);
-      _justAdded = visibleProducts.take(10).toList(growable: false);
+
+      // Prioritize currently boosted products at the top.
+      // Also clean up any expired boosts in the background.
+      final boosted = <ProductModel>[];
+      final regular = <ProductModel>[];
+      for (final product in visibleProducts) {
+        if (product.isCurrentlyBoosted) {
+          boosted.add(product);
+        } else {
+          // Clean up stale boost flags in Firestore (fire-and-forget)
+          if (product.isBoosted && product.id != null) {
+            _cleanupExpiredBoost(product.id!);
+          }
+          regular.add(product);
+        }
+      }
+
+      _justAdded = [...boosted, ...regular].take(10).toList(growable: false);
     } catch (error, stackTrace) {
       debugPrint('Error loading just-added: $error\n$stackTrace');
       _justAdded = [];
+    }
+  }
+
+  /// Clears stale boost fields from a product whose boost has expired.
+  Future<void> _cleanupExpiredBoost(String productId) async {
+    try {
+      await BoostFirestoreService().removeExpiredBoost(productId);
+    } catch (e) {
+      debugPrint('Failed to cleanup expired boost for $productId: $e');
     }
   }
 
@@ -167,8 +187,6 @@ class HomeProductsController extends GetxController {
       return products;
     }
 
-    return products
-        .where((product) => !_hiddenUserIds.contains(product.sellerId.trim()))
-        .toList(growable: false);
+    return products.where((product) => !_hiddenUserIds.contains(product.sellerId.trim())).toList(growable: false);
   }
 }

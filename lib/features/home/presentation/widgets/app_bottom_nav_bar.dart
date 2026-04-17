@@ -32,27 +32,50 @@ class AppBottomNavBar extends StatelessWidget {
           fontWeight: FontWeight.bold,
         ),
         unselectedLabelStyle: const TextStyle(fontSize: 11),
-        items: const [
+        items: [
           BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined, size: 24),
-            activeIcon: Icon(Icons.home, size: 24),
+            icon: Image.asset(
+              'assets/images/firstPage.png',
+              width: 22,
+              height: 18,
+              color: currentIndex == 0 ? const Color(0xFF233A66) : Colors.grey.shade400,
+            ),
             label: 'Home',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.storefront_outlined, size: 24),
-            activeIcon: Icon(Icons.storefront_rounded, size: 24),
+            icon: Image.asset(
+              'assets/images/secondPage.png',
+              width: 22,
+              height: 18,
+              color: currentIndex == 1 ? const Color(0xFF233A66) : Colors.grey.shade400,
+            ),
             label: 'Buy',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.add_circle_outline, size: 24),
+            icon: Image.asset(
+              'assets/images/thirdPage.png',
+              width: 22,
+              height: 18,
+              color: currentIndex == 2 ? const Color(0xFF233A66) : Colors.grey.shade400,
+            ),
             label: 'Sell',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.favorite_border, size: 24),
+            icon: Image.asset(
+              'assets/images/forthPage.png',
+              width: 22,
+              height: 18,
+              color: currentIndex == 3 ? const Color(0xFF233A66) : Colors.grey.shade400,
+            ),
             label: 'My Post',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline, size: 24),
+            icon: Image.asset(
+              'assets/images/fifthPage.png',
+              width: 22,
+              height: 18,
+              color: currentIndex == 4 ? const Color(0xFF233A66) : Colors.grey.shade400,
+            ),
             label: 'Profile',
           ),
         ],

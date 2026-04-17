@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "121567378502",
+    "project_id": "bikenest-app",
+    "storage_bucket": "bikenest-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:121567378502:android:1f9d17d4e318f4cc559e47",
+        "android_client_info": {
+          "package_name": "com.bikenest.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBOjWZF-VCYSHksyZ6x3ScJNtZcG_gKMsw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

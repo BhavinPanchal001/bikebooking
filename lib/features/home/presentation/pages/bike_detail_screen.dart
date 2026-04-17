@@ -294,7 +294,42 @@ class _BikeDetailScreenState extends State<BikeDetailScreen> {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    ProductStatusBadge(status: product.status),
+                    Row(
+                      children: [
+                        ProductStatusBadge(status: product.status),
+                        if (product.isCurrentlyBoosted) ...[
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFFFF8C00), Color(0xFFFFA040)],
+                              ),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.bolt,
+                                    size: 14, color: Colors.white),
+                                SizedBox(width: 2),
+                                Text(
+                                  'Boosted',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
                     const SizedBox(height: 12),
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -365,11 +400,9 @@ class _BikeDetailScreenState extends State<BikeDetailScreen> {
 
   Widget _buildMainImage() {
     if (_imageUrls.isEmpty) {
-      return Image.asset(
-        'assets/images/bike.png',
-        fit: BoxFit.contain,
-        errorBuilder: (context, error, stackTrace) => const Icon(
-          Icons.directions_bike,
+      return const Center(
+        child: Icon(
+          Icons.image_outlined,
           size: 100,
           color: Colors.grey,
         ),
