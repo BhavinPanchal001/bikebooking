@@ -67,8 +67,6 @@ function AdminShell() {
         <Topbar
           title={activeItem.label}
           eyebrow={activeItem.eyebrow}
-          source={adminData.source}
-          loading={adminData.loading}
           lastUpdated={adminData.lastUpdated}
           issueCount={adminData.metrics.openReports}
           userEmail={adminAuth.user.email}

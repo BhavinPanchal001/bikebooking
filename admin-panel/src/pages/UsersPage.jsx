@@ -137,17 +137,6 @@ export function UsersPage({ data, adminEmail }) {
           </div>
         }
       >
-        {data.source === 'mock' && !data.loading ? null : (
-          <div className="live-note">
-            <span className={`dot dot-${data.source}`} />
-            {data.loading
-              ? 'Loading live users from Firestore.'
-              : data.source === 'firebase-partial'
-                ? 'User data is live, but some related collections may not be readable.'
-                : 'User cards are reading from the live Firestore users collection.'}
-          </div>
-        )}
-
         <FeedbackBanner tone="error">{actionError}</FeedbackBanner>
         <FeedbackBanner tone="success">{successMessage}</FeedbackBanner>
 
