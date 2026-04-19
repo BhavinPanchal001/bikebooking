@@ -500,10 +500,6 @@ class _MyListingScreenState extends State<MyListingScreen>
           value: _ListingStatusMenuAction.remove,
           child: Text('Remove'),
         ),
-        PopupMenuItem<_ListingStatusMenuAction>(
-          value: _ListingStatusMenuAction.markSold,
-          child: Text('Mark as sold'),
-        ),
       ];
     }
 

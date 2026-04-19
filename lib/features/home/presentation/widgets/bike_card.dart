@@ -51,13 +51,10 @@ class BikeCard extends StatelessWidget {
           children: [
             Stack(
               children: [
-                Padding(
-                  padding: const EdgeInsets.only(top: 35),
-                  child: ClipRRect(
-                    borderRadius:
-                        const BorderRadius.vertical(top: Radius.circular(20)),
-                    child: _buildImage(),
-                  ),
+                ClipRRect(
+                  borderRadius:
+                      const BorderRadius.vertical(top: Radius.circular(20)),
+                  child: _buildImage(),
                 ),
                 Positioned(
                   top: 8,
@@ -65,12 +62,7 @@ class BikeCard extends StatelessWidget {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      ProductStatusBadge(
-                        status: product.status,
-                        compact: true,
-                      ),
                       if (product.isCurrentlyBoosted) ...[
-                        const SizedBox(width: 4),
                         Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 6,
@@ -221,9 +213,9 @@ class BikeCard extends StatelessWidget {
     if (imageUrl.isNotEmpty) {
       return ProductCachedImage(
         imageUrl: imageUrl,
-        height: 85,
+        height: 120,
         width: double.infinity,
-        fit: BoxFit.contain,
+        fit: BoxFit.cover,
         errorBuilder: (_) => _buildImageFallback(),
         placeholderBuilder: (_) => _buildImageFallback(),
       );
@@ -234,10 +226,10 @@ class BikeCard extends StatelessWidget {
 
   Widget _buildImageFallback() {
     return Container(
-      margin: const EdgeInsets.only(top: 0),
-      height: 85,
+      height: 120,
       width: double.infinity,
       alignment: Alignment.center,
+      color: const Color(0xFFF1F4F8),
       child: Icon(
         Icons.image_outlined,
         size: 40,

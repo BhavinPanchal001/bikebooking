@@ -16,6 +16,7 @@ import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class PlaceSuggestion {
   const PlaceSuggestion({
@@ -95,6 +96,9 @@ class LoginController extends GetxController {
   final GetConnect _connect = GetConnect();
 
   static const int _minimumPlaceSearchLength = 2;
+  static const String _prefKeyUserId = 'bikenest_session_user_id';
+  static const String _prefKeyPhoneNumber = 'bikenest_session_phone';
+  static const String _prefKeyHasLocation = 'bikenest_session_has_location';
   bool get _bypassPhoneAuth => GetPlatform.isIOS;
 
   final TextEditingController phoneController = TextEditingController();
@@ -216,18 +220,34 @@ class LoginController extends GetxController {
     try {
       await Future<void>.delayed(const Duration(seconds: 2));
 
+      // Try to restore session from SharedPreferences first.
+      final savedSession = await _restorePersistedSession();
+
       if (_bypassPhoneAuth) {
-        final localUser = currentUserProfile;
+        final localUser = currentUserProfile ?? savedSession;
         if (localUser == null) {
+          await _clearPersistedSession();
           _clearLocalSession();
           Get.offAllNamed('/login');
           return;
         }
 
         phoneNumber = localUser.phoneNumber;
-        _syncProfileControllers(localUser);
+        _setCurrentUserProfile(localUser);
 
-        if (localUser.hasLocation) {
+        // Try to refresh from Firestore (non-blocking on failure).
+        try {
+          final storedUser =
+              await _userFirestoreService.getUserById(localUser.id);
+          if (storedUser != null) {
+            _setCurrentUserProfile(storedUser);
+          }
+        } catch (_) {
+          // Use local data if Firestore is unreachable.
+        }
+
+        final resolvedUser = currentUserProfile ?? localUser;
+        if (resolvedUser.hasLocation) {
           Get.offAllNamed('/home');
           return;
         }
@@ -238,24 +258,59 @@ class LoginController extends GetxController {
 
       final firebaseUser = _authService.currentUser;
       if (firebaseUser == null) {
+        // No Firebase session — check if we have a saved session to recover.
+        if (savedSession != null) {
+          _setCurrentUserProfile(savedSession);
+          phoneNumber = savedSession.phoneNumber;
+          if (savedSession.hasLocation) {
+            Get.offAllNamed('/home');
+            return;
+          }
+          Get.offAllNamed('/select_location');
+          return;
+        }
+
+        await _clearPersistedSession();
         _clearLocalSession();
         Get.offAllNamed('/login');
         return;
       }
 
-      final userProfile = await _ensureUserDocument(
-        firebaseUser,
-        fallbackPhoneNumber: firebaseUser.phoneNumber,
-      );
+      try {
+        final userProfile = await _ensureUserDocument(
+          firebaseUser,
+          fallbackPhoneNumber: firebaseUser.phoneNumber,
+        );
 
-      if (userProfile.hasLocation) {
-        Get.offAllNamed('/home');
-        return;
+        if (userProfile.hasLocation) {
+          Get.offAllNamed('/home');
+          return;
+        }
+
+        Get.offAllNamed('/select_location');
+      } catch (_) {
+        // Firestore failed but Firebase Auth session exists — don't sign out.
+        // Use saved session or navigate to home optimistically.
+        if (savedSession != null) {
+          _setCurrentUserProfile(savedSession);
+          phoneNumber = savedSession.phoneNumber;
+          if (savedSession.hasLocation) {
+            Get.offAllNamed('/home');
+            return;
+          }
+          Get.offAllNamed('/select_location');
+          return;
+        }
+
+        // No saved session and Firestore failed — must re-login.
+        await _safeSignOut();
+        await _clearPersistedSession();
+        _clearLocalSession();
+        Get.offAllNamed('/login');
       }
-
-      Get.offAllNamed('/select_location');
     } catch (_) {
       await _safeSignOut();
+      await _clearPersistedSession();
       _clearLocalSession();
       Get.offAllNamed('/login');
     } finally {
@@ -1314,6 +1369,7 @@ class LoginController extends GetxController {
     currentUserProfile = userProfile;
     phoneNumber = userProfile.phoneNumber;
     _syncProfileControllers(userProfile);
+    unawaited(_persistSession(userProfile));
     if (Get.isRegistered<FavoritesController>()) {
       unawaited(Get.find<FavoritesController>().bindToCurrentUser());
     }
@@ -1413,6 +1469,7 @@ class LoginController extends GetxController {
     registeredMobileNumberController.clear();
     locationSearchController.clear();
     _clearOtpFields();
+    unawaited(_clearPersistedSession());
   }
 
   Future<void> _safeSignOut() async {
@@ -1760,5 +1817,66 @@ class LoginController extends GetxController {
   static String _localUserIdFromPhoneNumber(String phoneNumber) {
     final digitsOnly = phoneNumber.replaceAll(RegExp(r'[^0-9]'), '');
     return 'local_$digitsOnly';
+  }
+
+  // ── Session persistence ──────────────────────────────────────────────
+
+  Future<void> _persistSession(AppUserModel user) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_prefKeyUserId, user.id);
+      await prefs.setString(_prefKeyPhoneNumber, user.phoneNumber);
+      await prefs.setBool(_prefKeyHasLocation, user.hasLocation);
+    } catch (_) {
+      // Non-critical — worst case the user will need to log in again.
+    }
+  }
+
+  Future<AppUserModel?> _restorePersistedSession() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userId = prefs.getString(_prefKeyUserId)?.trim() ?? '';
+      final phone = prefs.getString(_prefKeyPhoneNumber)?.trim() ?? '';
+      if (userId.isEmpty || phone.isEmpty) {
+        return null;
+      }
+
+      // Try to load the full profile from Firestore.
+      try {
+        final firestoreUser =
+            await _userFirestoreService.getUserById(userId);
+        if (firestoreUser != null) {
+          return firestoreUser;
+        }
+      } catch (_) {
+        // Firestore unavailable — build a minimal model from prefs.
+      }
+
+      final hasLocation = prefs.getBool(_prefKeyHasLocation) ?? false;
+      return AppUserModel(
+        id: userId,
+        phoneNumber: phone,
+        location: hasLocation
+            ? const UserLocationModel(
+                address: 'Saved Location',
+                latitude: 1,
+                longitude: 1,
+              )
+            : null,
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _clearPersistedSession() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_prefKeyUserId);
+      await prefs.remove(_prefKeyPhoneNumber);
+      await prefs.remove(_prefKeyHasLocation);
+    } catch (_) {
+      // Non-critical.
+    }
   }
 }

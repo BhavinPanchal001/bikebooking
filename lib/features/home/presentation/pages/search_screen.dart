@@ -5,8 +5,7 @@ import 'package:bikebooking/core/widgets/product_cached_image.dart';
 import 'package:bikebooking/features/auth/presentation/controllers/login_controller.dart';
 import 'package:bikebooking/features/home/data/models/product_model.dart';
 import 'package:bikebooking/features/home/presentation/controllers/favorites_controller.dart';
-import 'package:bikebooking/features/home/presentation/controllers/search_controller.dart'
-    as home_search;
+import 'package:bikebooking/features/home/presentation/controllers/search_controller.dart' as home_search;
 import 'package:bikebooking/features/home/presentation/widgets/bike_card.dart';
 import 'package:bikebooking/features/home/presentation/widgets/product_status_badge.dart';
 import 'package:flutter/material.dart';
@@ -44,8 +43,7 @@ class _SearchScreenState extends State<SearchScreen> {
 
   @override
   void dispose() {
-    if (_ownsSearchController &&
-        Get.isRegistered<home_search.SearchController>()) {
+    if (_ownsSearchController && Get.isRegistered<home_search.SearchController>()) {
       Get.delete<home_search.SearchController>();
     }
     super.dispose();
@@ -120,8 +118,7 @@ class _SearchScreenState extends State<SearchScreen> {
                                 : null,
                             filled: true,
                             fillColor: const Color(0xFFF1F4F8),
-                            contentPadding:
-                                const EdgeInsets.symmetric(vertical: 12),
+                            contentPadding: const EdgeInsets.symmetric(vertical: 12),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                               borderSide: BorderSide.none,
@@ -254,8 +251,7 @@ class _SearchScreenState extends State<SearchScreen> {
   ) {
     return GetBuilder<LoginController>(
       builder: (loginController) {
-        final selectedLocation =
-            loginController.currentUserProfile?.location?.address.trim() ?? '';
+        final selectedLocation = loginController.currentUserProfile?.location?.address.trim() ?? '';
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -264,15 +260,11 @@ class _SearchScreenState extends State<SearchScreen> {
                 Expanded(
                   child: _buildLocationButton(
                     icon: Icons.my_location,
-                    label: loginController.isFetchingCurrentLocation
-                        ? 'Detecting...'
-                        : 'Use Current Location',
-                    onTap: loginController.isFetchingCurrentLocation ||
-                            loginController.isSavingLocation
+                    label: loginController.isFetchingCurrentLocation ? 'Detecting...' : 'Use Current Location',
+                    onTap: loginController.isFetchingCurrentLocation || loginController.isSavingLocation
                         ? null
                         : () async {
-                            final location =
-                                await loginController.useCurrentLocation(
+                            final location = await loginController.useCurrentLocation(
                               navigateToHome: false,
                               showSuccessSnackbar: true,
                             );
@@ -286,9 +278,7 @@ class _SearchScreenState extends State<SearchScreen> {
                 Expanded(
                   child: _buildLocationButton(
                     icon: Icons.add_circle_outline,
-                    label: loginController.isSavingLocation
-                        ? 'Saving...'
-                        : 'Add New Address',
+                    label: loginController.isSavingLocation ? 'Saving...' : 'Add New Address',
                     onTap: loginController.isSavingLocation
                         ? null
                         : () async {
@@ -331,8 +321,7 @@ class _SearchScreenState extends State<SearchScreen> {
         context,
         icon: Icons.search_off_outlined,
         title: 'No products found',
-        message:
-            'Try a different name, brand, location, or category to find more matches.',
+        message: 'Try a different name, brand, location, or category to find more matches.',
         actionLabel: 'Clear search',
         onAction: controller.clearSearch,
       );
@@ -437,11 +426,9 @@ class _SearchScreenState extends State<SearchScreen> {
                         const SizedBox(width: 8),
                         GetBuilder<FavoritesController>(
                           builder: (favoritesController) {
-                            final isFavorite =
-                                favoritesController.isFavorite(product);
+                            final isFavorite = favoritesController.isFavorite(product);
                             return GestureDetector(
-                              onTap: () =>
-                                  _favoritesController.toggleFavorite(product),
+                              onTap: () => _favoritesController.toggleFavorite(product),
                               child: Container(
                                 padding: const EdgeInsets.all(7),
                                 decoration: const BoxDecoration(
@@ -449,12 +436,8 @@ class _SearchScreenState extends State<SearchScreen> {
                                   shape: BoxShape.circle,
                                 ),
                                 child: Icon(
-                                  isFavorite
-                                      ? Icons.favorite
-                                      : Icons.favorite_border,
-                                  color: isFavorite
-                                      ? Colors.red
-                                      : const Color(0xFF5E6E8C),
+                                  isFavorite ? Icons.favorite : Icons.favorite_border,
+                                  color: isFavorite ? Colors.red : const Color(0xFF5E6E8C),
                                   size: 18,
                                 ),
                               ),
@@ -464,21 +447,11 @@ class _SearchScreenState extends State<SearchScreen> {
                       ],
                     ),
                     const SizedBox(height: 8),
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: ProductStatusBadge(
-                        status: product.status,
-                        compact: true,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
                     if (tags.isNotEmpty)
                       Wrap(
                         spacing: 6,
                         runSpacing: 6,
-                        children: tags
-                            .map((tag) => _buildInfoTag(tag))
-                            .toList(growable: false),
+                        children: tags.map((tag) => _buildInfoTag(tag)).toList(growable: false),
                       ),
                     if (tags.isNotEmpty) const SizedBox(height: 8),
                     Row(

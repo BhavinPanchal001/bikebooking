@@ -1,0 +1,50 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Helper functions ──────────────────────────────────────────────────────
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(sellerId) {
+      return isSignedIn() && request.auth.uid == sellerId;
+    }
+
+    // ── products ─────────────────────────────────────────────────────────────
+    match /products/{productId} {
+      // Anyone (even unauthenticated) can read products
+      allow read: if true;
+
+      // Only authenticated users can create their own products
+      allow create: if isSignedIn()
+                    && request.resource.data.sellerId == request.auth.uid;
+
+      // Only the seller can update or delete their own product
+      allow update: if isOwner(resource.data.sellerId);
+      allow delete: if isOwner(resource.data.sellerId);
+    }
+
+    // ── users ─────────────────────────────────────────────────────────────────
+    match /users/{userId} {
+      allow read: if true;
+      allow write: if isSignedIn() && request.auth.uid == userId;
+    }
+
+    // ── seller_reviews ────────────────────────────────────────────────────────
+    match /seller_reviews/{reviewId} {
+      allow read: if true;
+      allow create: if isSignedIn();
+      allow update, delete: if isSignedIn()
+                            && request.auth.uid == resource.data.reviewerId;
+    }
+
+    // ── boosts / subscriptions ────────────────────────────────────────────────
+    match /boosts/{boostId} {
+      allow read: if isSignedIn() && request.auth.uid == resource.data.sellerId;
+      allow create: if isSignedIn()
+                    && request.resource.data.sellerId == request.auth.uid;
+      allow update, delete: if isOwner(resource.data.sellerId);
+    }
+  }
+}

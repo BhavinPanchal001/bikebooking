@@ -138,19 +138,23 @@ class MyListingController extends GetxController {
         final body = normalizedStatus == ProductStatus.sold
             ? 'Your listing "${existingProduct.title}" is now marked as sold.'
             : 'Your listing "${existingProduct.title}" is active again.';
-        await Get.find<NotificationDispatchService>().dispatchNotification(
-          recipientId: _resolveCurrentSellerId(),
-          title: title,
-          body: body,
-          type: 'listing_update',
-          senderId: seller?.id,
-          senderName: seller?.displayName ?? 'Bikebooking',
-          senderPhotoUrl: seller?.photoUrl,
-          targetRoute: '/my_listing',
-          productId: existingProduct.id,
-          documentId: 'listing_update_${productId}_$normalizedStatus',
-          allowSelfNotification: true,
-        );
+        try {
+          await Get.find<NotificationDispatchService>().dispatchNotification(
+            recipientId: _resolveCurrentSellerId(),
+            title: title,
+            body: body,
+            type: 'listing_update',
+            senderId: seller?.id,
+            senderName: seller?.displayName ?? 'Bikebooking',
+            senderPhotoUrl: seller?.photoUrl,
+            targetRoute: '/my_listing',
+            productId: existingProduct.id,
+            documentId: 'listing_update_${productId}_$normalizedStatus',
+            allowSelfNotification: true,
+          );
+        } catch (notificationError) {
+          debugPrint('Notification dispatch failed (non-fatal): $notificationError');
+        }
       }
       return true;
     } on FirebaseException catch (error, stackTrace) {

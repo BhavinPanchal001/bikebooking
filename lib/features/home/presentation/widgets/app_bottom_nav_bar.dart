@@ -61,10 +61,9 @@ class AppBottomNavBar extends StatelessWidget {
             label: 'Sell',
           ),
           BottomNavigationBarItem(
-            icon: Image.asset(
-              'assets/images/forthPage.png',
-              width: 22,
-              height: 18,
+            icon: Icon(
+              currentIndex == 3 ? Icons.article : Icons.article_outlined,
+              size: 20,
               color: currentIndex == 3 ? const Color(0xFF233A66) : Colors.grey.shade400,
             ),
             label: 'My Post',

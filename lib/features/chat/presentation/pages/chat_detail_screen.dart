@@ -1,4 +1,5 @@
 import 'package:bikebooking/core/constants/global.dart';
+import 'package:bikebooking/core/widgets/app_snackbar.dart';
 import 'package:bikebooking/core/widgets/custom_button.dart';
 import 'package:bikebooking/core/widgets/product_cached_image.dart';
 import 'package:bikebooking/features/auth/presentation/controllers/login_controller.dart';
@@ -981,13 +982,10 @@ class _ReportBottomSheetState extends State<_ReportBottomSheet> {
               text: 'Submit',
               onPressed: () {
                 Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text(
-                      'Report submitted successfully',
-                      textScaler: TextScaler.noScaling,
-                    ),
-                  ),
+                AppSnackbar.show(
+                  title: 'Report Submitted',
+                  message: 'Thanks. Our team will review this report.',
+                  backgroundColor: const Color(0xFF2E7D32),
                 );
               },
             ),
