@@ -1,36 +1,6 @@
 import { NavLink } from 'react-router-dom';
 
-function getSidebarStatus(source, loading) {
-  if (loading) {
-    return {
-      title: 'Refreshing feed',
-      body: 'Pulling the latest admin data from the workspace.',
-    };
-  }
-
-  if (source === 'firebase') {
-    return {
-      title: 'Live Firestore',
-      body: 'Users, listings, and reports are loading from the project database.',
-    };
-  }
-
-  if (source === 'firebase-partial') {
-    return {
-      title: 'Partial Firestore',
-      body: 'Some collections failed, but the panel is showing what it could read.',
-    };
-  }
-
-  return {
-    title: 'Demo workspace',
-    body: 'Using mock data because Firestore is not connected.',
-  };
-}
-
-export function Sidebar({ items, activePath, source, loading, isCollapsed, onToggle }) {
-  const status = getSidebarStatus(source, loading);
-
+export function Sidebar({ items, activePath, isCollapsed, onToggle }) {
   return (
     <aside className={`sidebar ${isCollapsed ? 'is-collapsed' : ''}`}>
       <button
@@ -65,14 +35,6 @@ export function Sidebar({ items, activePath, source, loading, isCollapsed, onTog
           </NavLink>
         ))}
       </nav>
-
-      {!isCollapsed && (
-        <div className="sidebar-note">
-          <span className="sidebar-note-label">Control room</span>
-          <strong>{status.title}</strong>
-          <p>{status.body}</p>
-        </div>
-      )}
     </aside>
   );
 }
