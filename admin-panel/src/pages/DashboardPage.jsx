@@ -1,26 +1,107 @@
-import { Link } from 'react-router-dom';
+import { useMemo } from 'react';
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
 import { PanelCard } from '../components/PanelCard';
 import { StatCard } from '../components/StatCard';
-import { formatCompactNumber, formatCurrency, formatDateTime } from '../utils/format';
+import { formatCompactNumber, formatCurrency } from '../utils/format';
+
+const DAY_WINDOW = 14;
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+const CHART_COLORS = {
+  primary: '#10233f',
+  accent: '#df6f3e',
+  success: '#2f7a5c',
+  warning: '#ad5b2f',
+  muted: '#8a97ab',
+};
+
+const STATUS_COLORS = {
+  active: CHART_COLORS.success,
+  sold: CHART_COLORS.primary,
+  flagged: CHART_COLORS.warning,
+  pending: CHART_COLORS.accent,
+  closed: CHART_COLORS.muted,
+};
+
+function startOfDay(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+  date.setHours(0, 0, 0, 0);
+  return date.getTime();
+}
+
+function formatDayLabel(timestamp) {
+  return new Date(timestamp).toLocaleDateString(undefined, {
+    day: '2-digit',
+    month: 'short',
+  });
+}
+
+function buildDailySeries(items, dateKey) {
+  const today = startOfDay(Date.now());
+  const counts = new Map();
+  for (let offset = DAY_WINDOW - 1; offset >= 0; offset -= 1) {
+    counts.set(today - offset * DAY_MS, 0);
+  }
+
+  for (const item of items) {
+    const day = startOfDay(item?.[dateKey]);
+    if (day == null || !counts.has(day)) {
+      continue;
+    }
+    counts.set(day, counts.get(day) + 1);
+  }
+
+  return Array.from(counts.entries()).map(([timestamp, count]) => ({
+    timestamp,
+    label: formatDayLabel(timestamp),
+    count,
+  }));
+}
+
+function buildStatusBreakdown(listings) {
+  const counts = new Map();
+  for (const listing of listings) {
+    const status = listing.moderationStatus || listing.status || 'active';
+    counts.set(status, (counts.get(status) ?? 0) + 1);
+  }
+  return Array.from(counts.entries()).map(([label, value]) => ({
+    label,
+    value,
+    color: STATUS_COLORS[label] ?? CHART_COLORS.muted,
+  }));
+}
 
 export function DashboardPage({ data }) {
-  const queue = data.listings.filter(
-    (listing) => listing.moderationStatus === 'flagged' || listing.moderationStatus === 'closed',
+  const registrationSeries = useMemo(
+    () => buildDailySeries(data.users, 'joinedAt'),
+    [data.users],
   );
+  const listingSeries = useMemo(
+    () => buildDailySeries(data.listings, 'createdAt'),
+    [data.listings],
+  );
+  const statusBreakdown = useMemo(
+    () => buildStatusBreakdown(data.listings),
+    [data.listings],
+  );
+  const statusTotal = statusBreakdown.reduce((sum, item) => sum + item.value, 0);
 
   return (
     <div className="page-stack">
-      <section className="hero-card">
-        <div>
-          <span className="hero-kicker">Marketplace control room</span>
-          <h1>Keep BikeBooking fast, trusted, and seller-friendly.</h1>
-          <p>
-            This admin workspace mirrors your Flutter marketplace with live-ready sections for
-            listings, users, seller safety, and operational conversations.
-          </p>
-        </div>
-      </section >
-
       <section className="stats-grid">
         <StatCard
           label="Registered users"
@@ -52,98 +133,182 @@ export function DashboardPage({ data }) {
         />
       </section>
 
-      <section className="content-grid">
+      <section className="content-grid content-grid-equal">
         <PanelCard
-          title="Listings needing follow-up"
-          subtitle="Newest listings that are flagged or closed."
+          title="New registrations"
+          subtitle={`Users joined per day — last ${DAY_WINDOW} days.`}
         >
-          <div className="list-stack">
-            {queue.length > 0 ? (
-              queue.slice(0, 5).map((listing) => (
-                <Link key={listing.id} to={`/listings/${listing.id}`} className="list-row">
-                  <div>
-                    <strong>{listing.title}</strong>
-                    <p>
-                      {listing.sellerName} · {listing.location}
-                    </p>
-                  </div>
-                  <div className="list-row-meta">
-                    <span className={`status-pill status-${listing.moderationStatus}`}>
-                      {listing.moderationStatus}
-                    </span>
-                    <small>{formatDateTime(listing.createdAt)}</small>
-                  </div>
-                </Link>
-              ))
-            ) : (
-              <div className="empty-state">No listings currently need moderation.</div>
-            )}
+          <div className="chart-frame">
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart
+                data={registrationSeries}
+                margin={{ top: 8, right: 8, left: -16, bottom: 0 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(16,35,63,0.08)" vertical={false} />
+                <XAxis
+                  dataKey="label"
+                  tick={{ fill: CHART_COLORS.muted, fontSize: 11 }}
+                  tickLine={false}
+                  axisLine={{ stroke: 'rgba(16,35,63,0.15)' }}
+                  interval={1}
+                />
+                <YAxis
+                  tick={{ fill: CHART_COLORS.muted, fontSize: 11 }}
+                  tickLine={false}
+                  axisLine={false}
+                  allowDecimals={false}
+                />
+                <Tooltip
+                  cursor={{ fill: 'rgba(223, 111, 62, 0.08)' }}
+                  contentStyle={{
+                    background: '#fffaf4',
+                    border: '1px solid rgba(16,35,63,0.1)',
+                    borderRadius: 12,
+                    fontSize: 12,
+                  }}
+                  formatter={(value) => [`${value} users`, 'Registered']}
+                  labelFormatter={(label) => `On ${label}`}
+                />
+                <Bar dataKey="count" fill={CHART_COLORS.accent} radius={[6, 6, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
           </div>
         </PanelCard>
 
         <PanelCard
-          title="Category pulse"
-          subtitle="Where supply is strongest right now."
+          title="New listings"
+          subtitle={`Listings created per day — last ${DAY_WINDOW} days.`}
         >
-          <div className="bar-stack">
-            {data.categoryBreakdown.length > 0 ? (
-              data.categoryBreakdown.map((item) => (
-                <div key={item.label} className="bar-row">
-                  <div className="bar-label-line">
-                    <span>{item.label}</span>
-                    <strong>{item.count}</strong>
-                  </div>
-                  <div className="bar-track">
-                    <div
-                      className="bar-fill"
-                      style={{ width: `${(item.count / Math.max(data.listings.length, 1)) * 100}%` }}
+          <div className="chart-frame">
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart
+                data={listingSeries}
+                margin={{ top: 8, right: 8, left: -16, bottom: 0 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(16,35,63,0.08)" vertical={false} />
+                <XAxis
+                  dataKey="label"
+                  tick={{ fill: CHART_COLORS.muted, fontSize: 11 }}
+                  tickLine={false}
+                  axisLine={{ stroke: 'rgba(16,35,63,0.15)' }}
+                  interval={1}
+                />
+                <YAxis
+                  tick={{ fill: CHART_COLORS.muted, fontSize: 11 }}
+                  tickLine={false}
+                  axisLine={false}
+                  allowDecimals={false}
+                />
+                <Tooltip
+                  cursor={{ fill: 'rgba(47, 122, 92, 0.08)' }}
+                  contentStyle={{
+                    background: '#fffaf4',
+                    border: '1px solid rgba(16,35,63,0.1)',
+                    borderRadius: 12,
+                    fontSize: 12,
+                  }}
+                  formatter={(value) => [`${value} listings`, 'Created']}
+                  labelFormatter={(label) => `On ${label}`}
+                />
+                <Bar dataKey="count" fill={CHART_COLORS.success} radius={[6, 6, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </PanelCard>
+      </section>
+
+      <section className="content-grid content-grid-equal">
+        <PanelCard
+          title="Listing status mix"
+          subtitle="How inventory is distributed across moderation states."
+        >
+          <div className="chart-frame chart-frame-split">
+            {statusTotal > 0 ? (
+              <>
+                <ResponsiveContainer width="60%" height={240}>
+                  <PieChart>
+                    <Pie
+                      data={statusBreakdown}
+                      dataKey="value"
+                      nameKey="label"
+                      innerRadius={55}
+                      outerRadius={90}
+                      paddingAngle={2}
+                      stroke="none"
+                    >
+                      {statusBreakdown.map((entry) => (
+                        <Cell key={entry.label} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      contentStyle={{
+                        background: '#fffaf4',
+                        border: '1px solid rgba(16,35,63,0.1)',
+                        borderRadius: 12,
+                        fontSize: 12,
+                      }}
+                      formatter={(value, name) => [`${value} listings`, name]}
                     />
-                  </div>
-                </div>
-              ))
+                  </PieChart>
+                </ResponsiveContainer>
+                <ul className="chart-legend">
+                  {statusBreakdown.map((entry) => (
+                    <li key={entry.label}>
+                      <span className="legend-dot" style={{ background: entry.color }} />
+                      <span className="legend-label">{entry.label}</span>
+                      <strong>{entry.value}</strong>
+                    </li>
+                  ))}
+                </ul>
+              </>
             ) : (
-              <div className="empty-state">No category data available yet.</div>
+              <div className="empty-state">No listings available to chart yet.</div>
             )}
           </div>
         </PanelCard>
 
         <PanelCard
-          title="Top brands"
-          subtitle="Most represented inventory in the marketplace."
+          title="Activity volume"
+          subtitle="Total items across inventory, reports, chats, and notifications."
         >
-          <div className="chip-grid">
-            {data.brandLeaders.length > 0 ? (
-              data.brandLeaders.map((brand) => (
-                <div key={brand.label} className="metric-chip">
-                  <span>{brand.label}</span>
-                  <strong>{brand.count} listings</strong>
-                </div>
-              ))
-            ) : (
-              <div className="empty-state">No brand distribution available yet.</div>
-            )}
-          </div>
-        </PanelCard>
-
-        <PanelCard
-          title="Recent activity"
-          subtitle="A quick feed from listings, reports, chats, and notifications."
-        >
-          <div className="activity-feed">
-            {data.recentActivity.length > 0 ? (
-              data.recentActivity.map((item) => (
-                <div key={item.id} className="activity-item">
-                  <span className="activity-type">{item.type}</span>
-                  <div>
-                    <strong>{item.title}</strong>
-                    <p>{item.meta}</p>
-                  </div>
-                  <small>{formatDateTime(item.timestamp)}</small>
-                </div>
-              ))
-            ) : (
-              <div className="empty-state">No recent activity found yet.</div>
-            )}
+          <div className="chart-frame">
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart
+                data={[
+                  { label: 'Users', count: data.users.length },
+                  { label: 'Listings', count: data.listings.length },
+                  { label: 'Reports', count: data.reports.length },
+                  { label: 'Chats', count: data.conversations.length },
+                  { label: 'Reviews', count: data.reviews.length },
+                  { label: 'Notifications', count: data.notifications.length },
+                ]}
+                margin={{ top: 8, right: 8, left: -16, bottom: 0 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(16,35,63,0.08)" vertical={false} />
+                <XAxis
+                  dataKey="label"
+                  tick={{ fill: CHART_COLORS.muted, fontSize: 11 }}
+                  tickLine={false}
+                  axisLine={{ stroke: 'rgba(16,35,63,0.15)' }}
+                />
+                <YAxis
+                  tick={{ fill: CHART_COLORS.muted, fontSize: 11 }}
+                  tickLine={false}
+                  axisLine={false}
+                  allowDecimals={false}
+                />
+                <Tooltip
+                  cursor={{ fill: 'rgba(16, 35, 63, 0.06)' }}
+                  contentStyle={{
+                    background: '#fffaf4',
+                    border: '1px solid rgba(16,35,63,0.1)',
+                    borderRadius: 12,
+                    fontSize: 12,
+                  }}
+                />
+                <Bar dataKey="count" fill={CHART_COLORS.primary} radius={[6, 6, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
           </div>
         </PanelCard>
       </section>

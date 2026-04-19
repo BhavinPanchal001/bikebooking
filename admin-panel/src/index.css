@@ -432,6 +432,58 @@ a {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.chart-frame {
+  width: 100%;
+  padding-top: 6px;
+}
+
+.chart-frame-split {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.chart-legend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+
+.chart-legend li {
+  display: grid;
+  grid-template-columns: 10px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.9rem;
+}
+
+.chart-legend .legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.chart-legend .legend-label {
+  text-transform: capitalize;
+  color: var(--muted);
+}
+
+.chart-legend strong {
+  color: var(--text);
+  font-weight: 700;
+}
+
+@media (max-width: 640px) {
+  .chart-frame-split {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
 .panel-card {
   padding: 22px;
   border-radius: 30px;
