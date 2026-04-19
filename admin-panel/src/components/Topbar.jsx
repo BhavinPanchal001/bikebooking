@@ -18,16 +18,16 @@ export function Topbar({
       </div>
 
       <div className="topbar-meta">
-        <div className="source-pill">
-          <span className={`dot dot-${source}`} />
-          {loading
-            ? 'Refreshing feed'
-            : source === 'firebase'
-              ? 'Firebase data'
+        {source === 'mock' ? null : (
+          <div className="source-pill">
+            <span className={`dot dot-${source}`} />
+            {loading
+              ? 'Refreshing feed'
               : source === 'firebase-partial'
                 ? 'Partial Firebase data'
-                : 'Demo data'}
-        </div>
+                : 'Live data'}
+          </div>
+        )}
         <div className="mini-stat">
           <span>Open issues</span>
           <strong>{issueCount}</strong>
