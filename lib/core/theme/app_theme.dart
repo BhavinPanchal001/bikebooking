@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../constants/global.dart';
 
@@ -21,6 +22,14 @@ class AppTheme {
       colorScheme: ColorScheme.fromSeed(seedColor: AppColors.primary),
       useMaterial3: true,
       scaffoldBackgroundColor: const Color(0xFFF9FBFF),
+      appBarTheme: const AppBarTheme(
+        systemOverlayStyle: SystemUiOverlayStyle(
+          statusBarColor: Colors.black,
+          statusBarIconBrightness: Brightness.light,
+          statusBarBrightness: Brightness.dark,
+        ),
+        surfaceTintColor: Colors.transparent,
+      ),
       snackBarTheme: SnackBarThemeData(
         contentTextStyle: GoogleFonts.poppins(
           fontSize: 13,

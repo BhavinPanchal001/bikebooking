@@ -16,6 +16,29 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  static const List<_HomeCategoryConfig> _topCategories = <_HomeCategoryConfig>[
+    _HomeCategoryConfig(
+      title: 'Bikes',
+      imagePath: 'assets/images/Group 1171278014.png',
+      backgroundColor: Color(0xFFD4E7C5),
+    ),
+    _HomeCategoryConfig(
+      title: 'Scooter',
+      imagePath: 'assets/images/Group 1171278015.png',
+      backgroundColor: Color(0xFFFFD1A5),
+    ),
+    _HomeCategoryConfig(
+      title: 'Accessories',
+      imagePath: 'assets/images/Group 1171278016.png',
+      backgroundColor: Color(0xFFC9C9EB),
+    ),
+    _HomeCategoryConfig(
+      title: 'Spare Parts',
+      imagePath: 'assets/images/Group 1171278017.png',
+      backgroundColor: Color(0xFFB9E5F3),
+    ),
+  ];
+
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   late final HomeProductsController _homeController;
   late final NotificationsController _notificationsController;
@@ -93,29 +116,31 @@ class _HomePageState extends State<HomePage> {
                             // Top Categories
                             _buildSectionHeader('Top Categories'),
                             const SizedBox(height: 12),
-                            SingleChildScrollView(
-                              scrollDirection: Axis.horizontal,
-                              physics: const BouncingScrollPhysics(),
-                              child: Row(
-                                children: [
-                                  _buildCategoryItem(
-                                      'Bikes', 'assets/images/Group 1171278014.png', const Color(0xFFD4E7C5)),
-                                  _buildCategoryItem(
-                                      'Scooter', 'assets/images/Group 1171278015.png', const Color(0xFFFFD1A5)),
-                                  _buildCategoryItem(
-                                      'Accessories', 'assets/images/Group 1171278016.png', const Color(0xFFC9C9EB)),
-                                  _buildCategoryItem(
-                                      'Spare Parts', 'assets/images/Group 1171278017.png', const Color(0xFFB9E5F3)),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                for (var index = 0;
+                                    index < _topCategories.length;
+                                    index++) ...[
+                                  Expanded(
+                                    child: _buildCategoryItem(
+                                      _topCategories[index],
+                                    ),
+                                  ),
+                                  if (index != _topCategories.length - 1)
+                                    const SizedBox(width: 10),
                                 ],
-                              ),
+                              ],
                             ),
                             const SizedBox(height: 24),
 
                             // Recently Viewed Items
-                            if (controller.recentlyViewedProducts.isNotEmpty) ...[
+                            if (controller
+                                .recentlyViewedProducts.isNotEmpty) ...[
                               _buildSectionHeader(
                                 'Recently Viewed Items',
-                                onViewAll: () => Navigator.pushNamed(context, '/filter_result'),
+                                onViewAll: () => Navigator.pushNamed(
+                                    context, '/filter_result'),
                               ),
                               const SizedBox(height: 12),
                               SingleChildScrollView(
@@ -142,7 +167,8 @@ class _HomePageState extends State<HomePage> {
                             // Just Added
                             _buildSectionHeader(
                               'Just Added',
-                              onViewAll: () => Navigator.pushNamed(context, '/filter_result'),
+                              onViewAll: () => Navigator.pushNamed(
+                                  context, '/filter_result'),
                             ),
                             const SizedBox(height: 12),
                             if (controller.justAddedProducts.isEmpty)
@@ -217,9 +243,11 @@ class _HomePageState extends State<HomePage> {
               // Bikenest Logo
               Row(
                 children: [
-                  Image.asset('assets/images/homebike.png', height: 25, width: 25),
+                  Image.asset('assets/images/homebike.png',
+                      height: 25, width: 25),
                   const SizedBox(width: 1),
-                  Image.asset('assets/images/bokenestimage.png', height: 30, width: 100),
+                  Image.asset('assets/images/bokenestimage.png',
+                      height: 30, width: 100),
                 ],
               ),
               const Spacer(),
@@ -252,7 +280,9 @@ class _HomePageState extends State<HomePage> {
                                 minHeight: 16,
                               ),
                               child: Text(
-                                notifController.unreadCount > 99 ? '99+' : '${notifController.unreadCount}',
+                                notifController.unreadCount > 99
+                                    ? '99+'
+                                    : '${notifController.unreadCount}',
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 9,
@@ -270,12 +300,14 @@ class _HomePageState extends State<HomePage> {
               const SizedBox(width: 12),
               GestureDetector(
                 onTap: () => Navigator.pushNamed(context, '/messages'),
-                child: Image.asset('assets/images/Vector (1).png', height: 20, width: 20),
+                child: Image.asset('assets/images/Vector (1).png',
+                    height: 20, width: 20),
               ),
               const SizedBox(width: 12),
               GestureDetector(
                 onTap: () => Navigator.pushNamed(context, '/favorites'),
-                child: Image.asset('assets/images/Vector (2).png', height: 20, width: 20),
+                child: Image.asset('assets/images/Vector (2).png',
+                    height: 20, width: 20),
               ),
               const SizedBox(width: 12),
 
@@ -284,7 +316,8 @@ class _HomePageState extends State<HomePage> {
                 onTap: () => Navigator.pushNamed(context, '/profile_overview'),
                 child: GetBuilder<LoginController>(
                   builder: (loginController) {
-                    final photoUrl = loginController.currentUserProfile?.photoUrl ?? '';
+                    final photoUrl =
+                        loginController.currentUserProfile?.photoUrl ?? '';
                     return Container(
                       height: 34,
                       width: 34,
@@ -298,7 +331,8 @@ class _HomePageState extends State<HomePage> {
                             ? Image.network(
                                 photoUrl,
                                 fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => _buildDefaultAvatar(loginController),
+                                errorBuilder: (_, __, ___) =>
+                                    _buildDefaultAvatar(loginController),
                               )
                             : _buildDefaultAvatar(loginController),
                       ),
@@ -367,7 +401,8 @@ class _HomePageState extends State<HomePage> {
   Widget _buildPromoBanner() {
     return ClipRRect(
       borderRadius: BorderRadius.circular(16),
-      child: Image.asset('assets/images/Group 1171278220.png', fit: BoxFit.cover),
+      child:
+          Image.asset('assets/images/Group 1171278220.png', fit: BoxFit.cover),
     );
   }
 
@@ -392,44 +427,72 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildCategoryItem(String title, String imagePath, Color bgColor) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 10),
-      child: GestureDetector(
-        onTap: () {
-          if (title == 'Bikes' || title == 'Scooter') {
-            Navigator.pushNamed(
-              context,
-              '/select_category',
-              arguments: title,
-            );
-          } else if (title == 'Accessories' || title == 'Spare Parts') {
-            Navigator.pushNamed(context, '/filter_result', arguments: title);
-          } else {
-            Navigator.pushNamed(
-              context,
-              '/select_category',
-              arguments: 'Bikes',
-            );
-          }
-        },
-        child: Column(
-          children: [
-            SizedBox(
-              width: 80,
-              height: 90,
-              child: Center(
+  Widget _buildCategoryItem(_HomeCategoryConfig category) {
+    return GestureDetector(
+      onTap: () {
+        if (category.title == 'Bikes' || category.title == 'Scooter') {
+          Navigator.pushNamed(
+            context,
+            '/select_category',
+            arguments: category.title,
+          );
+        } else if (category.title == 'Accessories' ||
+            category.title == 'Spare Parts') {
+          Navigator.pushNamed(
+            context,
+            '/filter_result',
+            arguments: category.title,
+          );
+        } else {
+          Navigator.pushNamed(
+            context,
+            '/select_category',
+            arguments: 'Bikes',
+          );
+        }
+      },
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          AspectRatio(
+            aspectRatio: 249 / 288,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: category.backgroundColor,
+                borderRadius: BorderRadius.circular(18),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF101828).withOpacity(0.06),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(18),
                 child: Image.asset(
-                  imagePath,
-                  height: 110,
-                  fit: BoxFit.contain,
+                  category.imagePath,
+                  fit: BoxFit.cover,
+                  filterQuality: FilterQuality.high,
                 ),
               ),
             ),
-            const SizedBox(height: 8),
-            Text(title, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF262A36))),
-          ],
-        ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            category.title,
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF262A36),
+              height: 1.2,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -472,4 +535,16 @@ class _HomePageState extends State<HomePage> {
       ),
     );
   }
+}
+
+class _HomeCategoryConfig {
+  const _HomeCategoryConfig({
+    required this.title,
+    required this.imagePath,
+    required this.backgroundColor,
+  });
+
+  final String title;
+  final String imagePath;
+  final Color backgroundColor;
 }

@@ -60,12 +60,41 @@ Future<void> main() async {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
+  static const SystemUiOverlayStyle _systemUiOverlayStyle =
+      SystemUiOverlayStyle(
+        statusBarColor: Colors.black,
+        statusBarIconBrightness: Brightness.light,
+        statusBarBrightness: Brightness.dark,
+      );
+
   @override
   Widget build(BuildContext context) {
     return GetMaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Bikenest',
       theme: AppTheme.lightTheme,
+      builder: (context, child) {
+        final topInset = MediaQuery.of(context).padding.top;
+        return AnnotatedRegion<SystemUiOverlayStyle>(
+          value: _systemUiOverlayStyle,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              child ?? const SizedBox.shrink(),
+              if (topInset > 0)
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  height: topInset,
+                  child: const IgnorePointer(
+                    child: ColoredBox(color: Colors.black),
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
       initialBinding: AuthBinding(),
       initialRoute: '/',
       onGenerateRoute: (settings) {

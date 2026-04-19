@@ -292,8 +292,10 @@ class _LoginScreenState extends State<LoginScreen> {
                       const SizedBox(height: 18),
                       CustomGradientButton(
                         text: controller.isSendingOtp
-                            ? 'Sending OTP...'
-                            : 'Get OTP',
+                            ? 'Please wait...'
+                            : controller.isPhoneAuthBypassed
+                                ? 'Continue'
+                                : 'Get OTP',
                         onPressed: controller.isSendingOtp
                             ? () {}
                             : () {

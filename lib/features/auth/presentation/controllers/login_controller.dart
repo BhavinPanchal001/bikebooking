@@ -37,10 +37,12 @@ class PlaceSuggestion {
   final String? address;
 
   factory PlaceSuggestion.fromJson(Map<String, dynamic> json) {
-    final structuredFormatting = json['structured_formatting'] as Map<String, dynamic>?;
+    final structuredFormatting =
+        json['structured_formatting'] as Map<String, dynamic>?;
     final description = (json['description']?.toString() ?? '').trim();
     final title = (structuredFormatting?['main_text']?.toString() ?? '').trim();
-    final subtitle = (structuredFormatting?['secondary_text']?.toString() ?? '').trim();
+    final subtitle =
+        (structuredFormatting?['secondary_text']?.toString() ?? '').trim();
 
     return PlaceSuggestion(
       placeId: (json['place_id']?.toString() ?? description).trim(),
@@ -79,8 +81,10 @@ class LoginController extends GetxController {
     ProfilePhotoStorageService? profilePhotoStorageService,
     ProductFirestoreService? productFirestoreService,
     ImagePicker? imagePicker,
-  })  : _profilePhotoStorageService = profilePhotoStorageService ?? ProfilePhotoStorageService(),
-        _productFirestoreService = productFirestoreService ?? ProductFirestoreService(),
+  })  : _profilePhotoStorageService =
+            profilePhotoStorageService ?? ProfilePhotoStorageService(),
+        _productFirestoreService =
+            productFirestoreService ?? ProductFirestoreService(),
         _imagePicker = imagePicker ?? ImagePicker();
 
   final FirebaseAuthService _authService;
@@ -91,15 +95,15 @@ class LoginController extends GetxController {
   final GetConnect _connect = GetConnect();
 
   static const int _minimumPlaceSearchLength = 2;
-  static const bool _bypassPhoneAuth = false;
-  // Avoid Firebase's SMS auto-retrieval broadcast crash; users still enter the OTP manually.
-  static const Duration _manualOtpAutoRetrievalTimeout = Duration.zero;
+  bool get _bypassPhoneAuth => GetPlatform.isIOS;
 
   final TextEditingController phoneController = TextEditingController();
   final TextEditingController fullNameController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
-  final TextEditingController registeredMobileNumberController = TextEditingController();
-  final TextEditingController locationSearchController = TextEditingController();
+  final TextEditingController registeredMobileNumberController =
+      TextEditingController();
+  final TextEditingController locationSearchController =
+      TextEditingController();
   final List<TextEditingController> otpControllers = List.generate(
     6,
     (_) => TextEditingController(),
@@ -138,7 +142,9 @@ class LoginController extends GetxController {
   int _placeSearchRequestId = 0;
   String _placeSearchSessionToken = _createPlaceSearchSessionToken();
 
-  String get otpCode => otpControllers.map((controller) => controller.text).join();
+  String get otpCode =>
+      otpControllers.map((controller) => controller.text).join();
+  bool get isPhoneAuthBypassed => _bypassPhoneAuth;
 
   @override
   void onClose() {
@@ -159,7 +165,8 @@ class LoginController extends GetxController {
 
   void updatePhoneNumber(String value) {
     final digitsOnly = value.replaceAll(RegExp(r'[^0-9]'), '');
-    final sanitizedValue = digitsOnly.length > 10 ? digitsOnly.substring(0, 10) : digitsOnly;
+    final sanitizedValue =
+        digitsOnly.length > 10 ? digitsOnly.substring(0, 10) : digitsOnly;
     phoneController.value = phoneController.value.copyWith(
       text: sanitizedValue,
       selection: TextSelection.collapsed(offset: sanitizedValue.length),
@@ -173,7 +180,8 @@ class LoginController extends GetxController {
 
   void updateOtpDigit(int index, String value) {
     final digitsOnly = value.replaceAll(RegExp(r'[^0-9]'), '');
-    final sanitizedValue = digitsOnly.isEmpty ? '' : digitsOnly.substring(digitsOnly.length - 1);
+    final sanitizedValue =
+        digitsOnly.isEmpty ? '' : digitsOnly.substring(digitsOnly.length - 1);
     otpControllers[index].value = otpControllers[index].value.copyWith(
           text: sanitizedValue,
           selection: TextSelection.collapsed(offset: sanitizedValue.length),
@@ -265,14 +273,7 @@ class LoginController extends GetxController {
     }
 
     if (_bypassPhoneAuth) {
-      phoneNumber = formattedPhoneNumber;
-      isSendingOtp = false;
-      errorMessage = null;
-      infoMessage = null;
-      _clearOtpFields();
-      if (Get.currentRoute != '/otp') {
-        Get.toNamed('/otp', arguments: formattedPhoneNumber);
-      }
+      await _completeBypassedPhoneAuthSignIn(formattedPhoneNumber);
       return;
     }
 
@@ -299,7 +300,8 @@ class LoginController extends GetxController {
         // timeout: _manualOtpAutoRetrievalTimeout,
         verificationCompleted: (credential) async {
           try {
-            final userCredential = await _authService.signInWithCredential(credential);
+            final userCredential =
+                await _authService.signInWithCredential(credential);
             await _handleSuccessfulSignIn(
               userCredential.user,
               fallbackPhoneNumber: formattedPhoneNumber,
@@ -307,7 +309,8 @@ class LoginController extends GetxController {
           } on FirebaseAuthException catch (exception) {
             _setFirebaseError(
               exception,
-              fallback: 'Auto verification failed. Please enter the OTP manually.',
+              fallback:
+                  'Auto verification failed. Please enter the OTP manually.',
             );
           } on StateError catch (exception) {
             _setError(exception.message);
@@ -362,10 +365,7 @@ class LoginController extends GetxController {
     phoneController.text = phoneNumber!.trim();
 
     if (_bypassPhoneAuth) {
-      isSendingOtp = false;
-      errorMessage = null;
-      infoMessage = null;
-      _clearOtpFields();
+      await _completeBypassedPhoneAuthSignIn(phoneNumber!.trim());
       return;
     }
 
@@ -381,11 +381,6 @@ class LoginController extends GetxController {
       final resolvedPhoneNumber = phoneNumber?.trim() ?? '';
       if (resolvedPhoneNumber.isEmpty) {
         _setError('Phone number is missing. Please restart the login flow.');
-        return;
-      }
-
-      if (otpCode.length != otpControllers.length) {
-        _setError('Enter the 6 digit OTP to continue.');
         return;
       }
 
@@ -487,7 +482,8 @@ class LoginController extends GetxController {
       ).timeout(const Duration(seconds: 10));
 
       var title = 'Current Location';
-      var description = '${position.latitude.toStringAsFixed(5)}, ${position.longitude.toStringAsFixed(5)}';
+      var description =
+          '${position.latitude.toStringAsFixed(5)}, ${position.longitude.toStringAsFixed(5)}';
 
       try {
         final placemarks = await placemarkFromCoordinates(
@@ -685,14 +681,17 @@ class LoginController extends GetxController {
             .toList();
 
         placeSuggestions = predictions;
-        placeSearchInfo = predictions.isEmpty ? 'No places found for "$trimmedQuery".' : null;
+        placeSearchInfo =
+            predictions.isEmpty ? 'No places found for "$trimmedQuery".' : null;
       } else if (status == 'ZERO_RESULTS') {
         placeSuggestions = [];
         placeSearchInfo = 'No places found for "$trimmedQuery".';
       } else {
         final apiErrorMessage = responseMap['error_message']?.toString();
         throw Exception(
-          apiErrorMessage?.isNotEmpty == true ? apiErrorMessage : 'Google Places returned $status.',
+          apiErrorMessage?.isNotEmpty == true
+              ? apiErrorMessage
+              : 'Google Places returned $status.',
         );
       }
     } catch (_) {
@@ -700,7 +699,8 @@ class LoginController extends GetxController {
         return;
       }
       placeSuggestions = [];
-      placeSearchError = 'Unable to fetch places right now. Check the API key and internet access.';
+      placeSearchError =
+          'Unable to fetch places right now. Check the API key and internet access.';
     } finally {
       if (requestId == _placeSearchRequestId) {
         isSearchingPlaces = false;
@@ -787,9 +787,10 @@ class LoginController extends GetxController {
 
     final fullName = fullNameController.text.trim();
     final email = emailController.text.trim();
-    final registeredMobileNumber = currentUserProfile?.registeredMobileNumber.trim().isNotEmpty == true
-        ? currentUserProfile!.registeredMobileNumber.trim()
-        : currentUserProfile?.phoneNumber.trim() ?? '';
+    final registeredMobileNumber =
+        currentUserProfile?.registeredMobileNumber.trim().isNotEmpty == true
+            ? currentUserProfile!.registeredMobileNumber.trim()
+            : currentUserProfile?.phoneNumber.trim() ?? '';
 
     if (email.isNotEmpty && !GetUtils.isEmail(email)) {
       _setError('Enter a valid email address.');
@@ -875,7 +876,8 @@ class LoginController extends GetxController {
       isUploadingProfilePhoto = true;
       update();
 
-      final uploadedPhotoUrl = await _profilePhotoStorageService.uploadProfilePhoto(
+      final uploadedPhotoUrl =
+          await _profilePhotoStorageService.uploadProfilePhoto(
         userId: resolvedUserId,
         imageFile: pickedFile,
       );
@@ -978,7 +980,8 @@ class LoginController extends GetxController {
       }
 
       try {
-        final storedUser = await _userFirestoreService.getUserById(localUser.id);
+        final storedUser =
+            await _userFirestoreService.getUserById(localUser.id);
         _setCurrentUserProfile(storedUser ?? localUser);
       } catch (_) {
         _setCurrentUserProfile(localUser);
@@ -987,7 +990,8 @@ class LoginController extends GetxController {
       return;
     }
 
-    final userProfile = await _userFirestoreService.getUserById(firebaseUser.uid);
+    final userProfile =
+        await _userFirestoreService.getUserById(firebaseUser.uid);
     if (userProfile == null) {
       return;
     }
@@ -1024,7 +1028,8 @@ class LoginController extends GetxController {
     }
 
     if (!_authService.isConfigured || !_bypassPhoneAuth) {
-      _firestoreSessionErrorMessage = 'Firebase Authentication is not configured for this build.';
+      _firestoreSessionErrorMessage =
+          'Firebase Authentication is not configured for this build.';
       return false;
     }
 
@@ -1039,7 +1044,8 @@ class LoginController extends GetxController {
       );
       return false;
     } catch (_) {
-      _firestoreSessionErrorMessage = 'Unable to start a Firebase session for chat right now.';
+      _firestoreSessionErrorMessage =
+          'Unable to start a Firebase session for chat right now.';
       return false;
     }
   }
@@ -1142,6 +1148,29 @@ class LoginController extends GetxController {
     Get.offAllNamed('/select_location');
   }
 
+  Future<void> _completeBypassedPhoneAuthSignIn(
+      String resolvedPhoneNumber) async {
+    phoneNumber = resolvedPhoneNumber;
+    isSendingOtp = true;
+    errorMessage = null;
+    infoMessage = null;
+    _clearOtpFields();
+    update();
+
+    try {
+      await _handleSuccessfulSignIn(
+        null,
+        fallbackPhoneNumber: resolvedPhoneNumber,
+      );
+    } on StateError catch (exception) {
+      isSendingOtp = false;
+      _setError(exception.message);
+    } catch (_) {
+      isSendingOtp = false;
+      _setError('Unable to continue right now. Please try again.');
+    }
+  }
+
   Future<AppUserModel> _ensureUserDocument(
     User? firebaseUser, {
     String? fallbackPhoneNumber,
@@ -1172,7 +1201,8 @@ class LoginController extends GetxController {
     return userProfile;
   }
 
-  Future<void> _persistLocationForCurrentUser(UserLocationModel location) async {
+  Future<void> _persistLocationForCurrentUser(
+      UserLocationModel location) async {
     final firebaseUser = _authService.currentUser;
     if (_bypassPhoneAuth || firebaseUser == null) {
       final localUser = await _ensureLocalUserDocument(
@@ -1238,7 +1268,9 @@ class LoginController extends GetxController {
     if (status != 'OK') {
       final apiErrorMessage = responseMap['error_message']?.toString();
       throw Exception(
-        apiErrorMessage?.isNotEmpty == true ? apiErrorMessage : 'Google Places returned $status.',
+        apiErrorMessage?.isNotEmpty == true
+            ? apiErrorMessage
+            : 'Google Places returned $status.',
       );
     }
 
@@ -1249,8 +1281,9 @@ class LoginController extends GetxController {
 
     final resultMap = Map<String, dynamic>.from(result);
     final geometry = resultMap['geometry'];
-    final locationMap =
-        geometry is Map ? Map<String, dynamic>.from(geometry['location'] as Map? ?? {}) : <String, dynamic>{};
+    final locationMap = geometry is Map
+        ? Map<String, dynamic>.from(geometry['location'] as Map? ?? {})
+        : <String, dynamic>{};
 
     final latitude = (locationMap['lat'] as num?)?.toDouble();
     final longitude = (locationMap['lng'] as num?)?.toDouble();
@@ -1259,7 +1292,9 @@ class LoginController extends GetxController {
     }
 
     return UserLocationModel(
-      address: resultMap['formatted_address']?.toString() ?? suggestion.address ?? suggestion.description,
+      address: resultMap['formatted_address']?.toString() ??
+          suggestion.address ??
+          suggestion.description,
       latitude: latitude,
       longitude: longitude,
       label: resultMap['name']?.toString() ?? suggestion.title,
@@ -1270,7 +1305,9 @@ class LoginController extends GetxController {
     fullNameController.text = userProfile.fullName;
     emailController.text = userProfile.email;
     registeredMobileNumberController.text =
-        userProfile.registeredMobileNumber.isNotEmpty ? userProfile.registeredMobileNumber : userProfile.phoneNumber;
+        userProfile.registeredMobileNumber.isNotEmpty
+            ? userProfile.registeredMobileNumber
+            : userProfile.phoneNumber;
   }
 
   void _setCurrentUserProfile(AppUserModel userProfile) {
@@ -1302,9 +1339,10 @@ class LoginController extends GetxController {
       phoneNumber: resolvedPhoneNumber,
       fullName: existingUser?.fullName ?? '',
       email: existingUser?.email ?? '',
-      registeredMobileNumber: existingUser?.registeredMobileNumber.isNotEmpty == true
-          ? existingUser!.registeredMobileNumber
-          : resolvedPhoneNumber,
+      registeredMobileNumber:
+          existingUser?.registeredMobileNumber.isNotEmpty == true
+              ? existingUser!.registeredMobileNumber
+              : resolvedPhoneNumber,
       photoUrl: existingUser?.photoUrl ?? '',
       location: existingUser?.location,
       createdAt: existingUser?.createdAt ?? DateTime.now(),
@@ -1438,7 +1476,8 @@ class LoginController extends GetxController {
     final normalizedCode = code?.toLowerCase() ?? '';
     final normalizedMessage = message?.toLowerCase() ?? '';
 
-    if (normalizedCode == 'operation-not-allowed' || normalizedCode == 'admin-restricted-operation') {
+    if (normalizedCode == 'operation-not-allowed' ||
+        normalizedCode == 'admin-restricted-operation') {
       return 'Anonymous sign-in is disabled in Firebase Authentication. Enable the Anonymous provider in Firebase Console.';
     }
     if (normalizedCode == 'invalid-api-key' ||
@@ -1597,7 +1636,8 @@ class LoginController extends GetxController {
     if (normalizedCode == 'invalid-phone-number') {
       return 'Enter a valid phone number.';
     }
-    if (normalizedCode == 'too-many-requests' || normalizedCode == 'quota-exceeded') {
+    if (normalizedCode == 'too-many-requests' ||
+        normalizedCode == 'quota-exceeded') {
       return 'Too many attempts. Please wait a bit and try again.';
     }
     if (normalizedCode == 'invalid-verification-code') {
@@ -1709,7 +1749,12 @@ class LoginController extends GetxController {
   }
 
   static String _joinAddressParts(List<String?> parts) {
-    return parts.whereType<String>().map((part) => part.trim()).where((part) => part.isNotEmpty).toSet().join(', ');
+    return parts
+        .whereType<String>()
+        .map((part) => part.trim())
+        .where((part) => part.isNotEmpty)
+        .toSet()
+        .join(', ');
   }
 
   static String _localUserIdFromPhoneNumber(String phoneNumber) {

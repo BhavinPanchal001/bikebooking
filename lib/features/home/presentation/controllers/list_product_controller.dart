@@ -326,15 +326,21 @@ class ListProductController extends GetxController {
 
     try {
       final providedSellerId = _sellerIdProvider?.call().trim() ?? '';
-      final firebaseUser = providedSellerId.isNotEmpty
-          ? null
-          : FirebaseAuth.instance.currentUser;
       final loginController = Get.isRegistered<LoginController>()
           ? Get.find<LoginController>()
           : null;
-      final sellerId = providedSellerId.isNotEmpty
-          ? providedSellerId
-          : firebaseUser?.uid ?? loginController?.currentUserProfile?.id ?? '';
+      await _ensureFirebaseSessionForSubmission(
+        loginController: loginController,
+        providedSellerId: providedSellerId,
+      );
+      final firebaseUser = providedSellerId.isNotEmpty
+          ? null
+          : FirebaseAuth.instance.currentUser;
+      final sellerId = _resolveSellerId(
+        providedSellerId: providedSellerId,
+        loginController: loginController,
+        firebaseUser: firebaseUser,
+      );
       if (sellerId.isEmpty) {
         throw StateError(
           'Unable to find a Firebase user for this listing. Please sign in again and retry.',
@@ -642,6 +648,56 @@ class ListProductController extends GetxController {
     }
   }
 
+  Future<void> _ensureFirebaseSessionForSubmission({
+    required LoginController? loginController,
+    required String providedSellerId,
+  }) async {
+    if (providedSellerId.isNotEmpty || loginController == null) {
+      return;
+    }
+
+    if (!loginController.isPhoneAuthBypassed ||
+        FirebaseAuth.instance.currentUser != null) {
+      return;
+    }
+
+    final hasSession = await loginController.ensureFirestoreSession();
+    if (hasSession) {
+      return;
+    }
+
+    final sessionErrorMessage =
+        loginController.firestoreSessionErrorMessage?.trim() ?? '';
+    throw StateError(
+      sessionErrorMessage.isNotEmpty
+          ? sessionErrorMessage
+          : 'Unable to verify your Firebase session right now.',
+    );
+  }
+
+  String _resolveSellerId({
+    required String providedSellerId,
+    required LoginController? loginController,
+    required User? firebaseUser,
+  }) {
+    if (providedSellerId.isNotEmpty) {
+      return providedSellerId;
+    }
+
+    final profileUserId = loginController?.currentUserProfile?.id.trim() ?? '';
+    if (loginController?.isPhoneAuthBypassed == true &&
+        profileUserId.isNotEmpty) {
+      return profileUserId;
+    }
+
+    final firebaseUserId = firebaseUser?.uid.trim() ?? '';
+    if (firebaseUserId.isNotEmpty) {
+      return firebaseUserId;
+    }
+
+    return profileUserId;
+  }
+
   String _resolveSellerName({
     required LoginController? loginController,
     required User? firebaseUser,
@@ -815,8 +871,6 @@ class ListProductController extends GetxController {
 
     return fallback;
   }
-
-
 
   static String _joinAddressParts(List<String?> parts) {
     return parts

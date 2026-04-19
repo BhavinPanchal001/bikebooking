@@ -186,7 +186,9 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Verify your number',
+                        controller.isPhoneAuthBypassed
+                            ? 'Continue'
+                            : 'Verify your number',
                         style: GoogleFonts.inter(
                           fontSize: 18,
                           fontWeight: FontWeight.w500,
@@ -197,89 +199,116 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                       const Divider(color: Color(0xFFEEEEEE), thickness: 1),
                       const SizedBox(height: 16),
                       Text(
-                        'Enter OTP sent to ${controller.phoneNumber ?? widget.phoneNumber}',
+                        controller.isPhoneAuthBypassed
+                            ? 'Phone verification is skipped on iOS for this build.'
+                            : 'Enter OTP sent to ${controller.phoneNumber ?? widget.phoneNumber}',
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 13,
                           color: Colors.grey[600],
                         ),
                       ),
                       const SizedBox(height: 20),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: List.generate(
-                          controller.otpControllers.length,
-                          (index) => SizedBox(
-                            width: 44,
-                            height: 56,
-                            child: TextField(
-                              controller: controller.otpControllers[index],
-                              focusNode: controller.otpFocusNodes[index],
-                              onChanged: (value) =>
-                                  controller.updateOtpDigit(index, value),
-                              textAlign: TextAlign.center,
-                              keyboardType: TextInputType.number,
-                              inputFormatters: [
-                                FilteringTextInputFormatter.digitsOnly,
-                                LengthLimitingTextInputFormatter(1),
-                              ],
-                              maxLength: 1,
-                              style: GoogleFonts.poppins(
-                                fontSize: 22,
-                                fontWeight: FontWeight.w600,
-                              ),
-                              decoration: InputDecoration(
-                                counterText: '',
-                                enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                  borderSide:
-                                      BorderSide(color: Colors.grey[300]!),
+                      if (!controller.isPhoneAuthBypassed)
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: List.generate(
+                            controller.otpControllers.length,
+                            (index) => SizedBox(
+                              width: 44,
+                              height: 56,
+                              child: TextField(
+                                controller: controller.otpControllers[index],
+                                focusNode: controller.otpFocusNodes[index],
+                                onChanged: (value) =>
+                                    controller.updateOtpDigit(index, value),
+                                textAlign: TextAlign.center,
+                                keyboardType: TextInputType.number,
+                                inputFormatters: [
+                                  FilteringTextInputFormatter.digitsOnly,
+                                  LengthLimitingTextInputFormatter(1),
+                                ],
+                                maxLength: 1,
+                                style: GoogleFonts.poppins(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w600,
                                 ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                  borderSide: const BorderSide(
-                                      color: AppColors.primary, width: 2),
+                                decoration: InputDecoration(
+                                  counterText: '',
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide:
+                                        BorderSide(color: Colors.grey[300]!),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: const BorderSide(
+                                        color: AppColors.primary, width: 2),
+                                  ),
                                 ),
                               ),
+                            ),
+                          ),
+                        )
+                      else
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 18,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF5F7FB),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: const Color(0xFFE3E8F2)),
+                          ),
+                          child: Text(
+                            'Tap Continue to sign in without entering an OTP.',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 13,
+                              color: const Color(0xFF5E6E8C),
+                              height: 1.5,
                             ),
                           ),
                         ),
-                      ),
                       const SizedBox(height: 14),
-                      Row(
-                        children: [
-                          Text(
-                            "Didn't receive OTP? ",
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 12,
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                          GestureDetector(
-                            onTap: controller.isSendingOtp
-                                ? null
-                                : () {
-                                    _dismissKeyboard();
-                                    controller.resendOtp();
-                                  },
-                            child: Text(
-                              controller.isSendingOtp
-                                  ? 'Sending...'
-                                  : 'Resend OTP',
-                              style: GoogleFonts.poppins(
+                      if (!controller.isPhoneAuthBypassed)
+                        Row(
+                          children: [
+                            Text(
+                              "Didn't receive OTP? ",
+                              style: GoogleFonts.plusJakartaSans(
                                 fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.primary,
-                                decoration: TextDecoration.underline,
+                                color: Colors.grey[600],
                               ),
                             ),
-                          ),
-                        ],
-                      ),
+                            GestureDetector(
+                              onTap: controller.isSendingOtp
+                                  ? null
+                                  : () {
+                                      _dismissKeyboard();
+                                      controller.resendOtp();
+                                    },
+                              child: Text(
+                                controller.isSendingOtp
+                                    ? 'Sending...'
+                                    : 'Resend OTP',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.primary,
+                                  decoration: TextDecoration.underline,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       const SizedBox(height: 22),
                       CustomGradientButton(
                         text: controller.isVerifyingOtp
                             ? 'Verifying...'
-                            : 'Verify',
+                            : controller.isPhoneAuthBypassed
+                                ? 'Continue'
+                                : 'Verify',
                         onPressed: controller.isVerifyingOtp
                             ? () {}
                             : () {

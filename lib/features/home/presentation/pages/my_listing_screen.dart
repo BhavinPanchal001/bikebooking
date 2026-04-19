@@ -9,7 +9,6 @@ import 'package:bikebooking/features/home/presentation/controllers/boost_control
 import 'package:bikebooking/features/home/presentation/controllers/home_products_controller.dart';
 import 'package:bikebooking/features/home/presentation/controllers/list_product_controller.dart';
 import 'package:bikebooking/features/home/presentation/controllers/my_listing_controller.dart';
-import 'package:bikebooking/features/home/presentation/controllers/favorites_controller.dart';
 import 'package:bikebooking/features/home/presentation/widgets/app_bottom_nav_bar.dart';
 import 'package:bikebooking/features/home/presentation/widgets/product_status_badge.dart';
 import 'package:flutter/material.dart';
@@ -25,11 +24,8 @@ class MyListingScreen extends StatefulWidget {
 class _MyListingScreenState extends State<MyListingScreen>
     with SingleTickerProviderStateMixin {
   late final MyListingController _listingController;
-  late final FavoritesController _favoritesController;
   late final AnimationController _shimmerController;
-  late final TabController _tabController;
   late final bool _ownsListingController;
-  late final bool _ownsFavoritesController;
 
   @override
   void initState() {
@@ -42,16 +38,6 @@ class _MyListingScreenState extends State<MyListingScreen>
       _listingController = Get.put(MyListingController());
       _ownsListingController = true;
     }
-
-    if (Get.isRegistered<FavoritesController>()) {
-      _favoritesController = Get.find<FavoritesController>();
-      _ownsFavoritesController = false;
-    } else {
-      _favoritesController = Get.put(FavoritesController());
-      _ownsFavoritesController = true;
-    }
-
-    _tabController = TabController(length: 2, vsync: this);
 
     _shimmerController = AnimationController(
       vsync: this,
@@ -75,12 +61,8 @@ class _MyListingScreenState extends State<MyListingScreen>
   @override
   void dispose() {
     _shimmerController.dispose();
-    _tabController.dispose();
     if (_ownsListingController && Get.isRegistered<MyListingController>()) {
       Get.delete<MyListingController>();
-    }
-    if (_ownsFavoritesController && Get.isRegistered<FavoritesController>()) {
-      Get.delete<FavoritesController>();
     }
     super.dispose();
   }
@@ -114,7 +96,7 @@ class _MyListingScreenState extends State<MyListingScreen>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'My Ads',
+                      'My Posts',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 20,
@@ -124,41 +106,8 @@ class _MyListingScreenState extends State<MyListingScreen>
                   ],
                 ),
               ),
-              Container(
-                color: Colors.white,
-                child: TabBar(
-                  controller: _tabController,
-                  indicatorColor: const Color(0xFF233A66),
-                  indicatorWeight: 3,
-                  labelColor: const Color(0xFF233A66),
-                  unselectedLabelColor: Colors.grey.shade600,
-                  labelStyle: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  tabs: [
-                    const Tab(text: 'ADS'),
-                    Tab(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: const [
-                          Icon(Icons.favorite_outline, size: 20),
-                          SizedBox(width: 8),
-                          Text('FAVOURITES'),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
               Expanded(
-                child: TabBarView(
-                  controller: _tabController,
-                  children: [
-                    _buildAdsTabContent(),
-                    _buildFavoritesTabContent(),
-                  ],
-                ),
+                child: _buildAdsTabContent(),
               ),
             ],
           ),
@@ -513,193 +462,6 @@ class _MyListingScreenState extends State<MyListingScreen>
           ),
         );
       },
-    );
-  }
-
-  Widget _buildFavoritesTabContent() {
-    return GetBuilder<FavoritesController>(
-      builder: (controller) {
-        if (!controller.hasFavorites) {
-          return _buildEmptyFavoritesState();
-        }
-
-        return RefreshIndicator(
-          color: const Color(0xFF233A66),
-          onRefresh: () async => controller.update(),
-          child: ListView.builder(
-            physics: const AlwaysScrollableScrollPhysics(
-              parent: BouncingScrollPhysics(),
-            ),
-            padding: const EdgeInsets.all(16),
-            itemCount: controller.favorites.length,
-            itemBuilder: (context, index) {
-              final product = controller.favorites[index];
-              return _buildFavoriteCard(context, controller, product);
-            },
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildEmptyFavoritesState() {
-    return _buildStateView(
-      icon: Icons.favorite_border,
-      title: 'No favorites yet',
-      message:
-          'Tap the heart icon on any product card to save it here for later.',
-      actionLabel: 'Browse products',
-      onAction: () =>
-          Navigator.pushNamed(context, '/filter_result', arguments: 'Bikes'),
-    );
-  }
-
-  Widget _buildFavoriteCard(
-    BuildContext context,
-    FavoritesController controller,
-    ProductModel product,
-  ) {
-    final primaryImage = _resolveDisplayableImage(product.imageUrls);
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF1F4F8).withOpacity(0.5),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.black.withOpacity(0.05)),
-      ),
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Container(
-                    width: 100,
-                    height: 80,
-                    color: Colors.white,
-                    child: primaryImage != null
-                        ? ProductCachedImage(
-                            imageUrl: primaryImage,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_) => _buildImageFallback(),
-                            placeholderBuilder: (_) => _buildImageFallback(),
-                          )
-                        : _buildImageFallback(),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        _buildTitle(product),
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                          color: Color(0xFF5E6E8C),
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 6),
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: ProductStatusBadge(
-                          status: product.status,
-                          compact: true,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        _buildPrice(product),
-                        style: const TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF151314),
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          const Icon(
-                            Icons.location_on_outlined,
-                            size: 12,
-                            color: Color(0xFF37474F),
-                          ),
-                          const SizedBox(width: 4),
-                          Expanded(
-                            child: Text(
-                              _buildLocation(product),
-                              style: const TextStyle(
-                                fontSize: 11,
-                                color: Color(0xFF37474F),
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                const Icon(
-                  Icons.favorite,
-                  color: Colors.red,
-                  size: 24,
-                ),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-            child: Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => controller.removeFavorite(product),
-                    style: OutlinedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      side: BorderSide(color: Colors.black.withOpacity(0.05)),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(15),
-                      ),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                    ),
-                    child: const Text(
-                      'Remove',
-                      style: TextStyle(
-                        color: Color(0xFF5E6E8C),
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: CustomGradientButton(
-                    height: 42,
-                    text: 'View Details',
-                    onPressed: () {
-                      Navigator.pushNamed(
-                        context,
-                        '/bike_detail',
-                        arguments: <String, dynamic>{
-                          'product': product,
-                        },
-                      );
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
     );
   }
 
