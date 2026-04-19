@@ -36,6 +36,7 @@ function createEmptySnapshot({
     reviews: [],
     notifications: [],
     blockedUsers: [],
+    reportedUsers: [],
     categoryBreakdown: [],
     brandLeaders: [],
     recentActivity: [],
@@ -53,6 +54,7 @@ function createEmptySnapshot({
       approvalQueue: 0,
       flaggedListings: 0,
       blockedUsers: 0,
+      reportedUsers: 0,
       totalChats: 0,
     },
   };
@@ -71,89 +73,317 @@ function toIsoString(value) {
   return Number.isNaN(date.getTime()) ? null : date.toISOString();
 }
 
-function sortByNewest(items, key) {
-  return [...items].sort((first, second) => {
-    const firstDate = new Date(first[key] ?? 0).getTime();
-    const secondDate = new Date(second[key] ?? 0).getTime();
-    return secondDate - firstDate;
-  });
+function getTimestamp(value) {
+  if (!value) {
+    return 0;
+  }
+
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? 0 : date.getTime();
+}
+
+function sortItemsByNewest(items, getValue) {
+  return [...items].sort(
+    (first, second) => getTimestamp(getValue(second)) - getTimestamp(getValue(first)),
+  );
+}
+
+function getReportTargetId(report) {
+  return (
+    report.sellerId ||
+    report.userId ||
+    report.reportedUserId ||
+    report.reportedPersonId ||
+    ''
+  )
+    .toString()
+    .trim();
+}
+
+function getReportTargetName(report) {
+  return (
+    report.sellerName ||
+    report.userName ||
+    report.reportedUserName ||
+    report.reportedPersonName ||
+    'Unknown user'
+  );
+}
+
+function isOpenReport(report) {
+  const normalizedStatus = String(report.status || '')
+    .trim()
+    .toLowerCase();
+
+  return !['resolved', 'closed', 'dismissed'].includes(normalizedStatus);
+}
+
+function normalizePriority(priority, reason = '', details = '') {
+  const normalizedPriority = String(priority || '')
+    .trim()
+    .toLowerCase();
+
+  if (['high', 'medium', 'low'].includes(normalizedPriority)) {
+    return normalizedPriority;
+  }
+
+  const priorityText = `${reason} ${details}`.toLowerCase();
+  if (
+    priorityText.includes('fraud') ||
+    priorityText.includes('scam') ||
+    priorityText.includes('abusive')
+  ) {
+    return 'high';
+  }
+
+  if (
+    priorityText.includes('misleading') ||
+    priorityText.includes('fake') ||
+    priorityText.includes('spam')
+  ) {
+    return 'medium';
+  }
+
+  return 'low';
+}
+
+function getPriorityScore(priority) {
+  switch (String(priority || '').trim().toLowerCase()) {
+    case 'high':
+      return 3;
+    case 'medium':
+      return 2;
+    case 'low':
+      return 1;
+    default:
+      return 0;
+  }
+}
+
+function normalizeVerificationStatus(user) {
+  const explicitStatus = String(user.verificationStatus || '')
+    .trim()
+    .toLowerCase();
+
+  if (explicitStatus) {
+    return explicitStatus;
+  }
+
+  return user.phoneNumber || user.registeredMobileNumber ? 'verified' : 'incomplete';
 }
 
 function deriveModerationStatus(listing, reports) {
-  const manualStatus = listing.adminReviewStatus?.toString().trim().toLowerCase() ?? '';
+  const manualStatus = String(listing.adminReviewStatus || '')
+    .trim()
+    .toLowerCase();
   const hasOpenReport = reports.some(
-    (report) =>
-      report.sellerId === listing.sellerId &&
-      ['open', 'reviewing', 'pending'].includes(report.status),
+    (report) => report.sellerId === listing.sellerId && isOpenReport(report),
   );
 
   if (listing.status === 'sold' || manualStatus === 'closed') {
     return 'closed';
   }
+
   if (manualStatus === 'flagged') {
     return 'flagged';
   }
+
   if (manualStatus === 'pending') {
     return 'pending';
   }
+
   if (manualStatus === 'approved') {
     return 'approved';
   }
-  if (hasOpenReport) {
-    return 'flagged';
-  }
 
-  return 'approved';
+  return hasOpenReport ? 'flagged' : 'approved';
 }
 
 function buildAdminSnapshot(raw, source, error = '') {
-  const listings = sortByNewest(raw.listings, 'createdAt').map((listing) => ({
-    ...listing,
-    moderationStatus: deriveModerationStatus(listing, raw.reports),
-  }));
+  const reports = sortItemsByNewest(raw.reports || [], (report) => report.updatedAt || report.createdAt)
+    .map((report) => ({
+      ...report,
+      priority: normalizePriority(report.priority, report.reason, report.details),
+      status: String(report.status || 'pending').trim().toLowerCase() || 'pending',
+    }));
+  const listings = sortItemsByNewest(raw.listings || [], (listing) => listing.updatedAt || listing.createdAt)
+    .map((listing) => ({
+      ...listing,
+      moderationStatus: deriveModerationStatus(listing, reports),
+    }));
+  const conversations = sortItemsByNewest(raw.conversations || [], (conversation) => conversation.updatedAt);
+  const reviews = sortItemsByNewest(raw.reviews || [], (review) => review.updatedAt || review.createdAt);
+  const notifications = sortItemsByNewest(raw.notifications || [], (notification) => notification.updatedAt || notification.createdAt);
+  const blockedUsers = sortItemsByNewest(raw.blockedUsers || [], (entry) => entry.blockedAt || entry.updatedAt);
 
-  const reviewsBySeller = raw.reviews.reduce((accumulator, review) => {
-    const current = accumulator.get(review.sellerId) ?? [];
-    current.push(review);
-    accumulator.set(review.sellerId, current);
-    return accumulator;
-  }, new Map());
+  const activeListingsBySeller = new Map();
+  const totalSalesBySeller = new Map();
+  const ratingBySeller = new Map();
+  const reportSummaryByUser = new Map();
 
-  const users = sortByNewest(raw.users, 'joinedAt').map((user) => {
-    const ownedListings = listings.filter((listing) => listing.sellerId === user.id);
-    const soldListings = ownedListings.filter((listing) => listing.status === 'sold');
-    const reviews = reviewsBySeller.get(user.id) ?? [];
-    const averageRating =
-      reviews.length > 0
-        ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length
-        : 0;
+  listings.forEach((listing) => {
+    if (!listing?.sellerId) {
+      return;
+    }
 
-    return {
-      ...user,
-      activeListings: ownedListings.filter((listing) => listing.status === 'active').length,
-      soldListings: soldListings.length,
-      totalSales: soldListings.reduce((sum, listing) => sum + (listing.price ?? 0), 0),
-      rating: averageRating,
-      verificationStatus: user.phoneNumber ? 'verified' : 'incomplete',
-    };
+    if (listing.status === 'active') {
+      activeListingsBySeller.set(
+        listing.sellerId,
+        (activeListingsBySeller.get(listing.sellerId) ?? 0) + 1,
+      );
+    }
+
+    if (listing.status === 'sold') {
+      totalSalesBySeller.set(
+        listing.sellerId,
+        (totalSalesBySeller.get(listing.sellerId) ?? 0) + (listing.price ?? 0),
+      );
+    }
   });
 
-  const conversations = sortByNewest(raw.conversations, 'updatedAt');
-  const reports = sortByNewest(raw.reports, 'createdAt');
-  const reviews = sortByNewest(raw.reviews, 'createdAt');
-  const notifications = sortByNewest(raw.notifications ?? [], 'createdAt');
-  const blockedUsers = sortByNewest(raw.blockedUsers ?? [], 'blockedAt');
+  reviews.forEach((review) => {
+    if (!review?.sellerId || typeof review.rating !== 'number') {
+      return;
+    }
 
-  const totalRevenue = listings
-    .filter((listing) => listing.status === 'sold')
-    .reduce((sum, listing) => sum + (listing.price ?? 0), 0);
-  const averageActivePrice =
-    listings.filter((listing) => listing.status === 'active').reduce(
-      (sum, listing, index, items) => sum + (listing.price ?? 0) / (items.length || 1),
-      0,
-    ) || 0;
-  const verifiedUsers = users.filter((user) => user.verificationStatus === 'verified').length;
-  const unreadNotifications = notifications.filter((notification) => !notification.isRead).length;
+    const sellerRating = ratingBySeller.get(review.sellerId) ?? {
+      total: 0,
+      count: 0,
+    };
+
+    sellerRating.total += review.rating;
+    sellerRating.count += 1;
+    ratingBySeller.set(review.sellerId, sellerRating);
+  });
+
+  reports.forEach((report) => {
+    const targetId = getReportTargetId(report);
+    if (!targetId) {
+      return;
+    }
+
+    const existingSummary = reportSummaryByUser.get(targetId) ?? {
+      id: targetId,
+      fullName: getReportTargetName(report),
+      reportCount: 0,
+      openReportCount: 0,
+      latestReportAt: '',
+      latestStatus: '',
+      highestPriority: 'low',
+      reasons: new Set(),
+      reporterNames: new Set(),
+      reports: [],
+    };
+
+    existingSummary.reportCount += 1;
+    if (isOpenReport(report)) {
+      existingSummary.openReportCount += 1;
+    }
+
+    const reportTimestamp = report.updatedAt || report.createdAt;
+    if (getTimestamp(reportTimestamp) >= getTimestamp(existingSummary.latestReportAt)) {
+      existingSummary.latestReportAt = reportTimestamp;
+      existingSummary.latestStatus = report.status || 'pending';
+      existingSummary.fullName = getReportTargetName(report);
+    }
+
+    if (
+      getPriorityScore(report.priority) >=
+      getPriorityScore(existingSummary.highestPriority)
+    ) {
+      existingSummary.highestPriority = report.priority;
+    }
+
+    if (report.reason) {
+      existingSummary.reasons.add(report.reason);
+    }
+
+    if (report.reporterName) {
+      existingSummary.reporterNames.add(report.reporterName);
+    }
+
+    existingSummary.reports.push(report);
+    reportSummaryByUser.set(targetId, existingSummary);
+  });
+
+  const users = sortItemsByNewest(raw.users || [], (user) => user.joinedAt || user.updatedAt || user.createdAt)
+    .map((user) => {
+      const reportSummary = reportSummaryByUser.get(user.id);
+      const ratingSummary = ratingBySeller.get(user.id);
+
+      return {
+        ...user,
+        fullName: user.fullName || user.displayName || user.phoneNumber || user.id,
+        accountStatus: user.accountStatus || 'active',
+        verificationStatus: normalizeVerificationStatus(user),
+        activeListings:
+          typeof user.activeListings === 'number'
+            ? user.activeListings
+            : activeListingsBySeller.get(user.id) ?? 0,
+        totalSales:
+          typeof user.totalSales === 'number'
+            ? user.totalSales
+            : totalSalesBySeller.get(user.id) ?? 0,
+        rating:
+          typeof user.rating === 'number'
+            ? user.rating
+            : ratingSummary?.count
+              ? ratingSummary.total / ratingSummary.count
+              : 0,
+        reportCount: reportSummary?.reportCount ?? 0,
+        openReportCount: reportSummary?.openReportCount ?? 0,
+        latestReportAt: reportSummary?.latestReportAt ?? '',
+        latestReportStatus: reportSummary?.latestStatus ?? '',
+        reportReasons: reportSummary ? Array.from(reportSummary.reasons) : [],
+        reporterNames: reportSummary ? Array.from(reportSummary.reporterNames) : [],
+      };
+    });
+
+  const userMap = new Map(users.map((user) => [user.id, user]));
+  const reportedUsers = Array.from(reportSummaryByUser.values())
+    .map((summary) => {
+      const user = userMap.get(summary.id);
+      const latestReport = sortItemsByNewest(summary.reports, (report) => report.updatedAt || report.createdAt)[0];
+
+      return {
+        ...(user || {}),
+        id: summary.id,
+        fullName: user?.fullName || summary.fullName,
+        email: user?.email || '',
+        phoneNumber: user?.phoneNumber || user?.registeredMobileNumber || '',
+        location: user?.location || null,
+        accountStatus: user?.accountStatus || 'active',
+        verificationStatus: user?.verificationStatus || 'incomplete',
+        activeListings: user?.activeListings ?? 0,
+        totalSales: user?.totalSales ?? 0,
+        rating: user?.rating ?? 0,
+        reportCount: summary.reportCount,
+        openReportCount: summary.openReportCount,
+        latestReportAt: summary.latestReportAt,
+        latestReportStatus: summary.latestStatus,
+        highestPriority:
+          summary.openReportCount > 1 && getPriorityScore(summary.highestPriority) < 3
+            ? 'high'
+            : summary.highestPriority,
+        reportReasons: Array.from(summary.reasons).slice(0, 3),
+        reporterNames: Array.from(summary.reporterNames).slice(0, 3),
+        reporterCount: summary.reporterNames.size,
+        latestReason: latestReport?.reason || Array.from(summary.reasons)[0] || '',
+        latestDetails: latestReport?.details || '',
+        reports: sortItemsByNewest(summary.reports, (report) => report.updatedAt || report.createdAt),
+      };
+    })
+    .sort((first, second) => {
+      if (second.openReportCount !== first.openReportCount) {
+        return second.openReportCount - first.openReportCount;
+      }
+
+      if (second.reportCount !== first.reportCount) {
+        return second.reportCount - first.reportCount;
+      }
+
+      return getTimestamp(second.latestReportAt) - getTimestamp(first.latestReportAt);
+    });
 
   const categoryCounts = listings.reduce((accumulator, listing) => {
     accumulator[listing.category] = (accumulator[listing.category] ?? 0) + 1;
@@ -165,39 +395,44 @@ function buildAdminSnapshot(raw, source, error = '') {
     return accumulator;
   }, {});
 
-  const recentActivity = sortByNewest(
+  const recentActivity = sortItemsByNewest(
     [
-      ...listings.slice(0, 4).map((listing) => ({
-        id: `listing-${listing.id}`,
-        type: 'Listing',
-        title: listing.title,
-        meta: `${listing.sellerName} listed ${listing.category}`,
-        timestamp: listing.createdAt,
+      ...listings.map((listing) => ({
+        id: `listing:${listing.id}`,
+        type: 'listing',
+        title: listing.title || 'Listing updated',
+        meta: `${listing.sellerName || 'Unknown seller'} · ${listing.status || 'draft'}`,
+        timestamp: listing.updatedAt || listing.createdAt,
       })),
-      ...reports.slice(0, 3).map((report) => ({
-        id: `report-${report.id}`,
-        type: 'Report',
-        title: report.reason,
-        meta: `${report.sellerName} needs moderation`,
-        timestamp: report.createdAt,
+      ...reports.map((report) => ({
+        id: `report:${report.id}`,
+        type: 'report',
+        title: getReportTargetName(report),
+        meta: `${report.reason || 'Seller report'} · ${report.status || 'pending'}`,
+        timestamp: report.updatedAt || report.createdAt,
       })),
-      ...conversations.slice(0, 3).map((chat) => ({
-        id: `chat-${chat.id}`,
-        type: 'Chat',
-        title: chat.productTitle,
-        meta: chat.lastMessage,
-        timestamp: chat.updatedAt,
+      ...conversations.map((conversation) => ({
+        id: `chat:${conversation.id}`,
+        type: 'chat',
+        title: conversation.productTitle || 'Conversation updated',
+        meta: conversation.participantNames?.join(' · ') || 'Marketplace chat',
+        timestamp: conversation.updatedAt,
       })),
-      ...notifications.slice(0, 3).map((notification) => ({
-        id: `notification-${notification.id}`,
-        type: 'Notification',
-        title: notification.title,
-        meta: notification.body,
-        timestamp: notification.createdAt,
+      ...notifications.map((notification) => ({
+        id: `notification:${notification.id}`,
+        type: 'notification',
+        title: notification.title || notification.type || 'Notification sent',
+        meta: notification.body || notification.recipientId || 'User alert',
+        timestamp: notification.updatedAt || notification.createdAt,
       })),
-    ],
-    'timestamp',
-  ).slice(0, 6);
+    ].filter((item) => item.timestamp),
+    (item) => item.timestamp,
+  ).slice(0, 8);
+
+  const verifiedUsers = users.filter(
+    (user) => user.verificationStatus === 'verified',
+  ).length;
+  const activeListings = listings.filter((listing) => listing.status === 'active');
 
   return {
     source,
@@ -211,6 +446,7 @@ function buildAdminSnapshot(raw, source, error = '') {
     reviews,
     notifications,
     blockedUsers,
+    reportedUsers,
     categoryBreakdown: Object.entries(categoryCounts)
       .map(([label, count]) => ({ label, count }))
       .sort((first, second) => second.count - first.count),
@@ -221,18 +457,27 @@ function buildAdminSnapshot(raw, source, error = '') {
     recentActivity,
     metrics: {
       totalUsers: users.length,
-      activeListings: listings.filter((listing) => listing.status === 'active').length,
+      activeListings: activeListings.length,
       soldListings: listings.filter((listing) => listing.status === 'sold').length,
-      openReports: reports.filter((report) => report.status !== 'resolved').length,
+      openReports: reports.filter((report) => isOpenReport(report)).length,
       unreadChats: conversations.reduce((sum, chat) => sum + (chat.unread ?? 0), 0),
-      unreadNotifications,
+      unreadNotifications: notifications.filter((notification) => !notification.isRead).length,
       verifiedUsers,
       incompleteUsers: users.length - verifiedUsers,
-      estimatedRevenue: totalRevenue,
-      averageActivePrice,
+      estimatedRevenue: listings
+        .filter((listing) => listing.status === 'sold')
+        .reduce((sum, listing) => sum + (listing.price ?? 0), 0),
+      averageActivePrice:
+        activeListings.length > 0
+          ? Math.round(
+              activeListings.reduce((sum, listing) => sum + (listing.price ?? 0), 0) /
+                activeListings.length,
+            )
+          : 0,
       approvalQueue: listings.filter((listing) => listing.moderationStatus === 'pending').length,
       flaggedListings: listings.filter((listing) => listing.moderationStatus === 'flagged').length,
       blockedUsers: blockedUsers.length,
+      reportedUsers: reportedUsers.length,
       totalChats: conversations.length,
     },
   };
@@ -289,24 +534,16 @@ async function fetchFirebaseAdminData() {
     loadCollectionResult('users', () => loadCollection('users', 'updatedAt')),
     loadCollectionResult('products', () => loadCollection('products', 'updatedAt')),
     loadCollectionResult('chats', () => loadCollection('chats', 'updatedAt')),
-    loadCollectionResult('seller_reports', () => loadCollection('seller_reports', 'createdAt')),
-    loadCollectionResult('reviews', () => loadCollectionGroup('reviews', 'createdAt')),
-    loadCollectionResult('notifications', () => loadCollectionGroup('notifications', 'createdAt')),
-    loadCollectionResult('user_blocks', () => loadCollection('user_blocks', 'blockedAt')),
+    loadCollectionResult('seller_reports', () => loadCollection('seller_reports', 'updatedAt')),
+    loadCollectionResult('reviews', () => loadCollectionGroup('reviews', 'updatedAt')),
+    loadCollectionResult('notifications', () => loadCollectionGroup('notifications', 'updatedAt')),
+    loadCollectionResult('user_blocks', () => loadCollection('user_blocks', 'updatedAt')),
   ]);
 
   const resultMap = Object.fromEntries(results.map((result) => [result.name, result]));
   const loadErrors = results
     .filter((result) => !result.ok)
     .map((result) => result.name);
-
-  const userDocs = resultMap.users.docs;
-  const productDocs = resultMap.products.docs;
-  const chatDocs = resultMap.chats.docs;
-  const reportDocs = resultMap.seller_reports.docs;
-  const reviewDocs = resultMap.reviews.docs;
-  const notificationDocs = resultMap.notifications.docs;
-  const blockedUserDocs = resultMap.user_blocks.docs;
 
   return {
     source:
@@ -315,20 +552,28 @@ async function fetchFirebaseAdminData() {
       loadErrors.length > 0
         ? `Some Firestore collections could not be read: ${loadErrors.join(', ')}.`
         : '',
-    users: userDocs.map((doc) => {
+    users: resultMap.users.docs.map((doc) => {
       const data = doc.data();
       return {
         id: doc.id,
-        fullName: data.fullName?.toString().trim() || data.phoneNumber?.toString().trim() || 'User',
+        fullName:
+          data.fullName?.toString().trim() ||
+          data.phoneNumber?.toString().trim() ||
+          'User',
         email: data.email?.toString().trim() ?? '',
         phoneNumber: data.phoneNumber?.toString().trim() ?? '',
+        registeredMobileNumber: data.registeredMobileNumber?.toString().trim() ?? '',
         photoUrl: data.photoUrl?.toString().trim() ?? '',
         joinedAt: toIsoString(data.createdAt) ?? toIsoString(data.updatedAt),
+        createdAt: toIsoString(data.createdAt),
+        updatedAt: toIsoString(data.updatedAt),
         accountStatus:
-          data.adminBlocked === true || data.accountStatus?.toString().trim().toLowerCase() === 'blocked'
+          data.adminBlocked === true ||
+          data.accountStatus?.toString().trim().toLowerCase() === 'blocked'
             ? 'blocked'
             : 'active',
-        adminBlocked: data.adminBlocked === true,
+        verificationStatus:
+          data.verificationStatus?.toString().trim().toLowerCase() || '',
         adminBlockedAt: toIsoString(data.adminBlockedAt) ?? null,
         adminBlockedBy: data.adminBlockedBy?.toString().trim() ?? '',
         location:
@@ -337,21 +582,26 @@ async function fetchFirebaseAdminData() {
             : null,
       };
     }),
-    listings: productDocs.map((doc) => {
+    listings: resultMap.products.docs.map((doc) => {
       const data = doc.data();
+      const priceValue =
+        typeof data.price === 'number' ? data.price : Number(data.price ?? 0);
+
       return {
         id: doc.id,
         category: data.category?.toString().trim() ?? 'Uncategorized',
         title: data.title?.toString().trim() ?? 'Untitled listing',
         brand: data.brand?.toString().trim() ?? 'Unknown',
         description: data.description?.toString().trim() ?? '',
-        price: typeof data.price === 'number' ? data.price : Number(data.price ?? 0),
+        price: Number.isFinite(priceValue) ? priceValue : 0,
         location: data.location?.toString().trim() ?? 'Unknown',
         sellerId: data.sellerId?.toString().trim() ?? '',
         sellerName: data.sellerName?.toString().trim() ?? 'Seller',
-        year: typeof data.year === 'number' ? data.year : Number(data.year ?? 0) || null,
+        year:
+          typeof data.year === 'number' ? data.year : Number(data.year ?? 0) || null,
         status: data.status?.toString().trim().toLowerCase() ?? 'active',
-        adminReviewStatus: data.adminReviewStatus?.toString().trim().toLowerCase() ?? '',
+        adminReviewStatus:
+          data.adminReviewStatus?.toString().trim().toLowerCase() ?? '',
         moderatedAt: toIsoString(data.moderatedAt) ?? null,
         moderatedBy: data.moderatedBy?.toString().trim() ?? '',
         createdAt: toIsoString(data.createdAt) ?? toIsoString(data.updatedAt),
@@ -373,11 +623,15 @@ async function fetchFirebaseAdminData() {
         sellerType: data.sellerType?.toString().trim() ?? '',
       };
     }),
-    conversations: chatDocs.map((doc) => {
+    conversations: resultMap.chats.docs.map((doc) => {
       const data = doc.data();
       const participants = Object.values(data.participantDetails ?? {}).map((entry) => {
         if (entry && typeof entry === 'object') {
-          return entry.name?.toString().trim() || entry.phoneNumber?.toString().trim() || 'User';
+          return (
+            entry.name?.toString().trim() ||
+            entry.phoneNumber?.toString().trim() ||
+            'User'
+          );
         }
         return 'User';
       });
@@ -399,19 +653,29 @@ async function fetchFirebaseAdminData() {
         updatedAt: toIsoString(data.updatedAt) ?? toIsoString(data.lastMessage?.timestamp),
       };
     }),
-    reports: reportDocs.map((doc) => {
+    reports: resultMap.seller_reports.docs.map((doc) => {
       const data = doc.data();
+      const priority = normalizePriority(
+        data.priority?.toString().trim(),
+        data.reason?.toString().trim(),
+        data.details?.toString().trim(),
+      );
+
       return {
         id: doc.id,
         sellerId: data.sellerId?.toString().trim() ?? '',
         sellerName: data.sellerName?.toString().trim() ?? 'Seller',
+        reporterId: data.reporterId?.toString().trim() ?? '',
+        reporterName: data.reporterName?.toString().trim() ?? '',
         reason: data.reason?.toString().trim() ?? 'Seller report',
-        priority: data.priority?.toString().trim().toLowerCase() ?? 'medium',
-        status: data.status?.toString().trim().toLowerCase() ?? 'open',
+        details: data.details?.toString().trim() ?? '',
+        priority,
+        status: data.status?.toString().trim().toLowerCase() ?? 'pending',
         createdAt: toIsoString(data.createdAt) ?? toIsoString(data.updatedAt),
+        updatedAt: toIsoString(data.updatedAt) ?? toIsoString(data.createdAt),
       };
     }),
-    reviews: reviewDocs.map((doc) => {
+    reviews: resultMap.reviews.docs.map((doc) => {
       const data = doc.data();
       return {
         id: doc.id,
@@ -420,9 +684,10 @@ async function fetchFirebaseAdminData() {
         rating: Number(data.rating ?? 0),
         comment: data.comment?.toString().trim() ?? '',
         createdAt: toIsoString(data.createdAt) ?? toIsoString(data.updatedAt),
+        updatedAt: toIsoString(data.updatedAt) ?? toIsoString(data.createdAt),
       };
     }),
-    notifications: notificationDocs.map((doc) => {
+    notifications: resultMap.notifications.docs.map((doc) => {
       const data = doc.data();
       return {
         id: doc.id,
@@ -433,9 +698,10 @@ async function fetchFirebaseAdminData() {
         isRead: data.isRead === true,
         senderName: data.senderName?.toString().trim() ?? '',
         createdAt: toIsoString(data.createdAt) ?? toIsoString(data.updatedAt),
+        updatedAt: toIsoString(data.updatedAt) ?? toIsoString(data.createdAt),
       };
     }),
-    blockedUsers: blockedUserDocs.map((doc) => {
+    blockedUsers: resultMap.user_blocks.docs.map((doc) => {
       const data = doc.data();
       return {
         id: doc.id,
@@ -447,6 +713,7 @@ async function fetchFirebaseAdminData() {
           'Blocked user',
         photoUrl: data.photoUrl?.toString().trim() ?? '',
         blockedAt: toIsoString(data.blockedAt) ?? toIsoString(data.updatedAt),
+        updatedAt: toIsoString(data.updatedAt) ?? toIsoString(data.blockedAt),
       };
     }),
   };
@@ -457,7 +724,10 @@ export function useAdminData({ enabled = true } = {}) {
   const [state, setState] = useState(() =>
     enabled && hasFirebaseConfig
       ? createEmptySnapshot({ source: 'firebase', loading: true })
-      : createEmptySnapshot({ source: 'mock', loading: false }),
+      : {
+          ...buildAdminSnapshot(mockAdminData, 'mock'),
+          loading: false,
+        },
   );
 
   useEffect(() => {
@@ -471,7 +741,7 @@ export function useAdminData({ enabled = true } = {}) {
         return;
       }
 
-      if (!hasFirebaseConfig) {
+      if (!hasFirebaseConfig || !db) {
         if (!isCancelled) {
           setState({
             ...buildAdminSnapshot(mockAdminData, 'mock'),
@@ -506,7 +776,8 @@ export function useAdminData({ enabled = true } = {}) {
             createEmptySnapshot({
               source: 'firebase-partial',
               loading: false,
-              error: 'Firebase data could not be loaded for the admin panel.',
+              error:
+                error?.message || 'Firebase data could not be loaded for the admin panel.',
             }),
           );
         }

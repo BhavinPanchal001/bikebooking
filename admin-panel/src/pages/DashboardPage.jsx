@@ -19,7 +19,7 @@ export function DashboardPage({ data }) {
             listings, users, seller safety, and operational conversations.
           </p>
         </div>
-      </section>
+      </section >
 
       <section className="stats-grid">
         <StatCard
@@ -46,9 +46,9 @@ export function DashboardPage({ data }) {
         <StatCard
           label="Safety attention"
           value={formatCompactNumber(data.metrics.openReports)}
-          trend={`${data.metrics.unreadChats} unread chats`}
+          trend={`${formatCompactNumber(data.metrics.reportedUsers)} reported persons`}
           tone="warning"
-          helper={`${data.metrics.unreadNotifications} unread notifications`}
+          helper={`${data.metrics.unreadChats} unread chats · ${data.metrics.unreadNotifications} unread notifications`}
         />
       </section>
 
@@ -142,11 +142,11 @@ export function DashboardPage({ data }) {
                 </div>
               ))
             ) : (
-              <div className="empty-state">No recent activity found in Firestore yet.</div>
+              <div className="empty-state">No recent activity found yet.</div>
             )}
           </div>
         </PanelCard>
       </section>
-    </div>
+    </div >
   );
 }

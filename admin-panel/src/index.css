@@ -55,8 +55,13 @@ a {
 
 .app-shell {
   display: grid;
-  grid-template-columns: 300px 1fr;
+  grid-template-columns: var(--sidebar-width, 300px) 1fr;
   min-height: 100vh;
+  transition: grid-template-columns 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.app-shell.sidebar-collapsed {
+  --sidebar-width: 80px;
 }
 
 .sidebar {
@@ -71,6 +76,46 @@ a {
   position: sticky;
   top: 0;
   min-height: 100vh;
+  transition: width 300ms cubic-bezier(0.4, 0, 0.2, 1), padding 300ms ease;
+  overflow: hidden;
+}
+
+.sidebar.is-collapsed {
+  padding: 28px 12px;
+  align-items: center;
+}
+
+.sidebar-toggle {
+  position: absolute;
+  top: 24px;
+  right: -12px;
+  width: 24px;
+  height: 24px;
+  background: var(--accent);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  z-index: 10;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  font-size: 14px;
+  transition: 200ms ease;
+}
+
+.sidebar.is-collapsed .sidebar-toggle {
+  right: 50%;
+  transform: translateX(50%);
+  top: 15px;
+  position: relative;
+  margin-bottom: 20px;
+}
+
+.sidebar-toggle:hover {
+  transform: scale(1.1);
+  background: #f18c5e;
 }
 
 .brand-lockup h1,
@@ -89,6 +134,7 @@ a {
   letter-spacing: 0.18em;
   font-size: 0.72rem;
   color: rgba(248, 243, 234, 0.68);
+  white-space: nowrap;
 }
 
 .brand-lockup h1 {
@@ -107,6 +153,7 @@ a {
   display: grid;
   gap: 12px;
   margin: 36px 0;
+  width: 100%;
 }
 
 .nav-link {
@@ -115,6 +162,15 @@ a {
   border: 1px solid rgba(248, 243, 234, 0.08);
   background: rgba(255, 255, 255, 0.02);
   transition: 180ms ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar.is-collapsed .nav-link {
+  padding: 16px 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 16px;
 }
 
 .nav-link:hover,
@@ -122,6 +178,11 @@ a {
   transform: translateX(4px);
   background: rgba(223, 111, 62, 0.16);
   border-color: rgba(223, 111, 62, 0.26);
+}
+
+.sidebar.is-collapsed .nav-link:hover,
+.sidebar.is-collapsed .nav-link-active {
+  transform: scale(1.05);
 }
 
 .nav-eyebrow {
@@ -224,16 +285,16 @@ a {
   border-radius: 999px;
 }
 
-.dot-mock {
-  background: var(--warning);
-}
-
 .dot-firebase {
   background: var(--success);
 }
 
 .dot-firebase-partial {
-  background: linear-gradient(90deg, var(--success), var(--warning));
+  background: #c78a2b;
+}
+
+.dot-mock {
+  background: var(--muted);
 }
 
 .page-wrap {
@@ -457,6 +518,12 @@ a {
   white-space: nowrap;
 }
 
+.topbar-refresh {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .toolbar-note {
   color: var(--muted);
   font-size: 0.92rem;
@@ -566,6 +633,13 @@ a {
   letter-spacing: 0.1em;
 }
 
+.report-count-pill,
+.report-reason-chip {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+}
+
 .status-approved,
 .status-verified,
 .status-active {
@@ -652,6 +726,39 @@ a {
   font-size: 1rem;
 }
 
+.report-summary-grid {
+  margin-top: 8px;
+}
+
+.report-count-pill {
+  padding: 7px 12px;
+  background: rgba(16, 35, 63, 0.08);
+  color: var(--text);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.report-reason-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.report-reason-chip {
+  padding: 8px 12px;
+  background: rgba(223, 111, 62, 0.12);
+  color: var(--accent);
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+.status-cluster {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: flex-start;
+}
+
 .activity-feed {
   gap: 12px;
 }
@@ -697,6 +804,31 @@ a {
 
 .data-table td {
   vertical-align: top;
+}
+
+.report-queue-table td {
+  min-width: 160px;
+}
+
+.report-queue-table td:nth-child(1) {
+  min-width: 220px;
+}
+
+.report-queue-table td:nth-child(3) {
+  min-width: 280px;
+}
+
+.report-queue-table td:nth-child(5) {
+  min-width: 240px;
+}
+
+.report-queue-table .primary-cell strong,
+.report-queue-table .primary-cell span {
+  word-break: break-word;
+}
+
+.report-queue-table .report-reason-row {
+  margin-top: 8px;
 }
 
 .data-table a.secondary-button {

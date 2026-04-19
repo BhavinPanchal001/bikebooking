@@ -1,11 +1,28 @@
 import { formatDateTime } from '../utils/format';
 
+function getSourceLabel(source, loading) {
+  if (loading) {
+    return 'Refreshing feed';
+  }
+
+  if (source === 'firebase') {
+    return 'Live Firestore';
+  }
+
+  if (source === 'firebase-partial') {
+    return 'Partial Firestore';
+  }
+
+  return 'Demo data';
+}
+
 export function Topbar({
   title,
   eyebrow,
   lastUpdated,
   issueCount,
   userEmail,
+  onRefresh,
   onLogout,
 }) {
   return (
@@ -24,6 +41,15 @@ export function Topbar({
           <span>Last sync</span>
           <strong>{formatDateTime(lastUpdated)}</strong>
         </div>
+        {onRefresh ? (
+          <button
+            type="button"
+            className="secondary-button topbar-refresh"
+            onClick={onRefresh}
+          >
+            Refresh
+          </button>
+        ) : null}
         {userEmail ? (
           <button
             type="button"
