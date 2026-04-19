@@ -1,21 +1,5 @@
 import { formatDateTime } from '../utils/format';
 
-function getSourceLabel(source, loading) {
-  if (loading) {
-    return 'Refreshing feed';
-  }
-
-  if (source === 'firebase') {
-    return 'Live Firestore';
-  }
-
-  if (source === 'firebase-partial') {
-    return 'Partial Firestore';
-  }
-
-  return 'Demo data';
-}
-
 export function Topbar({
   title,
   eyebrow,

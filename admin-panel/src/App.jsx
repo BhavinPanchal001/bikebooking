@@ -65,8 +65,6 @@ function AdminShell() {
       <Sidebar
         items={navItems}
         activePath={location.pathname}
-        source={adminData.source}
-        loading={adminData.loading}
         isCollapsed={isCollapsed}
         onToggle={() => setIsCollapsed(!isCollapsed)}
       />
