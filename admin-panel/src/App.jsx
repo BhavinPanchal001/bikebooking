@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { Sidebar } from './components/Sidebar';
 import { Topbar } from './components/Topbar';
@@ -12,13 +13,14 @@ import { LoginPage } from './pages/LoginPage';
 import { ProductDetailPage } from './pages/ProductDetailPage';
 import { PlansMasterPage } from './pages/PlansMasterPage';
 import { PopularBikeAgeMasterPage } from './pages/PopularBikeAgeMasterPage';
+import { ReportedPersonsPage } from './pages/ReportedPersonsPage';
 import { UsersPage } from './pages/UsersPage';
 
 const navItems = [
   { to: '/dashboard', label: 'Dashboard', eyebrow: 'Overview' },
   { to: '/listings', label: 'Listings', eyebrow: 'Inventory' },
   { to: '/users', label: 'Users', eyebrow: 'People' },
-  { to: '/inbox', label: 'Inbox', eyebrow: 'Safety & chats' },
+  { to: '/reported-persons', label: 'Reported Persons', eyebrow: 'Safety' },
   { to: '/masters/plans', label: 'Plans Master', eyebrow: 'Master data' },
   { to: '/masters/brands', label: 'Brand Master', eyebrow: 'Master data' },
   {
@@ -30,6 +32,7 @@ const navItems = [
 ];
 
 function AdminShell() {
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const location = useLocation();
   const adminAuth = useAdminAuth();
   const adminData = useAdminData({ enabled: Boolean(adminAuth.user) });
@@ -41,7 +44,7 @@ function AdminShell() {
       <div className="login-shell">
         <section className="login-panel login-panel-loading">
           <h1>Checking admin session...</h1>
-          <p>Connecting to Firebase Auth and preparing the control room.</p>
+          <p>Preparing the control room.</p>
         </section>
       </div>
     );
@@ -58,10 +61,14 @@ function AdminShell() {
   }
 
   return (
-    <div className="app-shell">
+    <div className={`app-shell ${isCollapsed ? 'sidebar-collapsed' : ''}`}>
       <Sidebar
         items={navItems}
         activePath={location.pathname}
+        source={adminData.source}
+        loading={adminData.loading}
+        isCollapsed={isCollapsed}
+        onToggle={() => setIsCollapsed(!isCollapsed)}
       />
       <div className="app-main">
         <Topbar
@@ -70,6 +77,7 @@ function AdminShell() {
           lastUpdated={adminData.lastUpdated}
           issueCount={adminData.metrics.openReports}
           userEmail={adminAuth.user.email}
+          onRefresh={adminData.refresh}
           onLogout={adminAuth.logout}
         />
         <main className="page-wrap">
@@ -108,6 +116,10 @@ function AdminShell() {
                   adminEmail={adminAuth.user.email}
                 />
               }
+            />
+            <Route
+              path="/reported-persons"
+              element={<ReportedPersonsPage data={adminData} />}
             />
             <Route
               path="/inbox"

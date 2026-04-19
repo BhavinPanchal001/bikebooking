@@ -17,10 +17,9 @@ export function LoginPage({ onSubmit, error, authReady }) {
       <section className="login-panel">
         <div className="login-copy">
           <span className="hero-kicker">BikeBooking admin</span>
-          <h1>Sign in to manage listings from the live Firebase project.</h1>
+          <h1>Sign in to manage listings.</h1>
           <p>
-            This panel now points at the same `bikenest-app` backend used by the Flutter app. Use
-            a Firebase Auth email/password account with admin access.
+            This panel lets you manage the app backend. Use your admin credentials.
           </p>
 
           <div className="login-badges">
@@ -29,8 +28,8 @@ export function LoginPage({ onSubmit, error, authReady }) {
               <strong>bikenest-app</strong>
             </div>
             <div className="metric-chip">
-              <span>Database</span>
-              <strong>Cloud Firestore</strong>
+              <span>Backend</span>
+              <strong>{authReady ? 'Firebase Auth' : 'Connecting'}</strong>
             </div>
           </div>
         </div>
@@ -38,7 +37,7 @@ export function LoginPage({ onSubmit, error, authReady }) {
         <form className="login-form" onSubmit={handleSubmit}>
           <div className="login-form-head">
             <h2>Admin Login</h2>
-            <p>Use your Firebase Auth admin credentials.</p>
+            <p>Use your admin credentials.</p>
           </div>
 
           <label className="field">
@@ -68,7 +67,7 @@ export function LoginPage({ onSubmit, error, authReady }) {
           {error ? <div className="form-alert">{error}</div> : null}
           {!authReady ? (
             <div className="form-alert">
-              Firebase Auth is not ready. Check your Firebase project setup and reload the page.
+              Auth is not ready.
             </div>
           ) : null}
 

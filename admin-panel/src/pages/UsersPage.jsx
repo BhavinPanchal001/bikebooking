@@ -4,7 +4,7 @@ import { ConfirmDialog } from '../components/ConfirmDialog';
 import { FeedbackBanner } from '../components/FeedbackBanner';
 import { PanelCard } from '../components/PanelCard';
 import { adminUsersService } from '../services/adminUsersService';
-import { formatCurrency, formatDate } from '../utils/format';
+import { formatCurrency, formatDate, formatDateTime } from '../utils/format';
 
 function getDialogConfig(action) {
   if (!action?.user) {
@@ -63,6 +63,7 @@ export function UsersPage({ data, adminEmail }) {
 
         const matchesFilter =
           filter === 'all' ||
+          (filter === 'reported' && user.reportCount > 0) ||
           (filter === 'active' && user.accountStatus === 'active') ||
           (filter === 'blocked' && user.accountStatus === 'blocked') ||
           user.verificationStatus === filter;
@@ -124,7 +125,7 @@ export function UsersPage({ data, adminEmail }) {
         subtitle="Seller and buyer health in one place."
         actions={
           <div className="filter-row">
-            {['all', 'active', 'blocked', 'verified', 'incomplete'].map((status) => (
+            {['all', 'reported', 'active', 'blocked', 'verified', 'incomplete'].map((status) => (
               <button
                 key={status}
                 type="button"
@@ -196,35 +197,45 @@ export function UsersPage({ data, adminEmail }) {
                     <span>Seller rating</span>
                     <strong>{user.rating > 0 ? user.rating.toFixed(1) : 'New'}</strong>
                   </div>
+                  <div>
+                    <span>Reports</span>
+                    <strong>
+                      {user.reportCount > 0
+                        ? `${user.reportCount} total · ${user.openReportCount} open`
+                        : 'None'}
+                    </strong>
+                  </div>
                 </div>
                 <div className="user-card-footer">
                   <div className="user-card-note">
-                    {user.accountStatus === 'blocked'
-                      ? `Blocked ${user.adminBlockedAt ? formatDate(user.adminBlockedAt) : 'recently'}${user.adminBlockedBy ? ` by ${user.adminBlockedBy}` : ''}`
-                      : 'Account is active in the admin panel.'}
+                    {user.reportCount > 0
+                      ? `Latest report ${formatDateTime(user.latestReportAt)}${user.reportReasons?.[0] ? ` · ${user.reportReasons[0]}` : ''}`
+                      : user.accountStatus === 'blocked'
+                        ? `Blocked ${user.adminBlockedAt ? formatDate(user.adminBlockedAt) : 'recently'}${user.adminBlockedBy ? ` by ${user.adminBlockedBy}` : ''}`
+                        : 'Account is active in the admin panel.'}
                   </div>
                   <ActionMenu
                     items={[
                       user.accountStatus === 'blocked'
                         ? {
-                            key: 'unblock',
-                            label: 'Unblock user',
-                            disabled: busyActionKey === `unblock:${user.id}`,
-                            onSelect() {
-                              clearFeedback();
-                              setPendingAction({ type: 'unblock', user });
-                            },
-                          }
-                        : {
-                            key: 'block',
-                            label: 'Block user',
-                            tone: 'danger',
-                            disabled: busyActionKey === `block:${user.id}`,
-                            onSelect() {
-                              clearFeedback();
-                              setPendingAction({ type: 'block', user });
-                            },
+                          key: 'unblock',
+                          label: 'Unblock user',
+                          disabled: busyActionKey === `unblock:${user.id}`,
+                          onSelect() {
+                            clearFeedback();
+                            setPendingAction({ type: 'unblock', user });
                           },
+                        }
+                        : {
+                          key: 'block',
+                          label: 'Block user',
+                          tone: 'danger',
+                          disabled: busyActionKey === `block:${user.id}`,
+                          onSelect() {
+                            clearFeedback();
+                            setPendingAction({ type: 'block', user });
+                          },
+                        },
                       {
                         key: 'delete',
                         label: 'Delete user',

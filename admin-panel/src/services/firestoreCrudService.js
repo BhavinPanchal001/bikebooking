@@ -7,7 +7,7 @@ import {
   serverTimestamp,
   updateDoc,
 } from 'firebase/firestore';
-import { db, hasFirebaseConfig } from '../lib/firebase';
+import { auth, db } from '../lib/firebase';
 
 const FIRESTORE_WRITE_TIMEOUT_MS = 15000;
 
@@ -19,31 +19,31 @@ function capitalize(value) {
   return value[0].toUpperCase() + value.slice(1);
 }
 
-function toFriendlyErrorMessage(error, action, itemLabel) {
-  const code = error?.code?.toString().trim().toLowerCase() ?? '';
-  const fallback = error?.message?.toString().trim();
+function sanitizeForFirestore(values = {}) {
+  return Object.fromEntries(
+    Object.entries(values).filter(([, value]) => value !== undefined),
+  );
+}
 
-  if (code === 'permission-denied') {
-    return `You do not have permission to ${action} this ${itemLabel}.`;
-  }
+function getActorMetadata() {
+  const user = auth?.currentUser;
+  const userId = user?.uid?.trim() ?? '';
+  const userEmail = user?.email?.trim() ?? '';
 
-  if (code === 'unauthenticated') {
-    return 'Your admin session expired. Please sign in again.';
-  }
+  return {
+    ...(userId ? { updatedByUid: userId } : {}),
+    ...(userEmail ? { updatedByEmail: userEmail } : {}),
+  };
+}
 
-  if (code === 'unavailable') {
-    return 'Firestore is temporarily unavailable. Please try again.';
-  }
+function getCreateMetadata() {
+  const actorMetadata = getActorMetadata();
 
-  if (code === 'failed-precondition') {
-    return `Firestore is missing a required configuration to ${action} this ${itemLabel}.`;
-  }
-
-  if (code === 'not-found') {
-    return `This ${itemLabel} no longer exists. Refresh and try again.`;
-  }
-
-  return fallback || `Unable to ${action} this ${itemLabel}.`;
+  return {
+    ...actorMetadata,
+    ...(actorMetadata.updatedByUid ? { createdByUid: actorMetadata.updatedByUid } : {}),
+    ...(actorMetadata.updatedByEmail ? { createdByEmail: actorMetadata.updatedByEmail } : {}),
+  };
 }
 
 async function withTimeout(promise, timeoutMessage, timeoutMs = FIRESTORE_WRITE_TIMEOUT_MS) {
@@ -62,6 +62,25 @@ async function withTimeout(promise, timeoutMessage, timeoutMs = FIRESTORE_WRITE_
   }
 }
 
+function resolveErrorMessage(error, action, itemLabel, collectionName) {
+  const code = error?.code?.toString().trim().toLowerCase() ?? '';
+
+  switch (code) {
+    case 'permission-denied':
+      return `You do not have permission to ${action} this ${itemLabel}.`;
+    case 'unauthenticated':
+      return 'Your admin session expired. Please sign in again.';
+    case 'unavailable':
+      return 'Firestore is temporarily unavailable. Please try again.';
+    case 'not-found':
+      return `This ${itemLabel} no longer exists in ${collectionName}.`;
+    case 'failed-precondition':
+      return `Firestore is missing required configuration for ${collectionName}.`;
+    default:
+      return error?.message || `Unable to ${action} ${itemLabel}.`;
+  }
+}
+
 export function createFirestoreCrudService({
   collectionName,
   fromFirestore,
@@ -70,8 +89,8 @@ export function createFirestoreCrudService({
   itemLabel = 'record',
 }) {
   function getCollectionRef() {
-    if (!hasFirebaseConfig || !db) {
-      throw new Error('Firebase is not configured for the admin panel.');
+    if (!db) {
+      throw new Error('Firestore is not configured for the admin panel.');
     }
 
     return collection(db, collectionName);
@@ -79,44 +98,59 @@ export function createFirestoreCrudService({
 
   return {
     subscribe({ onData, onError }) {
-      if (!hasFirebaseConfig || !db) {
-        onError?.('Firebase is not configured for the admin panel.');
+      try {
+        const collectionRef = getCollectionRef();
+
+        return onSnapshot(
+          collectionRef,
+          (snapshot) => {
+            try {
+              const records = snapshot.docs.map((record) =>
+                typeof fromFirestore === 'function'
+                  ? fromFirestore(record)
+                  : { id: record.id, ...record.data() },
+              );
+              const sortedRecords =
+                typeof sortRecords === 'function' ? [...records].sort(sortRecords) : records;
+
+              onData?.(sortedRecords);
+            } catch (error) {
+              console.error(`Unable to map ${collectionName} data.`, error);
+              onError?.(
+                error?.message?.toString().trim() ||
+                  `Unable to map ${capitalize(collectionName)} data from Firestore.`,
+              );
+            }
+          },
+          (error) => {
+            console.error(`Unable to subscribe to ${collectionName}.`, error);
+            onError?.(resolveErrorMessage(error, 'load', itemLabel, collectionName));
+          },
+        );
+      } catch (error) {
+        console.error(`Unable to initialize ${collectionName} subscription.`, error);
+        onError?.(resolveErrorMessage(error, 'load', itemLabel, collectionName));
         return () => {};
       }
-
-      return onSnapshot(
-        getCollectionRef(),
-        (snapshot) => {
-          try {
-            const records = snapshot.docs.map((documentSnapshot) => fromFirestore(documentSnapshot));
-            const sortedRecords = typeof sortRecords === 'function'
-              ? [...records].sort(sortRecords)
-              : records;
-            onData?.(sortedRecords);
-          } catch (error) {
-            onError?.(
-              error?.message?.toString().trim() ||
-                `Unable to map ${capitalize(collectionName)} data from Firestore.`,
-            );
-          }
-        },
-        (error) => {
-          onError?.(toFriendlyErrorMessage(error, 'load', itemLabel));
-        },
-      );
     },
     async create(values) {
       try {
+        const payload = sanitizeForFirestore(
+          typeof toFirestore === 'function' ? toFirestore(values) : values,
+        );
+
         await withTimeout(
           addDoc(getCollectionRef(), {
-            ...toFirestore(values),
+            ...payload,
+            ...getCreateMetadata(),
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
           }),
           `Saving the ${itemLabel} is taking too long. Check your Firestore rules or network connection and try again.`,
         );
       } catch (error) {
-        throw new Error(toFriendlyErrorMessage(error, 'create', itemLabel));
+        console.error(`Unable to create ${itemLabel} in ${collectionName}.`, error);
+        throw new Error(resolveErrorMessage(error, 'create', itemLabel, collectionName));
       }
     },
     async update(id, values) {
@@ -125,15 +159,21 @@ export function createFirestoreCrudService({
       }
 
       try {
+        const payload = sanitizeForFirestore(
+          typeof toFirestore === 'function' ? toFirestore(values) : values,
+        );
+
         await withTimeout(
           updateDoc(doc(db, collectionName, id), {
-            ...toFirestore(values),
+            ...payload,
+            ...getActorMetadata(),
             updatedAt: serverTimestamp(),
           }),
           `Updating the ${itemLabel} is taking too long. Check your Firestore rules or network connection and try again.`,
         );
       } catch (error) {
-        throw new Error(toFriendlyErrorMessage(error, 'update', itemLabel));
+        console.error(`Unable to update ${itemLabel} ${id} in ${collectionName}.`, error);
+        throw new Error(resolveErrorMessage(error, 'update', itemLabel, collectionName));
       }
     },
     async remove(id) {
@@ -147,7 +187,8 @@ export function createFirestoreCrudService({
           `Deleting the ${itemLabel} is taking too long. Check your Firestore rules or network connection and try again.`,
         );
       } catch (error) {
-        throw new Error(toFriendlyErrorMessage(error, 'delete', itemLabel));
+        console.error(`Unable to delete ${itemLabel} ${id} from ${collectionName}.`, error);
+        throw new Error(resolveErrorMessage(error, 'delete', itemLabel, collectionName));
       }
     },
   };

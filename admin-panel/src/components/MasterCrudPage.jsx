@@ -101,6 +101,13 @@ export function MasterCrudPage({ config, model, service }) {
   }
 
   const deletingLabel = recordPendingDelete ? model.getRecordLabel(recordPendingDelete) : '';
+  const liveToneClass =
+    loading || error ? 'dot-firebase-partial' : 'dot-firebase';
+  const liveStatusMessage = error
+    ? `Firestore connection needs attention for ${config.collectionName}.`
+    : loading
+      ? config.loadingMessage
+      : config.liveMessage;
 
   return (
     <div className="page-stack">
@@ -114,8 +121,8 @@ export function MasterCrudPage({ config, model, service }) {
         }
       >
         <div className="live-note">
-          <span className="dot dot-firebase" />
-          {loading ? config.loadingMessage : config.liveMessage}
+          <span className={`dot ${liveToneClass}`} />
+          {liveStatusMessage}
         </div>
 
         <FeedbackBanner tone="error">{error}</FeedbackBanner>

@@ -231,26 +231,26 @@ export function ListingsPage({ data, adminEmail }) {
                           },
                           listing.moderationStatus !== 'approved' || listing.status !== 'active'
                             ? {
-                                key: 'approve',
-                                label: 'Approve listing',
-                                disabled: busyActionKey === `approve:${listing.id}`,
-                                onSelect() {
-                                  clearFeedback();
-                                  setPendingAction({ type: 'approve', listing });
-                                },
-                              }
+                              key: 'approve',
+                              label: 'Approve listing',
+                              disabled: busyActionKey === `approve:${listing.id}`,
+                              onSelect() {
+                                clearFeedback();
+                                setPendingAction({ type: 'approve', listing });
+                              },
+                            }
                             : null,
                           listing.moderationStatus !== 'flagged'
                             ? {
-                                key: 'flag',
-                                label: 'Flag listing',
-                                tone: 'danger',
-                                disabled: busyActionKey === `flag:${listing.id}`,
-                                onSelect() {
-                                  clearFeedback();
-                                  setPendingAction({ type: 'flag', listing });
-                                },
-                              }
+                              key: 'flag',
+                              label: 'Flag listing',
+                              tone: 'danger',
+                              disabled: busyActionKey === `flag:${listing.id}`,
+                              onSelect() {
+                                clearFeedback();
+                                setPendingAction({ type: 'flag', listing });
+                              },
+                            }
                             : null,
                           {
                             key: listing.status === 'sold' ? 'reopen' : 'close',
@@ -284,7 +284,7 @@ export function ListingsPage({ data, adminEmail }) {
               ) : (
                 <tr>
                   <td colSpan="7">
-                    <div className="empty-state">No listings found in Firestore for this filter.</div>
+                    <div className="empty-state">No listings found for this filter.</div>
                   </td>
                 </tr>
               )}

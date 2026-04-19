@@ -127,9 +127,9 @@ export function DashboardPage({ data }) {
         <StatCard
           label="Safety attention"
           value={formatCompactNumber(data.metrics.openReports)}
-          trend={`${data.metrics.unreadChats} unread chats`}
+          trend={`${formatCompactNumber(data.metrics.reportedUsers)} reported persons`}
           tone="warning"
-          helper={`${data.metrics.unreadNotifications} unread notifications`}
+          helper={`${data.metrics.unreadChats} unread chats · ${data.metrics.unreadNotifications} unread notifications`}
         />
       </section>
 
@@ -312,6 +312,6 @@ export function DashboardPage({ data }) {
           </div>
         </PanelCard>
       </section>
-    </div>
+    </div >
   );
 }
