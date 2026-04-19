@@ -167,16 +167,16 @@ export function ListingsPage({ data, adminEmail }) {
           </div>
         }
       >
-        <div className="live-note">
-          <span className={`dot dot-${data.source}`} />
-          {data.loading
-            ? 'Loading live listings from Firestore.'
-            : data.source === 'firebase'
-              ? 'Listings are loaded from your live Firestore products collection.'
+        {data.source === 'mock' && !data.loading ? null : (
+          <div className="live-note">
+            <span className={`dot dot-${data.source}`} />
+            {data.loading
+              ? 'Loading live listings from Firestore.'
               : data.source === 'firebase-partial'
                 ? 'Listings are partially loaded from Firestore. Some related collections may be blocked.'
-                : 'Listings are showing demo data because Firebase could not be read.'}
-        </div>
+                : 'Listings are loaded from your live Firestore products collection.'}
+          </div>
+        )}
 
         <FeedbackBanner tone="error">{actionError}</FeedbackBanner>
         <FeedbackBanner tone="success">{successMessage}</FeedbackBanner>

@@ -26,8 +26,8 @@ export function Sidebar({ items, activePath }) {
 
       <div className="sidebar-note">
         <span className="sidebar-note-label">Control room</span>
-        <strong>Ready for Firebase</strong>
-        <p>Drop your web config into `.env.local` to replace the demo feed.</p>
+        <strong>BikeBooking Admin</strong>
+        <p>Moderate listings, vet sellers, and keep the marketplace healthy.</p>
       </div>
     </aside>
   );
