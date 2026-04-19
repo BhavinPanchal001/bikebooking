@@ -82,8 +82,7 @@ a {
 
 .brand-kicker,
 .page-eyebrow,
-.hero-kicker,
-.sidebar-note-label {
+.hero-kicker {
   display: inline-flex;
   text-transform: uppercase;
   letter-spacing: 0.18em;
@@ -96,8 +95,7 @@ a {
   font-size: 2rem;
 }
 
-.brand-lockup p,
-.sidebar-note p {
+.brand-lockup p {
   margin: 0;
   line-height: 1.6;
   color: rgba(248, 243, 234, 0.72);
@@ -134,20 +132,6 @@ a {
 .nav-label {
   font-weight: 700;
   font-size: 1.02rem;
-}
-
-.sidebar-note {
-  margin-top: auto;
-  padding: 18px;
-  border-radius: 24px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03));
-  border: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.sidebar-note strong {
-  display: block;
-  margin: 10px 0 6px;
-  font-size: 1.05rem;
 }
 
 .app-main {

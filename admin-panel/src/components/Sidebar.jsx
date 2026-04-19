@@ -23,12 +23,6 @@ export function Sidebar({ items, activePath }) {
           </NavLink>
         ))}
       </nav>
-
-      <div className="sidebar-note">
-        <span className="sidebar-note-label">Control room</span>
-        <strong>BikeBooking Admin</strong>
-        <p>Moderate listings, vet sellers, and keep the marketplace healthy.</p>
-      </div>
     </aside>
   );
 }
