@@ -3,8 +3,6 @@ import { formatDateTime } from '../utils/format';
 export function Topbar({
   title,
   eyebrow,
-  source,
-  loading,
   lastUpdated,
   issueCount,
   userEmail,
@@ -18,16 +16,6 @@ export function Topbar({
       </div>
 
       <div className="topbar-meta">
-        {source === 'mock' ? null : (
-          <div className="source-pill">
-            <span className={`dot dot-${source}`} />
-            {loading
-              ? 'Refreshing feed'
-              : source === 'firebase-partial'
-                ? 'Partial Firebase data'
-                : 'Live data'}
-          </div>
-        )}
         <div className="mini-stat">
           <span>Open issues</span>
           <strong>{issueCount}</strong>

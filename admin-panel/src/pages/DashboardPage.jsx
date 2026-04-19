@@ -7,11 +7,6 @@ export function DashboardPage({ data }) {
   const queue = data.listings.filter(
     (listing) => listing.moderationStatus === 'flagged' || listing.moderationStatus === 'closed',
   );
-  const showDataSource = data.source === 'firebase' || data.source === 'firebase-partial';
-  const liveSummary =
-    data.source === 'firebase-partial'
-      ? 'Live Firestore data loaded partially. Some collections may be blocked by rules.'
-      : 'All visible panels are bound to live Firestore collections.';
 
   return (
     <div className="page-stack">
@@ -24,17 +19,6 @@ export function DashboardPage({ data }) {
             listings, users, seller safety, and operational conversations.
           </p>
         </div>
-        {showDataSource ? (
-          <div className="hero-aside">
-            <span className="hero-aside-label">Data source</span>
-            <strong>
-              {data.source === 'firebase-partial'
-                ? 'Partial Firebase workspace'
-                : 'Live Firebase workspace'}
-            </strong>
-            <p>{data.error || liveSummary}</p>
-          </div>
-        ) : null}
       </section>
 
       <section className="stats-grid">
