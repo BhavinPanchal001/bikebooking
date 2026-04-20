@@ -11,8 +11,21 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == sellerId;
     }
 
+    // Admin allowlist — accepts either:
+    //   (a) the `admin` custom claim minted via setAdminClaim, OR
+    //   (b) a hardcoded email, for bootstrap / when the setAdminClaim
+    //       Cloud Function path is unavailable.
+    // Add operator emails to this list; redeploy rules to take effect.
+    // Once you have a reliable way to mint custom claims, drop option (b)
+    // and keep only `request.auth.token.admin == true`.
     function isAdmin() {
-      return isSignedIn() && request.auth.token.admin == true;
+      return isSignedIn() && (
+        request.auth.token.get('admin', false) == true
+        || request.auth.token.get('email', '') in [
+          'admin@gmail.com',
+          'bhavinpanchal620@gmail.com'
+        ]
+      );
     }
 
     // ── products ─────────────────────────────────────────────────────────────

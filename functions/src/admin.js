@@ -18,15 +18,41 @@ function requireAuth(request) {
 }
 
 /**
+ * Parses the ADMIN_EMAILS env var (comma-separated list) into a normalized
+ * lowercase Set. Used as a fallback admin source when the `admin` custom
+ * claim path is unavailable — matches the allowlist baked into
+ * `firestore.rules::isAdmin()`.
+ * @return {Set<string>}
+ */
+function allowlistedAdminEmails() {
+  const raw = process.env.ADMIN_EMAILS || "";
+  return new Set(
+    raw
+      .split(",")
+      .map((e) => e.trim().toLowerCase())
+      .filter(Boolean),
+  );
+}
+
+/**
  * Throws an HttpsError('permission-denied') if the caller is not an admin.
- * Admin status is determined by the custom claim `admin === true`.
+ * Admin status is determined by EITHER:
+ *   (a) the `admin` custom claim, minted via setAdminClaim, OR
+ *   (b) the caller's email appearing in the ADMIN_EMAILS env allowlist
+ *       (comma-separated, loaded from functions/.env.<projectId>).
+ * Option (b) exists so operators without reliable access to mint custom
+ * claims can still manage admin actions. Keep the allowlist short.
  * @param {object} request firebase-functions v2 callable request
  * @return {object} decoded auth
  */
 function requireAdmin(request) {
   const auth = requireAuth(request);
-  const isAdmin = auth.token && auth.token.admin === true;
-  if (!isAdmin) {
+  const hasClaim = !!(auth.token && auth.token.admin === true);
+  const email = (auth.token && auth.token.email ? auth.token.email : "")
+    .trim()
+    .toLowerCase();
+  const allowlisted = email.length > 0 && allowlistedAdminEmails().has(email);
+  if (!hasClaim && !allowlisted) {
     throw new HttpsError(
       "permission-denied",
       "Admin privileges are required for this action.",
