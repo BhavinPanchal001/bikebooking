@@ -74,11 +74,25 @@ service cloud.firestore {
                          resource.data.get('boostStartedAt', null)
                     && request.resource.data.get('boostPlanId', null) ==
                          resource.data.get('boostPlanId', null)
+                    // From `awaiting_payment` the seller may stay put or mark
+                    // the listing as `sold`. Only the server (via the
+                    // verifyPaymentSignature Cloud Function) is allowed to flip
+                    // the status to `active`.
                     && (
                       resource.data.get('status', 'active') != 'awaiting_payment'
                       || request.resource.data.get('status', 'active') ==
                            'awaiting_payment'
                       || request.resource.data.get('status', 'active') == 'sold'
+                    )
+                    // A seller can reach `active` only if the listing was
+                    // already `active` OR the listing fee has been paid. This
+                    // closes the awaiting_payment → sold → active two-step
+                    // bypass that would otherwise let a listing go live
+                    // without paying the fee.
+                    && (
+                      request.resource.data.get('status', 'active') != 'active'
+                      || resource.data.get('status', 'active') == 'active'
+                      || resource.data.get('listingFeePaid', false) == true
                     );
       allow delete: if isOwner(resource.data.sellerId) || isAdmin();
     }
