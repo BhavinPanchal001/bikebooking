@@ -180,15 +180,31 @@ async function onPaymentFailed(db, entity) {
   if (!paymentDocId) return;
 
   const ref = db.collection(PAYMENTS).doc(paymentDocId);
+  const snap = await ref.get();
+  if (!snap.exists) return;
+  const payment = Object.assign({id: snap.id}, snap.data() || {});
+
+  // Do not overwrite a terminal success status — a stale `payment.failed`
+  // replay must not clobber a payment we already verified as `paid`
+  // (or refunded / partially_refunded).
+  if (payment.status === "paid" || payment.status === "refunded" ||
+      payment.status === "partially_refunded") {
+    await ref.set({
+      webhookEventIds: FieldValue.arrayUnion(rp.id || "failed"),
+      updatedAt: FieldValue.serverTimestamp(),
+    }, {merge: true});
+    return;
+  }
+
   await ref.set({
     status: "failed",
     failedAt: FieldValue.serverTimestamp(),
     updatedAt: FieldValue.serverTimestamp(),
-    razorpay: {
+    razorpay: Object.assign({}, payment.razorpay || {}, {
       paymentId: rp.id || null,
       errorCode: rp.error_code || null,
       errorDescription: rp.error_description || null,
-    },
+    }),
     webhookEventIds: FieldValue.arrayUnion(rp.id || "failed"),
   }, {merge: true});
 

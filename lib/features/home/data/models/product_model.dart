@@ -159,6 +159,14 @@ class ProductModel {
     };
   }
 
+  /// Fields safe for the seller to write on update.
+  ///
+  /// Payment-gated fields (`isBoosted`, `boostPlanId`, `boostStartedAt`,
+  /// `boostExpiresAt`, `boostPaymentId`, `listingFeePaid`) are deliberately
+  /// omitted — they are owned exclusively by Cloud Functions using the
+  /// admin SDK. Including them here would cause the Firestore rules to
+  /// reject edits on boosted products (stale default values would violate
+  /// the "must not change" invariants in `firestore.rules`).
   Map<String, dynamic> toUpdateMap() {
     return {
       'category': category,
@@ -177,11 +185,6 @@ class ProductModel {
       'subCategory': subCategory,
       'condition': condition,
       'sellerType': sellerType,
-      'isBoosted': isBoosted,
-      'boostPlanId': boostPlanId,
-      'boostStartedAt': boostStartedAt != null ? Timestamp.fromDate(boostStartedAt!) : null,
-      'boostExpiresAt': boostExpiresAt != null ? Timestamp.fromDate(boostExpiresAt!) : null,
-      'boostPaymentId': boostPaymentId,
     };
   }
 

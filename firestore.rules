@@ -35,15 +35,25 @@ service cloud.firestore {
       // Only the seller can update or delete their own product.
       // Sellers MUST NOT be able to flip payment-gated fields themselves.
       // Those are owned by the server (Cloud Functions using the admin SDK).
+      // Sellers also cannot leave `awaiting_payment` on their own — that
+      // transition must go through `verifyPaymentSignature` after the
+      // listing fee is paid. They may still mark a product as `sold` from
+      // any status via the regular app UI.
       allow update: if isOwner(resource.data.sellerId)
-                    && request.resource.data.listingFeePaid ==
-                         resource.data.listingFeePaid
-                    && request.resource.data.isBoosted ==
-                         resource.data.isBoosted
-                    && request.resource.data.boostExpiresAt ==
-                         resource.data.boostExpiresAt
-                    && request.resource.data.boostPaymentId ==
-                         resource.data.boostPaymentId;
+                    && request.resource.data.get('listingFeePaid', false) ==
+                         resource.data.get('listingFeePaid', false)
+                    && request.resource.data.get('isBoosted', false) ==
+                         resource.data.get('isBoosted', false)
+                    && request.resource.data.get('boostExpiresAt', null) ==
+                         resource.data.get('boostExpiresAt', null)
+                    && request.resource.data.get('boostPaymentId', null) ==
+                         resource.data.get('boostPaymentId', null)
+                    && (
+                      resource.data.get('status', 'active') != 'awaiting_payment'
+                      || request.resource.data.get('status', 'active') ==
+                           'awaiting_payment'
+                      || request.resource.data.get('status', 'active') == 'sold'
+                    );
       allow delete: if isOwner(resource.data.sellerId) || isAdmin();
     }
 
