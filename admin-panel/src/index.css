@@ -1342,11 +1342,15 @@ a {
 
 .dialog-card {
   width: min(720px, 100%);
+  max-height: calc(100vh - 48px);
   padding: 24px;
   border-radius: 28px;
   background: var(--surface-strong);
   border: 1px solid rgba(255, 255, 255, 0.8);
   box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .dialog-card-compact {
@@ -1355,6 +1359,7 @@ a {
 
 .dialog-head {
   margin-bottom: 18px;
+  flex: 0 0 auto;
 }
 
 .dialog-head h3 {
@@ -1370,20 +1375,30 @@ a {
 }
 
 .dialog-form {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 18px;
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 .dialog-form-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px;
 }
 
 .dialog-actions {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
+  flex: 0 0 auto;
+  padding-top: 14px;
+  border-top: 1px solid rgba(16, 35, 63, 0.08);
 }
 
 .logo-preview-card {
