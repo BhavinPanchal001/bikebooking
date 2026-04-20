@@ -156,12 +156,17 @@ class ProductModel {
       'boostStartedAt': boostStartedAt != null ? Timestamp.fromDate(boostStartedAt!) : null,
       'boostExpiresAt': boostExpiresAt != null ? Timestamp.fromDate(boostExpiresAt!) : null,
       'boostPaymentId': boostPaymentId,
-      // Always write the field so the `!('listingFeePaid' in resource.data)`
-      // escape hatch in Firestore rules applies only to products that
-      // pre-date the listing-fee feature. New products are always stamped
-      // with `false`; the server flips it to `true` after the listing fee
-      // is paid via `verifyPaymentSignature`.
-      'listingFeePaid': false,
+      // Only stamp `listingFeePaid: false` on products that are actually
+      // going through the paywall (status == awaiting_payment). That way:
+      //   • paywalled listings have the field, so sold → active is gated
+      //     on the server flipping `listingFeePaid` to `true` (close the
+      //     awaiting_payment → sold → active bypass).
+      //   • listings created when no fee is configured (status == active
+      //     directly) omit the field, so the rules escape hatch
+      //     `!('listingFeePaid' in resource.data)` lets the seller
+      //     reactivate them after marking as sold — same behaviour as
+      //     products that pre-date the listing-fee feature.
+      if (status == ProductStatus.awaitingPayment) 'listingFeePaid': false,
     };
   }
 
