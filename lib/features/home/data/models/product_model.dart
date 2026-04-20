@@ -156,6 +156,12 @@ class ProductModel {
       'boostStartedAt': boostStartedAt != null ? Timestamp.fromDate(boostStartedAt!) : null,
       'boostExpiresAt': boostExpiresAt != null ? Timestamp.fromDate(boostExpiresAt!) : null,
       'boostPaymentId': boostPaymentId,
+      // Always write the field so the `!('listingFeePaid' in resource.data)`
+      // escape hatch in Firestore rules applies only to products that
+      // pre-date the listing-fee feature. New products are always stamped
+      // with `false`; the server flips it to `true` after the listing fee
+      // is paid via `verifyPaymentSignature`.
+      'listingFeePaid': false,
     };
   }
 
