@@ -89,10 +89,19 @@ service cloud.firestore {
                     // closes the awaiting_payment → sold → active two-step
                     // bypass that would otherwise let a listing go live
                     // without paying the fee.
+                    //
+                    // The `!('listingFeePaid' in resource.data)` branch is an
+                    // explicit escape hatch for products that pre-date the
+                    // listing-fee feature: they were created before the field
+                    // existed, are already live / sold / reactivatable, and
+                    // were never subject to the paywall. Without this branch
+                    // every pre-existing sold product would become
+                    // unreactivatable after the rule rolls out.
                     && (
                       request.resource.data.get('status', 'active') != 'active'
                       || resource.data.get('status', 'active') == 'active'
                       || resource.data.get('listingFeePaid', false) == true
+                      || !('listingFeePaid' in resource.data)
                     );
       allow delete: if isOwner(resource.data.sellerId) || isAdmin();
     }
