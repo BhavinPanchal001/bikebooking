@@ -48,6 +48,10 @@ service cloud.firestore {
                          resource.data.get('boostExpiresAt', null)
                     && request.resource.data.get('boostPaymentId', null) ==
                          resource.data.get('boostPaymentId', null)
+                    && request.resource.data.get('boostStartedAt', null) ==
+                         resource.data.get('boostStartedAt', null)
+                    && request.resource.data.get('boostPlanId', null) ==
+                         resource.data.get('boostPlanId', null)
                     && (
                       resource.data.get('status', 'active') != 'awaiting_payment'
                       || request.resource.data.get('status', 'active') ==

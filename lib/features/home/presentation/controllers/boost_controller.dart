@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
@@ -59,6 +61,11 @@ class BoostController extends GetxController {
   String? _pendingPaymentDocId;
   String? _pendingRazorpayOrderId;
 
+  // Held so we can cancel the Firestore listener when the controller is
+  // disposed; otherwise the stream keeps calling `update()` on a closed
+  // GetxController and leaks the underlying snapshot listener.
+  StreamSubscription<List<BoostPlan>>? _plansSubscription;
+
   // ── Callbacks for UI ────────────────────────────────────────────────────
 
   void Function()? onBoostSuccess;
@@ -69,7 +76,7 @@ class BoostController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    _feeConfigService.watchBoostPlans().listen((plans) {
+    _plansSubscription = _feeConfigService.watchBoostPlans().listen((plans) {
       if (plans.isEmpty) return;
       _availablePlans = plans;
       // Keep the currently selected plan if the admin still has it; else
@@ -255,6 +262,8 @@ class BoostController extends GetxController {
 
   @override
   void onClose() {
+    _plansSubscription?.cancel();
+    _plansSubscription = null;
     _paymentService.dispose();
     super.onClose();
   }

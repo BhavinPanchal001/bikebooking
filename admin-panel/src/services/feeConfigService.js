@@ -117,7 +117,7 @@ export const feeConfigService = {
       throw new Error(resolveError(error, 'update'));
     }
   },
-  async delete(id) {
+  async remove(id) {
     if (!id) {
       throw new Error('Fee slug is missing.');
     }
