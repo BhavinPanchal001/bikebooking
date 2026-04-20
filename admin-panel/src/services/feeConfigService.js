@@ -1,6 +1,7 @@
 import {
   deleteDoc,
   doc,
+  getDoc,
   onSnapshot,
   serverTimestamp,
   setDoc,
@@ -74,8 +75,20 @@ export const feeConfigService = {
     if (!values.slug) {
       throw new Error('Slug is required.');
     }
+    // Fee config docs are keyed by slug so the mobile app can look them up
+    // deterministically. setDoc() would silently overwrite an existing
+    // entry — wiping createdAt, audit metadata, and changing live pricing
+    // for every paying user. Guard with a read-then-write; admin-panel
+    // concurrency is low enough that a lost-update race is acceptable.
+    const ref = doc(db, COLLECTION, values.slug);
     try {
-      await setDoc(doc(db, COLLECTION, values.slug), {
+      const existing = await getDoc(ref);
+      if (existing.exists()) {
+        throw new Error(
+          `A fee with slug "${values.slug}" already exists. Edit it from the list instead of creating a new one.`,
+        );
+      }
+      await setDoc(ref, {
         displayName: values.displayName,
         kind: values.kind,
         amountPaise: values.amountPaise,
@@ -89,6 +102,9 @@ export const feeConfigService = {
         updatedAt: serverTimestamp(),
       });
     } catch (error) {
+      // Preserve the friendly duplicate-slug message verbatim; only
+      // Firestore errors get rewritten by resolveError.
+      if (error?.message?.startsWith('A fee with slug ')) throw error;
       throw new Error(resolveError(error, 'create'));
     }
   },

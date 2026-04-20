@@ -466,10 +466,14 @@ class _MyListingScreenState extends State<MyListingScreen>
   }
 
   void _openEditProduct(BuildContext context, ProductModel product) {
-    if (!product.isActive) {
+    // Sold listings are immutable; awaiting-payment listings stay editable
+    // so the seller can fix typos / photos before completing the listing
+    // fee payment (Firestore rules block the status transition, not edits
+    // to other fields).
+    if (product.isSold) {
       Get.snackbar(
         'Editing unavailable',
-        'Reactivate this listing before editing it.',
+        'Sold listings cannot be edited.',
         snackPosition: SnackPosition.BOTTOM,
       );
       return;
@@ -490,7 +494,10 @@ class _MyListingScreenState extends State<MyListingScreen>
   List<PopupMenuEntry<_ListingStatusMenuAction>> _buildStatusMenuItems(
     ProductModel product,
   ) {
-    if (product.isActive) {
+    // Both active and awaiting-payment listings are editable — the seller
+    // may still need to correct content before the paywall is cleared.
+    // Only sold listings drop the Edit option.
+    if (!product.isSold) {
       return const [
         PopupMenuItem<_ListingStatusMenuAction>(
           value: _ListingStatusMenuAction.edit,
