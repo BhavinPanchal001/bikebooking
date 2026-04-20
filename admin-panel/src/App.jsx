@@ -21,14 +21,14 @@ const navItems = [
   { to: '/listings', label: 'Listings', eyebrow: 'Inventory' },
   { to: '/users', label: 'Users', eyebrow: 'People' },
   { to: '/reported-persons', label: 'Reported Persons', eyebrow: 'Safety' },
-  { to: '/masters/plans', label: 'Plans Master', eyebrow: 'Master data' },
-  { to: '/masters/brands', label: 'Brand Master', eyebrow: 'Master data' },
+  { to: '/masters/plans', label: 'Plans Master', eyebrow: 'Pricing', header: 'Masters' },
+  { to: '/masters/brands', label: 'Brand Master', eyebrow: 'Vehicle' },
   {
     to: '/masters/popular-bike-age',
     label: 'Popular Bike Age',
-    eyebrow: 'Master data',
+    eyebrow: 'Trends',
   },
-  { to: '/masters/bike-owner', label: 'Bike Owner', eyebrow: 'Master data' },
+  { to: '/masters/bike-owner', label: 'Bike Owner', eyebrow: 'Entity' },
 ];
 
 function AdminShell() {
