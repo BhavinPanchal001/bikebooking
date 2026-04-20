@@ -231,49 +231,64 @@ async function onRefundEvent(db, eventType, entity) {
   }
 
   const ref = db.collection(PAYMENTS).doc(paymentDocId);
-  const snap = await ref.get();
-  if (!snap.exists) return;
-  const payment = Object.assign({id: snap.id}, snap.data() || {});
-
-  // Upsert refund entry by refund id.
-  const existing = (payment.refunds || []).find((r) => r.refundId === rp.id);
-  const nextRefunds = existing
-    ? (payment.refunds || []).map((r) => r.refundId === rp.id
-      ? Object.assign({}, r, {
-        amountPaise: Number(rp.amount) || r.amountPaise,
-        status: rp.status || r.status || null,
-      })
-      : r)
-    : (payment.refunds || []).concat([{
-      refundId: rp.id,
-      amountPaise: Number(rp.amount) || 0,
-      status: rp.status || null,
-      reason: (rp.notes && rp.notes.reason) || "",
-      at: new Date().toISOString(),
-    }]);
-
   const processed = eventType === "refund.processed";
-  const total = nextRefunds.reduce(
-    (sum, r) => sum + (Number(r.amountPaise) || 0),
-    0,
-  );
-  const nextStatus = processed
-    ? (total >= Number(payment.amountPaise)
-      ? "refunded"
-      : "partially_refunded")
-    : payment.status;
 
-  await ref.set({
-    refunds: nextRefunds,
-    status: nextStatus,
-    refundedAt: processed ? FieldValue.serverTimestamp() : payment.refundedAt,
-    updatedAt: FieldValue.serverTimestamp(),
-    webhookEventIds: FieldValue.arrayUnion(rp.id),
-  }, {merge: true});
+  // Read-modify-write of the `refunds` array must be atomic: two
+  // concurrent refund webhooks for the same payment would otherwise
+  // both read the same base array, each append only their own entry,
+  // and clobber each other with `set({refunds}, {merge: true})`.
+  // Wrapping in a transaction forces Firestore to retry one of them
+  // against the fresh state.
+  const result = await db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    if (!snap.exists) return null;
+    const payment = Object.assign({id: snap.id}, snap.data() || {});
 
-  if (processed && nextStatus === "refunded") {
+    // Upsert refund entry by refund id.
+    const existing = (payment.refunds || []).find(
+      (r) => r.refundId === rp.id,
+    );
+    const nextRefunds = existing
+      ? (payment.refunds || []).map((r) => r.refundId === rp.id
+        ? Object.assign({}, r, {
+          amountPaise: Number(rp.amount) || r.amountPaise,
+          status: rp.status || r.status || null,
+        })
+        : r)
+      : (payment.refunds || []).concat([{
+        refundId: rp.id,
+        amountPaise: Number(rp.amount) || 0,
+        status: rp.status || null,
+        reason: (rp.notes && rp.notes.reason) || "",
+        at: new Date().toISOString(),
+      }]);
+
+    const total = nextRefunds.reduce(
+      (sum, r) => sum + (Number(r.amountPaise) || 0),
+      0,
+    );
+    const nextStatus = processed
+      ? (total >= Number(payment.amountPaise)
+        ? "refunded"
+        : "partially_refunded")
+      : payment.status;
+
+    tx.set(ref, {
+      refunds: nextRefunds,
+      status: nextStatus,
+      refundedAt: processed ? FieldValue.serverTimestamp() : payment.refundedAt,
+      updatedAt: FieldValue.serverTimestamp(),
+      webhookEventIds: FieldValue.arrayUnion(rp.id),
+    }, {merge: true});
+
+    return {payment, nextStatus};
+  });
+
+  if (!result) return;
+
+  if (processed && result.nextStatus === "refunded") {
     try {
-      await reversePaymentSideEffect(db, payment);
+      await reversePaymentSideEffect(db, result.payment);
     } catch (error) {
       console.error("Webhook reverse side-effect failed", paymentDocId, error);
     }
