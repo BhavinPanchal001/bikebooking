@@ -82,35 +82,61 @@ export function MasterRecordFormDialog({
 
         <form className="dialog-form" onSubmit={handleSubmit}>
           <div className="dialog-form-grid">
-            {fields.map((field) => (
-              <label
-                key={field.name}
-                className={`field ${field.fullWidth ? 'field-full' : ''}`.trim()}
-              >
-                <span>{field.label}</span>
-                <input
-                  type={field.type ?? 'text'}
-                  value={values[field.name] ?? ''}
-                  onChange={(event) => handleChange(field.name, event.target.value)}
-                  placeholder={field.placeholder}
-                  autoFocus={field.autoFocus}
-                  required={field.required}
-                  disabled={isSaving}
-                  autoComplete="off"
-                  inputMode={field.inputMode}
-                  min={field.min}
-                  max={field.max}
-                  step={field.step}
-                />
-                {field.helperText ? <small>{field.helperText}</small> : null}
-                {errors[field.name] ? (
-                  <span className="field-error">{errors[field.name]}</span>
-                ) : null}
-                {typeof field.renderPreview === 'function'
-                  ? field.renderPreview(values[field.name] ?? '', values)
-                  : null}
-              </label>
-            ))}
+            {fields.map((field) => {
+              const isSelect = field.type === 'select';
+              const isCheckbox = field.type === 'checkbox';
+              return (
+                <label
+                  key={field.name}
+                  className={`field ${field.fullWidth ? 'field-full' : ''} ${isCheckbox ? 'field-checkbox' : ''}`.trim()}
+                >
+                  <span>{field.label}</span>
+                  {isSelect ? (
+                    <select
+                      value={values[field.name] ?? ''}
+                      onChange={(event) => handleChange(field.name, event.target.value)}
+                      required={field.required}
+                      disabled={isSaving}
+                    >
+                      {(field.options ?? []).map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  ) : isCheckbox ? (
+                    <input
+                      type="checkbox"
+                      checked={Boolean(values[field.name])}
+                      onChange={(event) => handleChange(field.name, event.target.checked)}
+                      disabled={isSaving}
+                    />
+                  ) : (
+                    <input
+                      type={field.type ?? 'text'}
+                      value={values[field.name] ?? ''}
+                      onChange={(event) => handleChange(field.name, event.target.value)}
+                      placeholder={field.placeholder}
+                      autoFocus={field.autoFocus}
+                      required={field.required}
+                      disabled={isSaving}
+                      autoComplete="off"
+                      inputMode={field.inputMode}
+                      min={field.min}
+                      max={field.max}
+                      step={field.step}
+                    />
+                  )}
+                  {field.helperText ? <small>{field.helperText}</small> : null}
+                  {errors[field.name] ? (
+                    <span className="field-error">{errors[field.name]}</span>
+                  ) : null}
+                  {typeof field.renderPreview === 'function'
+                    ? field.renderPreview(values[field.name] ?? '', values)
+                    : null}
+                </label>
+              );
+            })}
           </div>
 
           {submitError ? <div className="feedback-banner feedback-banner-error">{submitError}</div> : null}

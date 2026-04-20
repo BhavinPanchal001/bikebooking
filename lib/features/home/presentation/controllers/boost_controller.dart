@@ -1,30 +1,44 @@
-import 'package:bikebooking/features/home/data/models/boost_plan.dart';
-import 'package:bikebooking/features/home/data/models/product_model.dart';
-import 'package:bikebooking/features/home/data/services/boost_firestore_service.dart';
-import 'package:bikebooking/features/home/data/services/razorpay_payment_service.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
 
-/// Manages the ad-specific boost flow:
-///   1. User selects a product to boost
-///   2. User picks a boost plan
-///   3. Razorpay checkout opens
-///   4. On success → boost fields saved to Firestore
+import 'package:bikebooking/features/home/data/models/boost_plan.dart';
+import 'package:bikebooking/features/home/data/models/product_model.dart';
+import 'package:bikebooking/features/home/data/services/fee_config_service.dart';
+import 'package:bikebooking/features/home/data/services/payment_client_service.dart';
+import 'package:bikebooking/features/home/data/services/razorpay_payment_service.dart';
+
+/// Manages the boost purchase flow.
+///
+/// Flow (server-authoritative):
+///   1. User selects a product + plan.
+///   2. Controller calls `createPaymentOrder` — server validates the plan
+///      against `/fee_config` and mints a Razorpay order.
+///   3. Razorpay checkout opens (driven by the server-minted order id).
+///   4. On success, controller calls `verifyPaymentSignature` — the server
+///      re-verifies the HMAC signature and flips the product's boost fields
+///      using the admin SDK. The client **never** writes the boost fields.
 class BoostController extends GetxController {
   BoostController({
     RazorpayPaymentService? paymentService,
-    BoostFirestoreService? boostService,
+    PaymentClientService? paymentClient,
+    FeeConfigService? feeConfigService,
   })  : _paymentService = paymentService ?? RazorpayPaymentService(),
-        _boostService = boostService ?? BoostFirestoreService();
+        _paymentClient = paymentClient ?? PaymentClientService(),
+        _feeConfigService = feeConfigService ?? FeeConfigService();
 
   final RazorpayPaymentService _paymentService;
-  final BoostFirestoreService _boostService;
+  final PaymentClientService _paymentClient;
+  final FeeConfigService _feeConfigService;
 
   // ── State ───────────────────────────────────────────────────────────────
 
   ProductModel? _targetProduct;
   ProductModel? get targetProduct => _targetProduct;
+
+  List<BoostPlan> _availablePlans = BoostPlan.allPlans;
+  List<BoostPlan> get availablePlans => _availablePlans;
 
   BoostPlan _selectedPlan = BoostPlan.popular;
   BoostPlan get selectedPlan => _selectedPlan;
@@ -41,39 +55,58 @@ class BoostController extends GetxController {
   String? _lastPaymentId;
   String? get lastPaymentId => _lastPaymentId;
 
+  // Server-minted payment state — needed to verify after checkout.
+  String? _pendingPaymentDocId;
+  String? _pendingRazorpayOrderId;
+
   // ── Callbacks for UI ────────────────────────────────────────────────────
 
-  /// Called when the payment succeeds and the boost has been saved.
-  /// The UI can use this to show the success bottom sheet.
   void Function()? onBoostSuccess;
-
-  /// Called when the payment fails or is cancelled.
   void Function(String message)? onBoostError;
 
   // ── Public API ──────────────────────────────────────────────────────────
 
-  /// Sets the product that the user wants to boost.
+  @override
+  void onInit() {
+    super.onInit();
+    _feeConfigService.watchBoostPlans().listen((plans) {
+      if (plans.isEmpty) return;
+      _availablePlans = plans;
+      // Keep the currently selected plan if the admin still has it; else
+      // fall back to the middle-priced plan.
+      final currentStillValid = plans.any((p) => p.id == _selectedPlan.id);
+      if (!currentStillValid) {
+        _selectedPlan = plans[plans.length ~/ 2];
+      }
+      update();
+    }, onError: (Object error, StackTrace stackTrace) {
+      debugPrint('Unable to stream fee_config: $error\n$stackTrace');
+    });
+  }
+
   void setTargetProduct(ProductModel product) {
     _targetProduct = product;
     _boostError = null;
     _paymentSucceeded = false;
     _lastPaymentId = null;
+    _pendingPaymentDocId = null;
+    _pendingRazorpayOrderId = null;
     update();
   }
 
-  /// Updates which plan the user has selected.
   void selectPlan(BoostPlan plan) {
     _selectedPlan = plan;
     update();
   }
 
-  /// Opens the Razorpay checkout for the currently selected plan + product.
-  void startBoostPayment({String? userPhone, String? userEmail}) {
+  /// Starts the boost flow. Mints a server order, then opens checkout.
+  Future<void> startBoostPayment({String? userPhone, String? userEmail}) async {
     final product = _targetProduct;
     final productId = product?.id;
     if (product == null || productId == null) {
       _boostError = 'No product selected for boosting.';
       update();
+      onBoostError?.call(_boostError!);
       return;
     }
 
@@ -81,56 +114,103 @@ class BoostController extends GetxController {
     _boostError = null;
     update();
 
-    // Wire up callbacks
-    _paymentService.onSuccess = _onPaymentSuccess;
-    _paymentService.onError = _onPaymentError;
-    _paymentService.onExternalWallet = _onExternalWallet;
+    try {
+      final order = await _paymentClient.createOrder(
+        feeSlug: _selectedPlan.id,
+        targetType: 'product',
+        targetId: productId,
+      );
+      _pendingPaymentDocId = order.paymentId;
+      _pendingRazorpayOrderId = order.razorpayOrderId;
 
-    _paymentService.openCheckout(
-      plan: _selectedPlan,
-      productId: productId,
-      userPhone: userPhone,
-      userEmail: userEmail,
-    );
+      _paymentService.onSuccess = _onPaymentSuccess;
+      _paymentService.onError = _onPaymentError;
+      _paymentService.onExternalWallet = _onExternalWallet;
+
+      _paymentService.openCheckoutForOrder(
+        orderId: order.razorpayOrderId,
+        amountPaise: order.amountPaise,
+        currency: order.currency,
+        displayName: _selectedPlan.name,
+        description: _selectedPlan.subtitle,
+        apiKey: order.razorpayKeyId,
+        userPhone: userPhone,
+        userEmail: userEmail,
+        notes: <String, String>{
+          'product_id': productId,
+          'plan_id': _selectedPlan.id,
+        },
+      );
+    } on FirebaseFunctionsException catch (error, stackTrace) {
+      debugPrint('createPaymentOrder failed: $error\n$stackTrace');
+      _isProcessing = false;
+      _boostError = error.message ?? 'Unable to start payment. Please retry.';
+      update();
+      onBoostError?.call(_boostError!);
+    } catch (error, stackTrace) {
+      debugPrint('startBoostPayment error: $error\n$stackTrace');
+      _isProcessing = false;
+      _boostError = 'Unable to start payment. Please retry.';
+      update();
+      onBoostError?.call(_boostError!);
+    }
   }
 
-  /// Resets state after the boost flow is complete (success or cancelled).
   void resetBoostState() {
     _targetProduct = null;
-    _selectedPlan = BoostPlan.popular;
+    _selectedPlan = _availablePlans.isNotEmpty
+        ? _availablePlans[_availablePlans.length ~/ 2]
+        : BoostPlan.popular;
     _isProcessing = false;
     _boostError = null;
     _paymentSucceeded = false;
     _lastPaymentId = null;
+    _pendingPaymentDocId = null;
+    _pendingRazorpayOrderId = null;
     update();
   }
 
   // ── Razorpay callbacks ──────────────────────────────────────────────────
 
   Future<void> _onPaymentSuccess(PaymentSuccessResponse response) async {
-    final productId = _targetProduct?.id;
     final paymentId = response.paymentId ?? '';
+    final signature = response.signature ?? '';
+    final orderId = response.orderId ?? _pendingRazorpayOrderId ?? '';
+    final pendingPaymentDoc = _pendingPaymentDocId;
 
-    if (productId == null || paymentId.isEmpty) {
+    if (paymentId.isEmpty ||
+        signature.isEmpty ||
+        orderId.isEmpty ||
+        pendingPaymentDoc == null ||
+        pendingPaymentDoc.isEmpty) {
       _isProcessing = false;
-      _boostError = 'Payment succeeded but product or payment ID is missing.';
+      _boostError = 'Payment succeeded but we could not verify the signature. '
+          'Please contact support with payment ID: $paymentId';
       update();
       onBoostError?.call(_boostError!);
       return;
     }
 
     try {
-      await _boostService.boostProduct(
-        productId: productId,
-        planId: _selectedPlan.id,
-        durationDays: _selectedPlan.durationDays,
-        paymentId: paymentId,
+      await _paymentClient.verify(
+        paymentId: pendingPaymentDoc,
+        razorpayOrderId: orderId,
+        razorpayPaymentId: paymentId,
+        razorpaySignature: signature,
       );
-    } catch (error, stackTrace) {
-      debugPrint('Error saving boost to Firestore: $error\n$stackTrace');
+    } on FirebaseFunctionsException catch (error, stackTrace) {
+      debugPrint('verifyPaymentSignature failed: $error\n$stackTrace');
       _isProcessing = false;
-      _boostError = 'Payment succeeded but we could not activate the boost. '
-          'Please contact support with payment ID: $paymentId';
+      _boostError =
+          'Payment captured but verification failed. Support ID: $paymentId';
+      update();
+      onBoostError?.call(_boostError!);
+      return;
+    } catch (error, stackTrace) {
+      debugPrint('verify error: $error\n$stackTrace');
+      _isProcessing = false;
+      _boostError =
+          'Payment captured but verification failed. Support ID: $paymentId';
       update();
       onBoostError?.call(_boostError!);
       return;
@@ -139,6 +219,8 @@ class BoostController extends GetxController {
     _paymentSucceeded = true;
     _lastPaymentId = paymentId;
     _isProcessing = false;
+    _pendingPaymentDocId = null;
+    _pendingRazorpayOrderId = null;
     update();
 
     try {
@@ -154,7 +236,7 @@ class BoostController extends GetxController {
     final code = response.code ?? -1;
     // Code 2 = user cancelled the payment
     if (code == 2) {
-      _boostError = null; // Don't show error for user cancellation
+      _boostError = null;
     } else {
       _boostError = response.message ?? 'Payment failed. Please try again.';
     }
@@ -167,7 +249,6 @@ class BoostController extends GetxController {
 
   void _onExternalWallet(ExternalWalletResponse response) {
     debugPrint('External wallet selected: ${response.walletName}');
-    // Razorpay handles the redirect automatically; no action needed here.
   }
 
   // ── Cleanup ─────────────────────────────────────────────────────────────

@@ -1434,23 +1434,31 @@ class _MyListingScreenState extends State<MyListingScreen>
                     ),
                   ),
                   const SizedBox(height: 20),
-                  // Interactive plan selection
-                  ...BoostPlan.allPlans.map((plan) {
-                    final isSelected =
-                        boostController.selectedPlan.id == plan.id;
-                    return GestureDetector(
-                      onTap: () {
-                        boostController.selectPlan(plan);
-                        setLocalState(() {});
-                      },
-                      child: _buildPlanOption(
-                        plan.name,
-                        plan.subtitle,
-                        plan.displayPrice,
-                        isSelected,
-                      ),
-                    );
-                  }),
+                  // Interactive plan selection — sourced from the admin's
+                  // /fee_config master (falls back to bundled plans before
+                  // the admin has seeded it).
+                  GetBuilder<BoostController>(
+                    builder: (ctrl) {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: ctrl.availablePlans.map((plan) {
+                          final isSelected = ctrl.selectedPlan.id == plan.id;
+                          return GestureDetector(
+                            onTap: () {
+                              ctrl.selectPlan(plan);
+                              setLocalState(() {});
+                            },
+                            child: _buildPlanOption(
+                              plan.name,
+                              plan.subtitle,
+                              plan.displayPrice,
+                              isSelected,
+                            ),
+                          );
+                        }).toList(),
+                      );
+                    },
+                  ),
                   const SizedBox(height: 24),
                   GetBuilder<BoostController>(
                     builder: (ctrl) {

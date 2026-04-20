@@ -2,10 +2,58 @@ const {initializeApp} = require("firebase-admin/app");
 const {FieldValue, getFirestore} = require("firebase-admin/firestore");
 const {getMessaging} = require("firebase-admin/messaging");
 const {onDocumentCreated} = require("firebase-functions/v2/firestore");
+const {onCall, onRequest} = require("firebase-functions/v2/https");
+const {onSchedule} = require("firebase-functions/v2/scheduler");
 
 initializeApp();
 
 const db = getFirestore();
+
+// ── Payments (Razorpay) ─────────────────────────────────────────────────────
+const {
+  createPaymentOrderHandler,
+  verifyPaymentSignatureHandler,
+  refundPaymentHandler,
+} = require("./src/payments");
+const {razorpayWebhookHandler} = require("./src/webhook");
+const {clearExpiredBoostsHandler} = require("./src/scheduled");
+const {setAdminClaimHandler} = require("./src/admin");
+
+const RAZORPAY_SECRETS = [
+  "RAZORPAY_KEY_ID",
+  "RAZORPAY_KEY_SECRET",
+  "RAZORPAY_WEBHOOK_SECRET",
+];
+
+exports.createPaymentOrder = onCall(
+  {secrets: RAZORPAY_SECRETS},
+  createPaymentOrderHandler,
+);
+
+exports.verifyPaymentSignature = onCall(
+  {secrets: RAZORPAY_SECRETS},
+  verifyPaymentSignatureHandler,
+);
+
+exports.refundPayment = onCall(
+  {secrets: RAZORPAY_SECRETS},
+  refundPaymentHandler,
+);
+
+exports.razorpayWebhook = onRequest(
+  {secrets: RAZORPAY_SECRETS},
+  razorpayWebhookHandler,
+);
+
+exports.clearExpiredBoosts = onSchedule(
+  {schedule: "every 15 minutes", timeZone: "Asia/Kolkata"},
+  clearExpiredBoostsHandler,
+);
+
+exports.setAdminClaim = onCall(
+  {secrets: ["BOOTSTRAP_ADMIN_EMAIL"]},
+  setAdminClaimHandler,
+);
 
 exports.sendQueuedNotification = onDocumentCreated(
   "notification_queue/{requestId}",

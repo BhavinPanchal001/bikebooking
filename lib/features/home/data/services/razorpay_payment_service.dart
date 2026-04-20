@@ -1,22 +1,22 @@
 import 'package:flutter/foundation.dart';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
 
-import 'package:bikebooking/features/home/data/models/boost_plan.dart';
-
 /// Thin wrapper around the Razorpay Flutter SDK.
 ///
-/// Call [openCheckout] to start a payment. Results are delivered through the
-/// [onSuccess], [onError], and [onExternalWallet] callbacks that must be set
+/// The checkout is driven by a server-minted Razorpay order id — the client
+/// never authors prices. Pass the [orderId], [amountPaise], and publishable
+/// [apiKey] returned by `createPaymentOrder` into [openCheckoutForOrder].
+///
+/// Callbacks [onSuccess], [onError], and [onExternalWallet] must be set
 /// before opening checkout.
 class RazorpayPaymentService {
-  RazorpayPaymentService({String? apiKey})
-      : _apiKey = apiKey ?? 'rzp_test_Sb3lJVtmNxW4PH';
+  RazorpayPaymentService({String? fallbackApiKey})
+      : _fallbackApiKey = fallbackApiKey ?? 'rzp_test_Sb3lJVtmNxW4PH';
 
-  final String _apiKey;
+  final String _fallbackApiKey;
   late final Razorpay _razorpay;
   bool _initialized = false;
 
-  /// Must be set before calling [openCheckout].
   void Function(PaymentSuccessResponse)? onSuccess;
   void Function(PaymentFailureResponse)? onError;
   void Function(ExternalWalletResponse)? onExternalWallet;
@@ -42,27 +42,32 @@ class RazorpayPaymentService {
 
   // ── Public API ──────────────────────────────────────────────────────────
 
-  /// Opens the Razorpay checkout sheet for the given [plan].
+  /// Opens Razorpay checkout for a server-minted order.
   ///
-  /// [productId] is passed through as a note so we can identify the product
-  /// in the success callback.
-  void openCheckout({
-    required BoostPlan plan,
-    required String productId,
+  /// Razorpay will include a `razorpay_signature` in the success payload
+  /// which the server later verifies with HMAC-SHA256.
+  void openCheckoutForOrder({
+    required String orderId,
+    required int amountPaise,
+    required String currency,
+    required String displayName,
+    String? description,
+    String? apiKey,
     String? userPhone,
     String? userEmail,
+    Map<String, String> notes = const <String, String>{},
   }) {
     _ensureInitialized();
 
     final options = <String, dynamic>{
-      'key': _apiKey,
-      'amount': plan.priceInPaise,
+      'key': (apiKey != null && apiKey.isNotEmpty) ? apiKey : _fallbackApiKey,
+      'amount': amountPaise,
+      'currency': currency,
+      'order_id': orderId,
       'name': 'Bikenest',
-      'description': '${plan.name} – ${plan.subtitle}',
-      'notes': <String, String>{
-        'product_id': productId,
-        'plan_id': plan.id,
-      },
+      if (description != null && description.isNotEmpty)
+        'description': description,
+      'notes': notes,
       'prefill': <String, String>{
         if (userPhone != null && userPhone.isNotEmpty) 'contact': userPhone,
         if (userEmail != null && userEmail.isNotEmpty) 'email': userEmail,

@@ -11,6 +11,10 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == sellerId;
     }
 
+    function isAdmin() {
+      return isSignedIn() && request.auth.token.admin == true;
+    }
+
     // ── products ─────────────────────────────────────────────────────────────
     match /products/{productId} {
       // Anyone (even unauthenticated) can read products
@@ -20,9 +24,19 @@ service cloud.firestore {
       allow create: if isSignedIn()
                     && request.resource.data.sellerId == request.auth.uid;
 
-      // Only the seller can update or delete their own product
-      allow update: if isOwner(resource.data.sellerId);
-      allow delete: if isOwner(resource.data.sellerId);
+      // Only the seller can update or delete their own product.
+      // Sellers MUST NOT be able to flip payment-gated fields themselves.
+      // Those are owned by the server (Cloud Functions using the admin SDK).
+      allow update: if isOwner(resource.data.sellerId)
+                    && request.resource.data.listingFeePaid ==
+                         resource.data.listingFeePaid
+                    && request.resource.data.isBoosted ==
+                         resource.data.isBoosted
+                    && request.resource.data.boostExpiresAt ==
+                         resource.data.boostExpiresAt
+                    && request.resource.data.boostPaymentId ==
+                         resource.data.boostPaymentId;
+      allow delete: if isOwner(resource.data.sellerId) || isAdmin();
     }
 
     // ── users ─────────────────────────────────────────────────────────────────
@@ -45,6 +59,36 @@ service cloud.firestore {
       allow create: if isSignedIn()
                     && request.resource.data.sellerId == request.auth.uid;
       allow update, delete: if isOwner(resource.data.sellerId);
+    }
+
+    // ── payments ─────────────────────────────────────────────────────────────
+    // Written exclusively by Cloud Functions (admin SDK bypasses these rules).
+    // Clients can read their own payments (for receipts); admins see all.
+    match /payments/{paymentId} {
+      allow read: if isAdmin()
+                  || (isSignedIn() && request.auth.uid == resource.data.userId);
+      allow write: if false;
+    }
+
+    // ── fee_config (public read; admin write) ────────────────────────────────
+    // Mobile client reads these to render checkout; only admins can change
+    // prices. The server-side `createPaymentOrder` re-reads the doc to
+    // validate amount so a malicious client cannot inject prices.
+    match /fee_config/{feeSlug} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ── razorpay webhook idempotency ledger (server-only) ────────────────────
+    match /razorpay_webhook_events/{eventId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    // ── audit logs (append-only, admin-readable) ─────────────────────────────
+    match /audit_logs/{logId} {
+      allow read: if isAdmin();
+      allow write: if false;
     }
   }
 }

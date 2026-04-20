@@ -1,6 +1,7 @@
 import { initializeApp } from 'firebase/app';
 import { browserLocalPersistence, getAuth, setPersistence } from 'firebase/auth';
 import { initializeFirestore } from 'firebase/firestore';
+import { getFunctions } from 'firebase/functions';
 
 const fallbackConfig = {
   apiKey: 'AIzaSyBOjWZF-VCYSHksyZ6x3ScJNtZcG_gKMsw',
@@ -31,6 +32,9 @@ const db = app
     })
   : null;
 const auth = app ? getAuth(app) : null;
+const functionsRegion =
+  import.meta.env.VITE_FIREBASE_FUNCTIONS_REGION || 'us-central1';
+const functions = app ? getFunctions(app, functionsRegion) : null;
 
 if (auth) {
   setPersistence(auth, browserLocalPersistence).catch((error) => {
@@ -38,4 +42,4 @@ if (auth) {
   });
 }
 
-export { app, auth, db, firebaseConfig };
+export { app, auth, db, functions, firebaseConfig };
