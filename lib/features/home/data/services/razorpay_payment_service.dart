@@ -63,7 +63,11 @@ class RazorpayPaymentService {
       'key': (apiKey != null && apiKey.isNotEmpty) ? apiKey : _fallbackApiKey,
       'amount': amountPaise,
       'currency': currency,
-      'order_id': orderId,
+      // Standard Razorpay checkout also supports key-only mode (no
+      // server-minted order id) for demo / test flows. Omit the key
+      // entirely in that case so the SDK doesn't try to match an empty
+      // string against Razorpay's order registry.
+      if (orderId.isNotEmpty) 'order_id': orderId,
       'name': 'Bikenest',
       if (description != null && description.isNotEmpty)
         'description': description,

@@ -5,9 +5,11 @@ import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
 
+import 'package:bikebooking/core/config/demo_payments_config.dart';
 import 'package:bikebooking/features/home/data/models/boost_plan.dart';
 import 'package:bikebooking/features/home/data/models/product_model.dart';
 import 'package:bikebooking/features/home/data/services/fee_config_service.dart';
+import 'package:bikebooking/features/home/data/services/payment_client_factory.dart';
 import 'package:bikebooking/features/home/data/services/payment_client_service.dart';
 import 'package:bikebooking/features/home/data/services/razorpay_payment_service.dart';
 
@@ -24,14 +26,14 @@ import 'package:bikebooking/features/home/data/services/razorpay_payment_service
 class BoostController extends GetxController {
   BoostController({
     RazorpayPaymentService? paymentService,
-    PaymentClientService? paymentClient,
+    PaymentClient? paymentClient,
     FeeConfigService? feeConfigService,
   })  : _paymentService = paymentService ?? RazorpayPaymentService(),
-        _paymentClient = paymentClient ?? PaymentClientService(),
+        _paymentClient = paymentClient ?? createPaymentClient(),
         _feeConfigService = feeConfigService ?? FeeConfigService();
 
   final RazorpayPaymentService _paymentService;
-  final PaymentClientService _paymentClient;
+  final PaymentClient _paymentClient;
   final FeeConfigService _feeConfigService;
 
   // ── State ───────────────────────────────────────────────────────────────
@@ -185,9 +187,14 @@ class BoostController extends GetxController {
     final orderId = response.orderId ?? _pendingRazorpayOrderId ?? '';
     final pendingPaymentDoc = _pendingPaymentDocId;
 
+    // In the demo mock path we open Razorpay checkout WITHOUT a
+    // server-minted order_id, so Razorpay's success response may come
+    // back with an empty signature / orderId. The mock verifier doesn't
+    // care about either, so we only enforce them in the real path.
+    final requireSignedPayload = !kUseMockPayments;
     if (paymentId.isEmpty ||
-        signature.isEmpty ||
-        orderId.isEmpty ||
+        (requireSignedPayload && signature.isEmpty) ||
+        (requireSignedPayload && orderId.isEmpty) ||
         pendingPaymentDoc == null ||
         pendingPaymentDoc.isEmpty) {
       _isProcessing = false;

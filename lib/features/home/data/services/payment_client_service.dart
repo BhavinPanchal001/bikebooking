@@ -1,5 +1,25 @@
 import 'package:cloud_functions/cloud_functions.dart';
 
+/// Abstract payment client. The production implementation talks to the
+/// server-authoritative Cloud Functions (`PaymentClientService`); the
+/// debug-only demo implementation (`MockPaymentClientService`) writes
+/// everything from the client for UAT when functions aren't deployed.
+abstract class PaymentClient {
+  Future<PaymentOrder> createOrder({
+    required String feeSlug,
+    required String targetType,
+    required String targetId,
+    Map<String, dynamic>? metadata,
+  });
+
+  Future<PaymentVerification> verify({
+    required String paymentId,
+    required String razorpayOrderId,
+    required String razorpayPaymentId,
+    required String razorpaySignature,
+  });
+}
+
 /// Thin wrapper around the server-authoritative payment Callables.
 ///
 /// All pricing, Razorpay order creation, and signature verification happen
@@ -8,7 +28,7 @@ import 'package:cloud_functions/cloud_functions.dart';
 ///   • the fee slug (e.g. `listing_fee`, `popular_boost`)
 ///   • the Razorpay order id returned by the server
 ///   • the signed success payload returned by Razorpay checkout
-class PaymentClientService {
+class PaymentClientService implements PaymentClient {
   PaymentClientService({FirebaseFunctions? functions})
       : _functions = functions ?? FirebaseFunctions.instance;
 
@@ -24,6 +44,7 @@ class PaymentClientService {
   ///   • `razorpayOrderId`: pass to Razorpay checkout as `order_id`
   ///   • `razorpayKeyId`: publishable key (so the app does not hardcode it)
   ///   • `amountPaise`, `currency`
+  @override
   Future<PaymentOrder> createOrder({
     required String feeSlug,
     required String targetType,
@@ -47,6 +68,7 @@ class PaymentClientService {
   /// re-verifies the HMAC signature and Razorpay payment amount before
   /// applying side-effects (marking the product boosted, unlocking the
   /// listing, etc.).
+  @override
   Future<PaymentVerification> verify({
     required String paymentId,
     required String razorpayOrderId,

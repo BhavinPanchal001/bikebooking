@@ -3,7 +3,9 @@ import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
 
+import 'package:bikebooking/core/config/demo_payments_config.dart';
 import 'package:bikebooking/features/home/data/services/fee_config_service.dart';
+import 'package:bikebooking/features/home/data/services/payment_client_factory.dart';
 import 'package:bikebooking/features/home/data/services/payment_client_service.dart';
 import 'package:bikebooking/features/home/data/services/razorpay_payment_service.dart';
 
@@ -20,16 +22,16 @@ import 'package:bikebooking/features/home/data/services/razorpay_payment_service
 class ListingFeeController extends GetxController {
   ListingFeeController({
     RazorpayPaymentService? paymentService,
-    PaymentClientService? paymentClient,
+    PaymentClient? paymentClient,
     FeeConfigService? feeConfigService,
     String feeSlug = 'listing_fee',
   })  : _paymentService = paymentService ?? RazorpayPaymentService(),
-        _paymentClient = paymentClient ?? PaymentClientService(),
+        _paymentClient = paymentClient ?? createPaymentClient(),
         _feeConfigService = feeConfigService ?? FeeConfigService(),
         _feeSlug = feeSlug;
 
   final RazorpayPaymentService _paymentService;
-  final PaymentClientService _paymentClient;
+  final PaymentClient _paymentClient;
   final FeeConfigService _feeConfigService;
   final String _feeSlug;
 
@@ -143,9 +145,13 @@ class ListingFeeController extends GetxController {
     final razorpayOrderId = response.orderId ?? _pendingRazorpayOrderId ?? '';
     final pendingPaymentDoc = _pendingPaymentDocId;
 
+    // Demo mock path: Razorpay checkout runs without a server-minted
+    // order_id, so signature / orderId may be empty. The mock verifier
+    // doesn't validate them, so only enforce presence on the real path.
+    final requireSignedPayload = !kUseMockPayments;
     if (razorpayPaymentId.isEmpty ||
-        razorpaySignature.isEmpty ||
-        razorpayOrderId.isEmpty ||
+        (requireSignedPayload && razorpaySignature.isEmpty) ||
+        (requireSignedPayload && razorpayOrderId.isEmpty) ||
         pendingPaymentDoc == null ||
         pendingPaymentDoc.isEmpty) {
       _isProcessing = false;
