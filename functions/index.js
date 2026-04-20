@@ -19,41 +19,26 @@ const {razorpayWebhookHandler} = require("./src/webhook");
 const {clearExpiredBoostsHandler} = require("./src/scheduled");
 const {setAdminClaimHandler} = require("./src/admin");
 
-const RAZORPAY_SECRETS = [
-  "RAZORPAY_KEY_ID",
-  "RAZORPAY_KEY_SECRET",
-  "RAZORPAY_WEBHOOK_SECRET",
-];
+// Razorpay + bootstrap credentials are read directly from process.env so
+// they can be supplied via `functions/.env.<projectId>` at deploy time
+// instead of Secret Manager. See functions/.env.example for the required
+// keys. For production deployments we recommend migrating these to
+// Secret Manager by re-adding the `secrets: [...]` option on each export.
 
-exports.createPaymentOrder = onCall(
-  {secrets: RAZORPAY_SECRETS},
-  createPaymentOrderHandler,
-);
+exports.createPaymentOrder = onCall(createPaymentOrderHandler);
 
-exports.verifyPaymentSignature = onCall(
-  {secrets: RAZORPAY_SECRETS},
-  verifyPaymentSignatureHandler,
-);
+exports.verifyPaymentSignature = onCall(verifyPaymentSignatureHandler);
 
-exports.refundPayment = onCall(
-  {secrets: RAZORPAY_SECRETS},
-  refundPaymentHandler,
-);
+exports.refundPayment = onCall(refundPaymentHandler);
 
-exports.razorpayWebhook = onRequest(
-  {secrets: RAZORPAY_SECRETS},
-  razorpayWebhookHandler,
-);
+exports.razorpayWebhook = onRequest(razorpayWebhookHandler);
 
 exports.clearExpiredBoosts = onSchedule(
   {schedule: "every 15 minutes", timeZone: "Asia/Kolkata"},
   clearExpiredBoostsHandler,
 );
 
-exports.setAdminClaim = onCall(
-  {secrets: ["BOOTSTRAP_ADMIN_EMAIL"]},
-  setAdminClaimHandler,
-);
+exports.setAdminClaim = onCall(setAdminClaimHandler);
 
 exports.sendQueuedNotification = onDocumentCreated(
   "notification_queue/{requestId}",
