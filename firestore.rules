@@ -11,21 +11,30 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == sellerId;
     }
 
-    // Admin allowlist — accepts either:
-    //   (a) the `admin` custom claim minted via setAdminClaim, OR
-    //   (b) a hardcoded email, for bootstrap / when the setAdminClaim
-    //       Cloud Function path is unavailable.
-    // Add operator emails to this list; redeploy rules to take effect.
-    // Once you have a reliable way to mint custom claims, drop option (b)
-    // and keep only `request.auth.token.admin == true`.
+    // ⚠️  TESTING-ONLY BYPASS — DO NOT SHIP TO PRODUCTION  ⚠️
+    //
+    // Any signed-in user is treated as admin so the MS3 #1 payment gateway
+    // work can be UAT-tested without minting a custom admin claim first.
+    // This opens `/fee_config` writes (pricing changes), `/payments` reads,
+    // product-delete-by-admin, and `/audit_logs` reads to every signed-in
+    // user. TIGHTEN BEFORE LIVE DEPLOY.
+    //
+    // How to re-lock (strict, recommended):
+    //   function isAdmin() {
+    //     return isSignedIn() && request.auth.token.admin == true;
+    //   }
+    //
+    // How to re-lock (email allowlist — same pattern as functions/src/admin.js):
+    //   function isAdmin() {
+    //     return isSignedIn() && (
+    //       request.auth.token.get('admin', false) == true
+    //       || request.auth.token.get('email', '') in [
+    //         'admin@gmail.com', 'bhavinpanchal620@gmail.com'
+    //       ]
+    //     );
+    //   }
     function isAdmin() {
-      return isSignedIn() && (
-        request.auth.token.get('admin', false) == true
-        || request.auth.token.get('email', '') in [
-          'admin@gmail.com',
-          'bhavinpanchal620@gmail.com'
-        ]
-      );
+      return isSignedIn();
     }
 
     // ── products ─────────────────────────────────────────────────────────────

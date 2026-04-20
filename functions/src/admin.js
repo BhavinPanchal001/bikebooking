@@ -18,47 +18,33 @@ function requireAuth(request) {
 }
 
 /**
- * Parses the ADMIN_EMAILS env var (comma-separated list) into a normalized
- * lowercase Set. Used as a fallback admin source when the `admin` custom
- * claim path is unavailable — matches the allowlist baked into
- * `firestore.rules::isAdmin()`.
- * @return {Set<string>}
- */
-function allowlistedAdminEmails() {
-  const raw = process.env.ADMIN_EMAILS || "";
-  return new Set(
-    raw
-      .split(",")
-      .map((e) => e.trim().toLowerCase())
-      .filter(Boolean),
-  );
-}
-
-/**
- * Throws an HttpsError('permission-denied') if the caller is not an admin.
- * Admin status is determined by EITHER:
- *   (a) the `admin` custom claim, minted via setAdminClaim, OR
- *   (b) the caller's email appearing in the ADMIN_EMAILS env allowlist
- *       (comma-separated, loaded from functions/.env.<projectId>).
- * Option (b) exists so operators without reliable access to mint custom
- * claims can still manage admin actions. Keep the allowlist short.
+ * ⚠️  TESTING-ONLY BYPASS — DO NOT SHIP TO PRODUCTION  ⚠️
+ *
+ * requireAdmin is temporarily a pass-through to requireAuth so the MS3 #1
+ * payment gateway can be UAT-tested without minting a custom admin claim
+ * or configuring ADMIN_EMAILS. This allows ANY signed-in user to call
+ * refundPayment and setAdminClaim — which means any signed-in user can
+ * issue real refunds and grant themselves the admin claim. Restore
+ * BEFORE going live.
+ *
+ * How to re-lock (strict, recommended):
+ *   function requireAdmin(request) {
+ *     const auth = requireAuth(request);
+ *     if (!(auth.token && auth.token.admin === true)) {
+ *       throw new HttpsError('permission-denied',
+ *         'Admin privileges are required for this action.');
+ *     }
+ *     return auth;
+ *   }
+ *
+ * How to re-lock with the ADMIN_EMAILS allowlist fallback: see the
+ * previous commit `65df6bc` for the full implementation.
+ *
  * @param {object} request firebase-functions v2 callable request
  * @return {object} decoded auth
  */
 function requireAdmin(request) {
-  const auth = requireAuth(request);
-  const hasClaim = !!(auth.token && auth.token.admin === true);
-  const email = (auth.token && auth.token.email ? auth.token.email : "")
-    .trim()
-    .toLowerCase();
-  const allowlisted = email.length > 0 && allowlistedAdminEmails().has(email);
-  if (!hasClaim && !allowlisted) {
-    throw new HttpsError(
-      "permission-denied",
-      "Admin privileges are required for this action.",
-    );
-  }
-  return auth;
+  return requireAuth(request);
 }
 
 /**
