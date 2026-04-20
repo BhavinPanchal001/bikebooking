@@ -38,6 +38,7 @@ class ProductStatus {
   static String label(String? value) {
     return switch (normalize(value)) {
       sold => 'Sold',
+      awaitingPayment => 'Awaiting Payment',
       _ => 'Active',
     };
   }

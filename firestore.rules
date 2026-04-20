@@ -20,9 +20,17 @@ service cloud.firestore {
       // Anyone (even unauthenticated) can read products
       allow read: if true;
 
-      // Only authenticated users can create their own products
+      // Only authenticated users can create their own products.
+      // Payment-gated fields must not be preset to their paid state —
+      // the server (Cloud Functions) is the only writer that may flip them.
       allow create: if isSignedIn()
-                    && request.resource.data.sellerId == request.auth.uid;
+                    && request.resource.data.sellerId == request.auth.uid
+                    && request.resource.data.get('listingFeePaid', false) == false
+                    && request.resource.data.get('isBoosted', false) == false
+                    && request.resource.data.get('boostPaymentId', null) == null
+                    && request.resource.data.get('boostExpiresAt', null) == null
+                    && request.resource.data.get('boostStartedAt', null) == null
+                    && request.resource.data.get('boostPlanId', null) == null;
 
       // Only the seller can update or delete their own product.
       // Sellers MUST NOT be able to flip payment-gated fields themselves.

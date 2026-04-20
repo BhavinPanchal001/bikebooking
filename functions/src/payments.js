@@ -181,8 +181,10 @@ async function verifyPaymentSignatureHandler(request) {
       status: "failed",
       failedAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
-      "razorpay.errorCode": "signature_mismatch",
-      "razorpay.errorDescription": "Checkout signature did not match.",
+      razorpay: Object.assign({}, payment.razorpay || {}, {
+        errorCode: "signature_mismatch",
+        errorDescription: "Checkout signature did not match.",
+      }),
     }, {merge: true});
     throw new HttpsError(
       "permission-denied",
@@ -212,9 +214,11 @@ async function verifyPaymentSignatureHandler(request) {
       status: "failed",
       failedAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
-      "razorpay.errorCode": "integrity_failed",
-      "razorpay.errorDescription":
-        `amountOk=${amountOk} orderOk=${orderOk} status=${rpPayment.status}`,
+      razorpay: Object.assign({}, payment.razorpay || {}, {
+        errorCode: "integrity_failed",
+        errorDescription:
+          `amountOk=${amountOk} orderOk=${orderOk} status=${rpPayment.status}`,
+      }),
     }, {merge: true});
     throw new HttpsError(
       "failed-precondition",
