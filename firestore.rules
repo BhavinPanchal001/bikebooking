@@ -112,6 +112,17 @@ service cloud.firestore {
       allow write: if isSignedIn() && request.auth.uid == userId;
     }
 
+    // ── admin_users (admin panel authorization allowlist) ─────────────────────
+    // The admin panel (useAdminAuth) reads /admin_users/{uid} to decide whether
+    // a signed-in Firebase Auth user is allowed into the admin UI. Each user
+    // may only read their own doc. Writes are server-only (create via the
+    // functions/scripts/grant-admin.js script or Cloud Functions using the
+    // admin SDK, which bypasses these rules).
+    match /admin_users/{userId} {
+      allow read: if isSignedIn() && request.auth.uid == userId;
+      allow write: if false;
+    }
+
     // ── seller_reviews ────────────────────────────────────────────────────────
     match /seller_reviews/{reviewId} {
       allow read: if true;
