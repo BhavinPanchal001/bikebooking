@@ -14,7 +14,6 @@ import { ListingsPage } from './pages/ListingsPage';
 import { LoginPage } from './pages/LoginPage';
 import { PaymentsPage } from './pages/PaymentsPage';
 import { ProductDetailPage } from './pages/ProductDetailPage';
-import { PlansMasterPage } from './pages/PlansMasterPage';
 import { PopularBikeAgeMasterPage } from './pages/PopularBikeAgeMasterPage';
 import { ReportedPersonsPage } from './pages/ReportedPersonsPage';
 import { UsersPage } from './pages/UsersPage';
@@ -27,7 +26,6 @@ const navItems = [
   { to: '/reported-persons', label: 'Reported Persons', eyebrow: 'Safety' },
   { to: '/cms', label: 'CMS Pages', eyebrow: 'Publishing' },
   { to: '/masters/fees', label: 'Fee Config', eyebrow: 'Master data' },
-  { to: '/masters/plans', label: 'Plans Master', eyebrow: 'Master data' },
   { to: '/masters/brands', label: 'Brand Master', eyebrow: 'Master data' },
   {
     to: '/masters/popular-bike-age',
@@ -137,10 +135,6 @@ function AdminShell() {
             <Route
               path="/masters/fees"
               element={<FeeConfigMasterPage />}
-            />
-            <Route
-              path="/masters/plans"
-              element={<PlansMasterPage />}
             />
             <Route
               path="/masters/brands"
