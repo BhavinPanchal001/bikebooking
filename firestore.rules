@@ -80,6 +80,8 @@ service cloud.firestore {
                     // callable). Sellers cannot fabricate or rewrite these.
                     && request.resource.data.get('boostGrantSource', null) ==
                          resource.data.get('boostGrantSource', null)
+                    && request.resource.data.get('boostGrantedBy', null) ==
+                         resource.data.get('boostGrantedBy', null)
                     && request.resource.data.get('boostGrantedByEmail', null) ==
                          resource.data.get('boostGrantedByEmail', null)
                     && request.resource.data.get('boostGrantNote', null) ==
@@ -93,6 +95,8 @@ service cloud.firestore {
                          resource.data.get('isEditorialFeatured', false)
                     && request.resource.data.get('editorialFeaturedAt', null) ==
                          resource.data.get('editorialFeaturedAt', null)
+                    && request.resource.data.get('editorialFeaturedBy', null) ==
+                         resource.data.get('editorialFeaturedBy', null)
                     && request.resource.data.get('editorialFeaturedByEmail', null) ==
                          resource.data.get('editorialFeaturedByEmail', null)
                     && request.resource.data.get('editorialFeaturedNote', null) ==

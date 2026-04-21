@@ -136,7 +136,11 @@ async function adminExtendBoostHandler(request) {
       boostStartedAt: data.boostStartedAt || Timestamp.fromDate(now),
       boostExpiresAt: Timestamp.fromDate(expires),
       boostPlanId: data.boostPlanId || "admin_grant",
-      boostGrantSource: data.boostGrantSource || "admin",
+      // Preserve the original source. Paid boosts never set
+      // `boostGrantSource`, so falling back to `"admin"` here would
+      // incorrectly relabel a Razorpay-paid boost as an admin grant in
+      // the admin UI and summary counts.
+      boostGrantSource: data.boostGrantSource || null,
       boostLastExtendedBy: auth.uid,
       boostLastExtendedByEmail: (auth.token && auth.token.email) || null,
       boostLastExtendedAt: FieldValue.serverTimestamp(),
