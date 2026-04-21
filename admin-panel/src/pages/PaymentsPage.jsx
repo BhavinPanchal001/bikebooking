@@ -166,8 +166,10 @@ export function PaymentsPage({ adminEmail }) {
 
         <div className="toolbar">
           <select
+            className="filter-select"
             value={statusFilter}
             onChange={(event) => setStatusFilter(event.target.value)}
+            aria-label="Filter by status"
           >
             {STATUS_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
@@ -176,8 +178,10 @@ export function PaymentsPage({ adminEmail }) {
             ))}
           </select>
           <select
+            className="filter-select"
             value={kindFilter}
             onChange={(event) => setKindFilter(event.target.value)}
+            aria-label="Filter by kind"
           >
             {KIND_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>

@@ -548,6 +548,54 @@ a {
   box-shadow: 0 0 0 4px rgba(223, 111, 62, 0.12);
 }
 
+.filter-select,
+.dialog-form select,
+.toolbar select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  padding: 14px 44px 14px 16px;
+  border-radius: 18px;
+  border: 1px solid var(--line);
+  background-color: rgba(255, 255, 255, 0.8);
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none'><path d='M1 1.5L6 6.5L11 1.5' stroke='%2310233f' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 16px center;
+  background-size: 12px 8px;
+  color: var(--text);
+  font: inherit;
+  font-weight: 500;
+  min-width: 180px;
+  cursor: pointer;
+  outline: none;
+  transition:
+    border-color 120ms ease,
+    box-shadow 120ms ease,
+    background-color 120ms ease;
+}
+
+.filter-select:hover,
+.dialog-form select:hover,
+.toolbar select:hover {
+  border-color: rgba(16, 35, 63, 0.22);
+  background-color: rgba(255, 255, 255, 0.95);
+}
+
+.filter-select:focus-visible,
+.dialog-form select:focus-visible,
+.toolbar select:focus-visible {
+  border-color: rgba(223, 111, 62, 0.56);
+  box-shadow: 0 0 0 4px rgba(223, 111, 62, 0.12);
+  background-color: #fffaf4;
+}
+
+.filter-select:disabled,
+.dialog-form select:disabled,
+.toolbar select:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .logout-button,
 .primary-button {
   padding: 12px 16px;
