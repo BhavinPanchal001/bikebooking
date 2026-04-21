@@ -31,6 +31,7 @@ import 'features/home/presentation/pages/profile_overview_screen.dart';
 import 'features/home/presentation/pages/edit_profile_screen.dart';
 import 'features/home/presentation/pages/help_support_screen.dart';
 import 'features/home/presentation/pages/privacy_policy_screen.dart';
+import 'features/home/presentation/pages/terms_of_service_screen.dart';
 import 'features/home/presentation/pages/manage_notifications_screen.dart';
 import 'features/home/presentation/pages/seller_profile_screen.dart';
 import 'features/home/presentation/pages/spare_parts_detail_form_screen.dart';
@@ -62,10 +63,10 @@ class MyApp extends StatelessWidget {
 
   static const SystemUiOverlayStyle _systemUiOverlayStyle =
       SystemUiOverlayStyle(
-        statusBarColor: Colors.black,
-        statusBarIconBrightness: Brightness.light,
-        statusBarBrightness: Brightness.dark,
-      );
+    statusBarColor: Colors.black,
+    statusBarIconBrightness: Brightness.light,
+    statusBarBrightness: Brightness.dark,
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -186,6 +187,9 @@ class MyApp extends StatelessWidget {
         }
         if (settings.name == '/privacy_policy') {
           return buildRoute(const PrivacyPolicyScreen());
+        }
+        if (settings.name == '/terms_of_service') {
+          return buildRoute(const TermsOfServiceScreen());
         }
         if (settings.name == '/manage_notifications') {
           return buildRoute(const ManageNotificationsScreen());

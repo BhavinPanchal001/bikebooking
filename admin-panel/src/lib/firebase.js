@@ -27,9 +27,9 @@ export const hasFirebaseConfig = Object.values(firebaseConfig).every(Boolean);
 const app = hasFirebaseConfig ? initializeApp(firebaseConfig) : null;
 const db = app
   ? initializeFirestore(app, {
-      experimentalAutoDetectLongPolling: true,
-      useFetchStreams: false,
-    })
+    experimentalAutoDetectLongPolling: true,
+    useFetchStreams: false,
+  })
   : null;
 const auth = app ? getAuth(app) : null;
 const functionsRegion =

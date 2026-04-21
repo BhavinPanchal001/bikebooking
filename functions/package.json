@@ -2,6 +2,9 @@
   "name": "bikebooking-functions",
   "private": true,
   "main": "index.js",
+  "scripts": {
+    "grant-admin": "node scripts/grant-admin.js"
+  },
   "engines": {
     "node": "20"
   },

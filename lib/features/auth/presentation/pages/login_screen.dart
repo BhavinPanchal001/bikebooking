@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -16,6 +17,8 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final PageController _pageController = PageController();
+  late final TapGestureRecognizer _termsRecognizer;
+  late final TapGestureRecognizer _privacyRecognizer;
 
   final List<Map<String, String>> _onboardingData = [
     {
@@ -33,7 +36,18 @@ class _LoginScreenState extends State<LoginScreen> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _termsRecognizer = TapGestureRecognizer()
+      ..onTap = () => Navigator.pushNamed(context, '/terms_of_service');
+    _privacyRecognizer = TapGestureRecognizer()
+      ..onTap = () => Navigator.pushNamed(context, '/privacy_policy');
+  }
+
+  @override
   void dispose() {
+    _termsRecognizer.dispose();
+    _privacyRecognizer.dispose();
     _pageController.dispose();
     super.dispose();
   }
@@ -321,6 +335,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   color: const Color(0xFF2E4475),
                                   decoration: TextDecoration.underline,
                                 ),
+                                recognizer: _termsRecognizer,
                               ),
                               const TextSpan(text: ' & '),
                               TextSpan(
@@ -329,6 +344,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   color: const Color(0xFF2E4475),
                                   decoration: TextDecoration.underline,
                                 ),
+                                recognizer: _privacyRecognizer,
                               ),
                             ],
                           ),

@@ -8,6 +8,7 @@ import { DashboardPage } from './pages/DashboardPage';
 import { BikeOwnerMasterPage } from './pages/BikeOwnerMasterPage';
 import { BrandMasterPage } from './pages/BrandMasterPage';
 import { FeeConfigMasterPage } from './pages/FeeConfigMasterPage';
+import { CmsPagesPage } from './pages/CmsPagesPage';
 import { InboxPage } from './pages/InboxPage';
 import { ListingsPage } from './pages/ListingsPage';
 import { LoginPage } from './pages/LoginPage';
@@ -127,6 +128,7 @@ function AdminShell() {
               path="/reported-persons"
               element={<ReportedPersonsPage data={adminData} />}
             />
+            <Route path="/cms" element={<CmsPagesPage />} />
             <Route
               path="/inbox"
               element={<InboxPage data={adminData} />}
