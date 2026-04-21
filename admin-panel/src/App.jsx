@@ -30,9 +30,9 @@ const navItems = [
   {
     to: '/masters/popular-bike-age',
     label: 'Popular Bike Age',
-    eyebrow: 'Master data',
+    eyebrow: 'Trends',
   },
-  { to: '/masters/bike-owner', label: 'Bike Owner', eyebrow: 'Master data' },
+  { to: '/masters/bike-owner', label: 'Bike Owner', eyebrow: 'Entity' },
 ];
 
 function AdminShell() {

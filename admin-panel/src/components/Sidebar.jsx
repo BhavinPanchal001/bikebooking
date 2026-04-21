@@ -23,16 +23,20 @@ export function Sidebar({ items, activePath, isCollapsed, onToggle }) {
 
       <nav className="nav-stack">
         {items.map((item) => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            className={`nav-link ${activePath.startsWith(item.to) ? 'nav-link-active' : ''
-              }`}
-            title={isCollapsed ? item.label : ''}
-          >
-            {!isCollapsed && <span className="nav-eyebrow">{item.eyebrow}</span>}
-            <span className="nav-label">{isCollapsed ? item.label.charAt(0) : item.label}</span>
-          </NavLink>
+          <div key={item.to}>
+            {item.header && (
+              <span className="sidebar-section-label">{item.header}</span>
+            )}
+            <NavLink
+              to={item.to}
+              className={`nav-link ${activePath.startsWith(item.to) ? 'nav-link-active' : ''
+                }`}
+              title={isCollapsed ? item.label : ''}
+            >
+              {!isCollapsed && <span className="nav-eyebrow">{item.eyebrow}</span>}
+              <span className="nav-label">{isCollapsed ? item.label.charAt(0) : item.label}</span>
+            </NavLink>
+          </div>
         ))}
       </nav>
     </aside>

@@ -15,24 +15,7 @@ export function LoginPage({ onSubmit, error, authReady }) {
   return (
     <div className="login-shell">
       <section className="login-panel">
-        <div className="login-copy">
-          <span className="hero-kicker">BikeBooking admin</span>
-          <h1>Sign in to manage listings.</h1>
-          <p>
-            This panel lets you manage the app backend. Use your admin credentials.
-          </p>
 
-          <div className="login-badges">
-            <div className="metric-chip">
-              <span>Project</span>
-              <strong>bikenest-app</strong>
-            </div>
-            <div className="metric-chip">
-              <span>Backend</span>
-              <strong>{authReady ? 'Firebase Auth' : 'Connecting'}</strong>
-            </div>
-          </div>
-        </div>
 
         <form className="login-form" onSubmit={handleSubmit}>
           <div className="login-form-head">
