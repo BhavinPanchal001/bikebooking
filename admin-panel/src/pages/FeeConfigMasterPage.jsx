@@ -41,7 +41,7 @@ const feeConfigPageConfig = {
   editDialogTitle: 'Edit fee',
   deleteDialogTitle: 'Delete fee',
   formSubtitle:
-    'Slug is the immutable key used by the mobile app and server. Store amounts in paise (99.00 INR = 9900 paise). Set the kind to wire up the correct side-effect on payment.',
+    'Slug is the immutable key used by the mobile app and server. Enter the amount in rupees; the server converts it to paise automatically before talking to Razorpay. Set the kind to wire up the correct side-effect on payment.',
   searchPlaceholder: 'Search fees by slug, name, or kind',
   liveMessage: 'Fee records sync live with the Firestore fee_config collection.',
   loadingMessage: 'Loading fees from Firestore...',
@@ -80,15 +80,16 @@ const feeConfigPageConfig = {
         'Boost: activates isBoosted + boostExpiresAt on the target product. Listing fee: sets listingFeePaid=true on the target product.',
     },
     {
-      name: 'amountPaise',
-      label: 'Amount (paise)',
+      name: 'amountRupees',
+      label: 'Amount (INR)',
       type: 'number',
-      min: 1,
-      step: 1,
-      inputMode: 'numeric',
-      placeholder: '4900',
+      min: 0.01,
+      step: 0.01,
+      inputMode: 'decimal',
+      placeholder: '49.00',
       required: true,
-      helperText: 'Integer paise. Razorpay requires the smallest currency unit.',
+      helperText:
+        'Enter rupees (e.g. 49 or 49.50). Stored internally as paise because Razorpay requires the smallest currency unit.',
     },
     {
       name: 'durationDays',

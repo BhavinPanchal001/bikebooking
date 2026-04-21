@@ -6,12 +6,27 @@ import {
 
 const SUPPORTED_KINDS = ['boost', 'listing_fee'];
 
-function normalizePositiveInteger(value) {
+// The admin UI shows rupees for humans but Firestore / Razorpay / Cloud
+// Functions still operate in paise (integer smallest currency unit). These
+// helpers convert between the two on the boundary between form state and
+// the draft we persist.
+function rupeesInputToPaise(value) {
   if (value === null || value === undefined || value === '') {
     return '';
   }
-  const parsed = Number.parseInt(value, 10);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : value;
+  const parsed = Number.parseFloat(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return value;
+  }
+  return Math.round(parsed * 100);
+}
+
+function paiseToRupeesInput(paise) {
+  const parsed = Number.parseInt(paise, 10);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return '';
+  }
+  return (parsed / 100).toString();
 }
 
 function normalizeNonNegativeInteger(value) {
@@ -44,7 +59,7 @@ export function createFeeConfigDraft(values = {}) {
     slug: normalizeString(values.slug).toLowerCase().replace(/\s+/g, '_'),
     displayName: normalizeString(values.displayName),
     kind: normalizeString(values.kind),
-    amountPaise: normalizePositiveInteger(values.amountPaise),
+    amountPaise: rupeesInputToPaise(values.amountRupees),
     durationDays: normalizeOptionalPositiveInteger(values.durationDays),
     currency: normalizeString(values.currency) || 'INR',
     sortOrder: normalizeNonNegativeInteger(values.sortOrder),
@@ -71,9 +86,16 @@ export function validateFeeConfigDraft(values = {}) {
     errors.kind = `Kind must be one of: ${SUPPORTED_KINDS.join(', ')}`;
   }
 
-  const amount = Number.parseInt(values.amountPaise, 10);
-  if (!Number.isFinite(amount) || amount <= 0) {
-    errors.amountPaise = 'Amount (paise) must be a positive whole number.';
+  const rupees = Number.parseFloat(values.amountRupees);
+  if (!Number.isFinite(rupees) || rupees <= 0) {
+    errors.amountRupees = 'Amount must be a positive number in rupees.';
+  } else {
+    // Guard against more than two decimal places (sub-paisa precision).
+    const paise = Math.round(rupees * 100);
+    if (Math.abs(rupees * 100 - paise) > 1e-6) {
+      errors.amountRupees =
+        'Amount can have at most 2 decimal places (paise-level precision).';
+    }
   }
 
   if (values.kind === 'boost') {
@@ -88,12 +110,16 @@ export function validateFeeConfigDraft(values = {}) {
 
 export function feeConfigFromFirestore(snapshot) {
   const data = snapshot.data() || {};
+  const amountPaise = Number.parseInt(data.amountPaise, 10) || 0;
   return {
     id: snapshot.id,
     slug: snapshot.id,
     displayName: normalizeString(data.displayName),
     kind: normalizeString(data.kind),
-    amountPaise: Number.parseInt(data.amountPaise, 10) || 0,
+    amountPaise,
+    // Populated so the edit dialog can prefill the rupees input directly
+    // from the record without the caller having to re-derive it.
+    amountRupees: paiseToRupeesInput(amountPaise),
     durationDays: Number.parseInt(data.durationDays, 10) || null,
     currency: normalizeString(data.currency) || 'INR',
     sortOrder: Number.parseInt(data.sortOrder, 10) || 0,
@@ -110,7 +136,7 @@ export const feeConfigMasterModel = {
       slug: '',
       displayName: '',
       kind: 'boost',
-      amountPaise: '',
+      amountRupees: '',
       durationDays: '',
       currency: 'INR',
       sortOrder: 0,
