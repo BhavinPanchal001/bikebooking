@@ -2,10 +2,43 @@ const {initializeApp} = require("firebase-admin/app");
 const {FieldValue, getFirestore} = require("firebase-admin/firestore");
 const {getMessaging} = require("firebase-admin/messaging");
 const {onDocumentCreated} = require("firebase-functions/v2/firestore");
+const {onCall, onRequest} = require("firebase-functions/v2/https");
+const {onSchedule} = require("firebase-functions/v2/scheduler");
 
 initializeApp();
 
 const db = getFirestore();
+
+// ── Payments (Razorpay) ─────────────────────────────────────────────────────
+const {
+  createPaymentOrderHandler,
+  verifyPaymentSignatureHandler,
+  refundPaymentHandler,
+} = require("./src/payments");
+const {razorpayWebhookHandler} = require("./src/webhook");
+const {clearExpiredBoostsHandler} = require("./src/scheduled");
+const {setAdminClaimHandler} = require("./src/admin");
+
+// Razorpay + bootstrap credentials are read directly from process.env so
+// they can be supplied via `functions/.env.<projectId>` at deploy time
+// instead of Secret Manager. See functions/.env.example for the required
+// keys. For production deployments we recommend migrating these to
+// Secret Manager by re-adding the `secrets: [...]` option on each export.
+
+exports.createPaymentOrder = onCall(createPaymentOrderHandler);
+
+exports.verifyPaymentSignature = onCall(verifyPaymentSignatureHandler);
+
+exports.refundPayment = onCall(refundPaymentHandler);
+
+exports.razorpayWebhook = onRequest(razorpayWebhookHandler);
+
+exports.clearExpiredBoosts = onSchedule(
+  {schedule: "every 15 minutes", timeZone: "Asia/Kolkata"},
+  clearExpiredBoostsHandler,
+);
+
+exports.setAdminClaim = onCall(setAdminClaimHandler);
 
 exports.sendQueuedNotification = onDocumentCreated(
   "notification_queue/{requestId}",

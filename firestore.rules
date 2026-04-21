@@ -11,18 +11,99 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == sellerId;
     }
 
+    // ⚠️  TESTING-ONLY BYPASS — DO NOT SHIP TO PRODUCTION  ⚠️
+    //
+    // Any signed-in user is treated as admin so the MS3 #1 payment gateway
+    // work can be UAT-tested without minting a custom admin claim first.
+    // This opens `/fee_config` writes (pricing changes), `/payments` reads,
+    // product-delete-by-admin, and `/audit_logs` reads to every signed-in
+    // user. TIGHTEN BEFORE LIVE DEPLOY.
+    //
+    // How to re-lock (strict, recommended):
+    //   function isAdmin() {
+    //     return isSignedIn() && request.auth.token.admin == true;
+    //   }
+    //
+    // How to re-lock (email allowlist — same pattern as functions/src/admin.js):
+    //   function isAdmin() {
+    //     return isSignedIn() && (
+    //       request.auth.token.get('admin', false) == true
+    //       || request.auth.token.get('email', '') in [
+    //         'admin@gmail.com', 'bhavinpanchal620@gmail.com'
+    //       ]
+    //     );
+    //   }
+    function isAdmin() {
+      return isSignedIn();
+    }
+
     // ── products ─────────────────────────────────────────────────────────────
     match /products/{productId} {
       // Anyone (even unauthenticated) can read products
       allow read: if true;
 
-      // Only authenticated users can create their own products
+      // Only authenticated users can create their own products.
+      // Payment-gated fields must not be preset to their paid state —
+      // the server (Cloud Functions) is the only writer that may flip them.
       allow create: if isSignedIn()
-                    && request.resource.data.sellerId == request.auth.uid;
+                    && request.resource.data.sellerId == request.auth.uid
+                    && request.resource.data.get('listingFeePaid', false) == false
+                    && request.resource.data.get('isBoosted', false) == false
+                    && request.resource.data.get('boostPaymentId', null) == null
+                    && request.resource.data.get('boostExpiresAt', null) == null
+                    && request.resource.data.get('boostStartedAt', null) == null
+                    && request.resource.data.get('boostPlanId', null) == null;
 
-      // Only the seller can update or delete their own product
-      allow update: if isOwner(resource.data.sellerId);
-      allow delete: if isOwner(resource.data.sellerId);
+      // Only the seller can update or delete their own product.
+      // Sellers MUST NOT be able to flip payment-gated fields themselves.
+      // Those are owned by the server (Cloud Functions using the admin SDK).
+      // Sellers also cannot leave `awaiting_payment` on their own — that
+      // transition must go through `verifyPaymentSignature` after the
+      // listing fee is paid. They may still mark a product as `sold` from
+      // any status via the regular app UI.
+      allow update: if isOwner(resource.data.sellerId)
+                    && request.resource.data.get('listingFeePaid', false) ==
+                         resource.data.get('listingFeePaid', false)
+                    && request.resource.data.get('isBoosted', false) ==
+                         resource.data.get('isBoosted', false)
+                    && request.resource.data.get('boostExpiresAt', null) ==
+                         resource.data.get('boostExpiresAt', null)
+                    && request.resource.data.get('boostPaymentId', null) ==
+                         resource.data.get('boostPaymentId', null)
+                    && request.resource.data.get('boostStartedAt', null) ==
+                         resource.data.get('boostStartedAt', null)
+                    && request.resource.data.get('boostPlanId', null) ==
+                         resource.data.get('boostPlanId', null)
+                    // From `awaiting_payment` the seller may stay put or mark
+                    // the listing as `sold`. Only the server (via the
+                    // verifyPaymentSignature Cloud Function) is allowed to flip
+                    // the status to `active`.
+                    && (
+                      resource.data.get('status', 'active') != 'awaiting_payment'
+                      || request.resource.data.get('status', 'active') ==
+                           'awaiting_payment'
+                      || request.resource.data.get('status', 'active') == 'sold'
+                    )
+                    // A seller can reach `active` only if the listing was
+                    // already `active` OR the listing fee has been paid. This
+                    // closes the awaiting_payment → sold → active two-step
+                    // bypass that would otherwise let a listing go live
+                    // without paying the fee.
+                    //
+                    // The `!('listingFeePaid' in resource.data)` branch is an
+                    // explicit escape hatch for products that pre-date the
+                    // listing-fee feature: they were created before the field
+                    // existed, are already live / sold / reactivatable, and
+                    // were never subject to the paywall. Without this branch
+                    // every pre-existing sold product would become
+                    // unreactivatable after the rule rolls out.
+                    && (
+                      request.resource.data.get('status', 'active') != 'active'
+                      || resource.data.get('status', 'active') == 'active'
+                      || resource.data.get('listingFeePaid', false) == true
+                      || !('listingFeePaid' in resource.data)
+                    );
+      allow delete: if isOwner(resource.data.sellerId) || isAdmin();
     }
 
     // ── users ─────────────────────────────────────────────────────────────────
@@ -45,6 +126,36 @@ service cloud.firestore {
       allow create: if isSignedIn()
                     && request.resource.data.sellerId == request.auth.uid;
       allow update, delete: if isOwner(resource.data.sellerId);
+    }
+
+    // ── payments ─────────────────────────────────────────────────────────────
+    // Written exclusively by Cloud Functions (admin SDK bypasses these rules).
+    // Clients can read their own payments (for receipts); admins see all.
+    match /payments/{paymentId} {
+      allow read: if isAdmin()
+                  || (isSignedIn() && request.auth.uid == resource.data.userId);
+      allow write: if false;
+    }
+
+    // ── fee_config (public read; admin write) ────────────────────────────────
+    // Mobile client reads these to render checkout; only admins can change
+    // prices. The server-side `createPaymentOrder` re-reads the doc to
+    // validate amount so a malicious client cannot inject prices.
+    match /fee_config/{feeSlug} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ── razorpay webhook idempotency ledger (server-only) ────────────────────
+    match /razorpay_webhook_events/{eventId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    // ── audit logs (append-only, admin-readable) ─────────────────────────────
+    match /audit_logs/{logId} {
+      allow read: if isAdmin();
+      allow write: if false;
     }
   }
 }

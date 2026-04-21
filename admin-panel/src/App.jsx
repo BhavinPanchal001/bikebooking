@@ -7,9 +7,11 @@ import { useAdminData } from './hooks/useAdminData';
 import { DashboardPage } from './pages/DashboardPage';
 import { BikeOwnerMasterPage } from './pages/BikeOwnerMasterPage';
 import { BrandMasterPage } from './pages/BrandMasterPage';
+import { FeeConfigMasterPage } from './pages/FeeConfigMasterPage';
 import { InboxPage } from './pages/InboxPage';
 import { ListingsPage } from './pages/ListingsPage';
 import { LoginPage } from './pages/LoginPage';
+import { PaymentsPage } from './pages/PaymentsPage';
 import { ProductDetailPage } from './pages/ProductDetailPage';
 import { PlansMasterPage } from './pages/PlansMasterPage';
 import { PopularBikeAgeMasterPage } from './pages/PopularBikeAgeMasterPage';
@@ -20,9 +22,11 @@ const navItems = [
   { to: '/dashboard', label: 'Dashboard', eyebrow: 'Overview' },
   { to: '/listings', label: 'Listings', eyebrow: 'Inventory' },
   { to: '/users', label: 'Users', eyebrow: 'People' },
+  { to: '/payments', label: 'Payments', eyebrow: 'Billing' },
   { to: '/reported-persons', label: 'Reported Persons', eyebrow: 'Safety' },
-  { to: '/masters/plans', label: 'Plans Master', eyebrow: 'Pricing', header: 'Masters' },
-  { to: '/masters/brands', label: 'Brand Master', eyebrow: 'Vehicle' },
+  { to: '/masters/fees', label: 'Fee Config', eyebrow: 'Master data' },
+  { to: '/masters/plans', label: 'Plans Master', eyebrow: 'Master data' },
+  { to: '/masters/brands', label: 'Brand Master', eyebrow: 'Master data' },
   {
     to: '/masters/popular-bike-age',
     label: 'Popular Bike Age',
@@ -116,12 +120,20 @@ function AdminShell() {
               }
             />
             <Route
+              path="/payments"
+              element={<PaymentsPage adminEmail={adminAuth.user.email} />}
+            />
+            <Route
               path="/reported-persons"
               element={<ReportedPersonsPage data={adminData} />}
             />
             <Route
               path="/inbox"
               element={<InboxPage data={adminData} />}
+            />
+            <Route
+              path="/masters/fees"
+              element={<FeeConfigMasterPage />}
             />
             <Route
               path="/masters/plans"

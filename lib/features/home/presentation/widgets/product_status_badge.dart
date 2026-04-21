@@ -55,6 +55,11 @@ class _ProductStatusColors {
           border: Color(0xFFFFD3B5),
           foreground: Color(0xFFD46A1F),
         ),
+      ProductStatus.awaitingPayment => const _ProductStatusColors(
+          background: Color(0xFFFFF7E0),
+          border: Color(0xFFF5D67A),
+          foreground: Color(0xFF8A6D1B),
+        ),
       _ => const _ProductStatusColors(
           background: Color(0xFFEAF8ED),
           border: Color(0xFFBFE3C8),

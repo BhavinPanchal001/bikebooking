@@ -156,9 +156,28 @@ class ProductModel {
       'boostStartedAt': boostStartedAt != null ? Timestamp.fromDate(boostStartedAt!) : null,
       'boostExpiresAt': boostExpiresAt != null ? Timestamp.fromDate(boostExpiresAt!) : null,
       'boostPaymentId': boostPaymentId,
+      // Only stamp `listingFeePaid: false` on products that are actually
+      // going through the paywall (status == awaiting_payment). That way:
+      //   • paywalled listings have the field, so sold → active is gated
+      //     on the server flipping `listingFeePaid` to `true` (close the
+      //     awaiting_payment → sold → active bypass).
+      //   • listings created when no fee is configured (status == active
+      //     directly) omit the field, so the rules escape hatch
+      //     `!('listingFeePaid' in resource.data)` lets the seller
+      //     reactivate them after marking as sold — same behaviour as
+      //     products that pre-date the listing-fee feature.
+      if (status == ProductStatus.awaitingPayment) 'listingFeePaid': false,
     };
   }
 
+  /// Fields safe for the seller to write on update.
+  ///
+  /// Payment-gated fields (`isBoosted`, `boostPlanId`, `boostStartedAt`,
+  /// `boostExpiresAt`, `boostPaymentId`, `listingFeePaid`) are deliberately
+  /// omitted — they are owned exclusively by Cloud Functions using the
+  /// admin SDK. Including them here would cause the Firestore rules to
+  /// reject edits on boosted products (stale default values would violate
+  /// the "must not change" invariants in `firestore.rules`).
   Map<String, dynamic> toUpdateMap() {
     return {
       'category': category,
@@ -177,11 +196,6 @@ class ProductModel {
       'subCategory': subCategory,
       'condition': condition,
       'sellerType': sellerType,
-      'isBoosted': isBoosted,
-      'boostPlanId': boostPlanId,
-      'boostStartedAt': boostStartedAt != null ? Timestamp.fromDate(boostStartedAt!) : null,
-      'boostExpiresAt': boostExpiresAt != null ? Timestamp.fromDate(boostExpiresAt!) : null,
-      'boostPaymentId': boostPaymentId,
     };
   }
 

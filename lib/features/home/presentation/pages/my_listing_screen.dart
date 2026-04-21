@@ -466,10 +466,14 @@ class _MyListingScreenState extends State<MyListingScreen>
   }
 
   void _openEditProduct(BuildContext context, ProductModel product) {
-    if (!product.isActive) {
+    // Sold listings are immutable; awaiting-payment listings stay editable
+    // so the seller can fix typos / photos before completing the listing
+    // fee payment (Firestore rules block the status transition, not edits
+    // to other fields).
+    if (product.isSold) {
       Get.snackbar(
         'Editing unavailable',
-        'Reactivate this listing before editing it.',
+        'Sold listings cannot be edited.',
         snackPosition: SnackPosition.BOTTOM,
       );
       return;
@@ -490,7 +494,10 @@ class _MyListingScreenState extends State<MyListingScreen>
   List<PopupMenuEntry<_ListingStatusMenuAction>> _buildStatusMenuItems(
     ProductModel product,
   ) {
-    if (product.isActive) {
+    // Both active and awaiting-payment listings are editable — the seller
+    // may still need to correct content before the paywall is cleared.
+    // Only sold listings drop the Edit option.
+    if (!product.isSold) {
       return const [
         PopupMenuItem<_ListingStatusMenuAction>(
           value: _ListingStatusMenuAction.edit,
@@ -1434,23 +1441,31 @@ class _MyListingScreenState extends State<MyListingScreen>
                     ),
                   ),
                   const SizedBox(height: 20),
-                  // Interactive plan selection
-                  ...BoostPlan.allPlans.map((plan) {
-                    final isSelected =
-                        boostController.selectedPlan.id == plan.id;
-                    return GestureDetector(
-                      onTap: () {
-                        boostController.selectPlan(plan);
-                        setLocalState(() {});
-                      },
-                      child: _buildPlanOption(
-                        plan.name,
-                        plan.subtitle,
-                        plan.displayPrice,
-                        isSelected,
-                      ),
-                    );
-                  }),
+                  // Interactive plan selection — sourced from the admin's
+                  // /fee_config master (falls back to bundled plans before
+                  // the admin has seeded it).
+                  GetBuilder<BoostController>(
+                    builder: (ctrl) {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: ctrl.availablePlans.map((plan) {
+                          final isSelected = ctrl.selectedPlan.id == plan.id;
+                          return GestureDetector(
+                            onTap: () {
+                              ctrl.selectPlan(plan);
+                              setLocalState(() {});
+                            },
+                            child: _buildPlanOption(
+                              plan.name,
+                              plan.subtitle,
+                              plan.displayPrice,
+                              isSelected,
+                            ),
+                          );
+                        }).toList(),
+                      );
+                    },
+                  ),
                   const SizedBox(height: 24),
                   GetBuilder<BoostController>(
                     builder: (ctrl) {
