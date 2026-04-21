@@ -1796,6 +1796,20 @@ small {
   border-color: #f3d99a;
 }
 
+.boost-action-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.boost-action-group .secondary-button,
+.boost-action-group .danger-button,
+.boost-action-group .primary-button {
+  padding: 8px 12px;
+  font-size: 12px;
+}
+
 .status-badge.status-created {
   background: #eef1f8;
   color: #334066;

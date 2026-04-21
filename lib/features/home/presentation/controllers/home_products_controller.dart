@@ -136,15 +136,18 @@ class HomeProductsController extends GetxController {
       final allProducts = await _firestoreService.getProducts();
       final visibleProducts = _filterHiddenProducts(allProducts);
 
-      // Prioritize currently boosted products at the top.
-      // Also clean up any expired boosts in the background.
+      // Prioritize admin-editorial-featured listings at the top, then
+      // paid-boosted, then everything else. Also clean up stale boost
+      // flags in Firestore (fire-and-forget).
+      final editorial = <ProductModel>[];
       final boosted = <ProductModel>[];
       final regular = <ProductModel>[];
       for (final product in visibleProducts) {
-        if (product.isCurrentlyBoosted) {
+        if (product.isCurrentlyEditorialFeatured) {
+          editorial.add(product);
+        } else if (product.isCurrentlyBoosted) {
           boosted.add(product);
         } else {
-          // Clean up stale boost flags in Firestore (fire-and-forget)
           if (product.isBoosted && product.id != null) {
             _cleanupExpiredBoost(product.id!);
           }
@@ -152,7 +155,9 @@ class HomeProductsController extends GetxController {
         }
       }
 
-      _justAdded = [...boosted, ...regular].take(10).toList(growable: false);
+      _justAdded = [...editorial, ...boosted, ...regular]
+          .take(10)
+          .toList(growable: false);
     } catch (error, stackTrace) {
       debugPrint('Error loading just-added: $error\n$stackTrace');
       _justAdded = [];

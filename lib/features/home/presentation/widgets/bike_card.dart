@@ -62,6 +62,40 @@ class BikeCard extends StatelessWidget {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
+                      if (product.isCurrentlyEditorialFeatured) ...[
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFF2E4475), Color(0xFF5270B6)],
+                            ),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.star,
+                                size: 10,
+                                color: Colors.white,
+                              ),
+                              SizedBox(width: 2),
+                              Text(
+                                'Featured',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 8,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                      ],
                       if (product.isCurrentlyBoosted) ...[
                         Container(
                           padding: const EdgeInsets.symmetric(

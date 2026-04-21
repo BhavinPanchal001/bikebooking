@@ -52,7 +52,9 @@ service cloud.firestore {
                     && request.resource.data.get('boostPaymentId', null) == null
                     && request.resource.data.get('boostExpiresAt', null) == null
                     && request.resource.data.get('boostStartedAt', null) == null
-                    && request.resource.data.get('boostPlanId', null) == null;
+                    && request.resource.data.get('boostPlanId', null) == null
+                    && request.resource.data.get('isEditorialFeatured', false)
+                         == false;
 
       // Only the seller can update or delete their own product.
       // Sellers MUST NOT be able to flip payment-gated fields themselves.
@@ -74,6 +76,12 @@ service cloud.firestore {
                          resource.data.get('boostStartedAt', null)
                     && request.resource.data.get('boostPlanId', null) ==
                          resource.data.get('boostPlanId', null)
+                    // Editorial "featured" is owned by the server (admin
+                    // panel → adminSetEditorialFeatured callable). Sellers
+                    // cannot promote their own listings onto the editorial
+                    // rail.
+                    && request.resource.data.get('isEditorialFeatured', false) ==
+                         resource.data.get('isEditorialFeatured', false)
                     // From `awaiting_payment` the seller may stay put or mark
                     // the listing as `sold`. Only the server (via the
                     // verifyPaymentSignature Cloud Function) is allowed to flip
