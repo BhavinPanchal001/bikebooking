@@ -4,6 +4,10 @@
       "source": "functions"
     }
   ],
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
   "hosting": {
     "public": "admin-panel/dist",
     "ignore": [
