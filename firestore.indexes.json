@@ -40,6 +40,14 @@
         {"fieldPath": "isBoosted", "order": "ASCENDING"},
         {"fieldPath": "boostExpiresAt", "order": "ASCENDING"}
       ]
+    },
+    {
+      "collectionGroup": "products",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {"fieldPath": "isEditorialFeatured", "order": "ASCENDING"},
+        {"fieldPath": "editorialFeaturedAt", "order": "DESCENDING"}
+      ]
     }
   ],
   "fieldOverrides": []
