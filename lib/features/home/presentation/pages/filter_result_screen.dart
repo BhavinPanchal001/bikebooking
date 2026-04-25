@@ -850,12 +850,14 @@ class _FilterResultScreenState extends State<FilterResultScreen>
                   ConstrainedBox(
                     constraints: const BoxConstraints(maxHeight: 360),
                     child: filteredBrands.isEmpty
-                        ? const Padding(
-                            padding: EdgeInsets.symmetric(vertical: 24),
+                        ? Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 24),
                             child: Center(
                               child: Text(
-                                'No brands available right now.',
-                                style: TextStyle(
+                                brandSearchQuery.isEmpty
+                                    ? 'No brands available right now.'
+                                    : 'No brands match your search.',
+                                style: const TextStyle(
                                   color: Color(0xFF5E6E8C),
                                   fontSize: 14,
                                 ),
