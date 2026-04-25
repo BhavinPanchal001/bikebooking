@@ -247,12 +247,7 @@ class LoginController extends GetxController {
         }
 
         final resolvedUser = currentUserProfile ?? localUser;
-        if (resolvedUser.hasLocation) {
-          Get.offAllNamed('/home');
-          return;
-        }
-
-        Get.offAllNamed('/select_location');
+        _navigateAfterAuth(resolvedUser);
         return;
       }
 
@@ -262,11 +257,7 @@ class LoginController extends GetxController {
         if (savedSession != null) {
           _setCurrentUserProfile(savedSession);
           phoneNumber = savedSession.phoneNumber;
-          if (savedSession.hasLocation) {
-            Get.offAllNamed('/home');
-            return;
-          }
-          Get.offAllNamed('/select_location');
+          _navigateAfterAuth(savedSession);
           return;
         }
 
@@ -282,23 +273,14 @@ class LoginController extends GetxController {
           fallbackPhoneNumber: firebaseUser.phoneNumber,
         );
 
-        if (userProfile.hasLocation) {
-          Get.offAllNamed('/home');
-          return;
-        }
-
-        Get.offAllNamed('/select_location');
+        _navigateAfterAuth(userProfile);
       } catch (_) {
         // Firestore failed but Firebase Auth session exists — don't sign out.
         // Use saved session or navigate to home optimistically.
         if (savedSession != null) {
           _setCurrentUserProfile(savedSession);
           phoneNumber = savedSession.phoneNumber;
-          if (savedSession.hasLocation) {
-            Get.offAllNamed('/home');
-            return;
-          }
-          Get.offAllNamed('/select_location');
+          _navigateAfterAuth(savedSession);
           return;
         }
 
@@ -447,13 +429,7 @@ class LoginController extends GetxController {
         );
 
         _completeOtpVerification();
-
-        if (userProfile.hasLocation) {
-          Get.offAllNamed('/home');
-          return;
-        }
-
-        Get.offAllNamed('/select_location');
+        _navigateAfterAuth(userProfile);
         return;
       } catch (_) {
         _completeOtpVerification();
@@ -1195,12 +1171,7 @@ class LoginController extends GetxController {
       // Non-critical — ignore failures.
     }
 
-    if (userProfile.hasLocation) {
-      Get.offAllNamed('/home');
-      return;
-    }
-
-    Get.offAllNamed('/select_location');
+    _navigateAfterAuth(userProfile);
   }
 
   Future<void> _completeBypassedPhoneAuthSignIn(
@@ -1354,6 +1325,18 @@ class LoginController extends GetxController {
       longitude: longitude,
       label: resultMap['name']?.toString() ?? suggestion.title,
     );
+  }
+
+  void _navigateAfterAuth(AppUserModel userProfile) {
+    if (userProfile.fullName.trim().isEmpty) {
+      Get.offAllNamed('/enter_name');
+      return;
+    }
+    if (userProfile.hasLocation) {
+      Get.offAllNamed('/home');
+      return;
+    }
+    Get.offAllNamed('/select_location');
   }
 
   void _syncProfileControllers(AppUserModel userProfile) {
