@@ -697,6 +697,7 @@ class ListProductController extends GetxController {
     }
 
     _isFetchingCurrentLocation = true;
+    clearLocationSuggestions();
     update();
 
     try {
