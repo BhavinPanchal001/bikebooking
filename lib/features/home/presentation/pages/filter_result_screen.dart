@@ -783,6 +783,7 @@ class _FilterResultScreenState extends State<FilterResultScreen>
   ) async {
     final brands = controller.availableBrands;
     var selectedBrand = controller.filterState.selectedBrand;
+    var brandSearchQuery = '';
 
     await showModalBottomSheet<void>(
       context: context,
@@ -791,15 +792,64 @@ class _FilterResultScreenState extends State<FilterResultScreen>
       builder: (sheetContext) {
         return StatefulBuilder(
           builder: (sheetContext, setModalState) {
+            final filteredBrands = brandSearchQuery.isEmpty
+                ? brands
+                : brands
+                    .where(
+                      (b) => b
+                          .toLowerCase()
+                          .contains(brandSearchQuery.toLowerCase()),
+                    )
+                    .toList(growable: false);
+
             return _buildBottomSheetContainer(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildBottomSheetHeader('Brand'),
+                  Container(
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: Colors.grey.shade300),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.search,
+                          size: 16,
+                          color: Color(0xFFB0B0B0),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: TextField(
+                            onChanged: (value) {
+                              setModalState(() {
+                                brandSearchQuery = value.trim();
+                              });
+                            },
+                            decoration: const InputDecoration(
+                              hintText: 'Search Brand',
+                              hintStyle: TextStyle(
+                                color: Color(0xFFB0B0B0),
+                                fontSize: 14,
+                              ),
+                              border: InputBorder.none,
+                              isDense: true,
+                              contentPadding: EdgeInsets.zero,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
                   ConstrainedBox(
                     constraints: const BoxConstraints(maxHeight: 360),
-                    child: brands.isEmpty
+                    child: filteredBrands.isEmpty
                         ? const Padding(
                             padding: EdgeInsets.symmetric(vertical: 24),
                             child: Center(
@@ -814,9 +864,9 @@ class _FilterResultScreenState extends State<FilterResultScreen>
                           )
                         : ListView.builder(
                             shrinkWrap: true,
-                            itemCount: brands.length,
+                            itemCount: filteredBrands.length,
                             itemBuilder: (context, index) {
-                              final brand = brands[index];
+                              final brand = filteredBrands[index];
                               final isSelected = selectedBrand == brand;
                               return _buildBottomSheetTile(
                                 label: brand,
