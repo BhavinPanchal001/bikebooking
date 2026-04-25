@@ -99,6 +99,7 @@ class LoginController extends GetxController {
   static const String _prefKeyUserId = 'bikenest_session_user_id';
   static const String _prefKeyPhoneNumber = 'bikenest_session_phone';
   static const String _prefKeyHasLocation = 'bikenest_session_has_location';
+  static const String _prefKeyFullName = 'bikenest_session_full_name';
   bool get _bypassPhoneAuth => GetPlatform.isIOS;
 
   final TextEditingController phoneController = TextEditingController();
@@ -1810,6 +1811,7 @@ class LoginController extends GetxController {
       await prefs.setString(_prefKeyUserId, user.id);
       await prefs.setString(_prefKeyPhoneNumber, user.phoneNumber);
       await prefs.setBool(_prefKeyHasLocation, user.hasLocation);
+      await prefs.setString(_prefKeyFullName, user.fullName);
     } catch (_) {
       // Non-critical — worst case the user will need to log in again.
     }
@@ -1836,9 +1838,11 @@ class LoginController extends GetxController {
       }
 
       final hasLocation = prefs.getBool(_prefKeyHasLocation) ?? false;
+      final fullName = prefs.getString(_prefKeyFullName)?.trim() ?? '';
       return AppUserModel(
         id: userId,
         phoneNumber: phone,
+        fullName: fullName,
         location: hasLocation
             ? const UserLocationModel(
                 address: 'Saved Location',
@@ -1858,6 +1862,7 @@ class LoginController extends GetxController {
       await prefs.remove(_prefKeyUserId);
       await prefs.remove(_prefKeyPhoneNumber);
       await prefs.remove(_prefKeyHasLocation);
+      await prefs.remove(_prefKeyFullName);
     } catch (_) {
       // Non-critical.
     }
