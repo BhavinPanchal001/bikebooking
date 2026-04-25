@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'dart:typed_data';
 
+import 'package:bikebooking/core/constants/global.dart';
 import 'package:bikebooking/core/constants/product_categories.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -315,6 +317,108 @@ class ListProductController extends GetxController {
   final TextEditingController priceController = TextEditingController();
   final TextEditingController locationController = TextEditingController();
 
+  // ── Location place search ──
+  static const int _minLocationSearchLength = 2;
+  final GetConnect _placeConnect = GetConnect();
+  Timer? _locationSearchDebounce;
+  int _locationSearchRequestId = 0;
+  String _locationSearchSessionToken =
+      DateTime.now().microsecondsSinceEpoch.toString();
+
+  List<PlaceSuggestion> _locationSuggestions = [];
+  List<PlaceSuggestion> get locationSuggestions =>
+      List.unmodifiable(_locationSuggestions);
+  bool _isSearchingLocation = false;
+  bool get isSearchingLocation => _isSearchingLocation;
+
+  void onLocationQueryChanged(String value) {
+    _locationSearchDebounce?.cancel();
+    _locationSearchRequestId++;
+
+    final trimmed = value.trim();
+    if (trimmed.length < _minLocationSearchLength) {
+      _locationSuggestions = [];
+      _isSearchingLocation = false;
+      update();
+      return;
+    }
+
+    _isSearchingLocation = true;
+    update();
+
+    _locationSearchDebounce = Timer(
+      const Duration(milliseconds: 400),
+      () => _searchLocationPlaces(trimmed),
+    );
+  }
+
+  Future<void> _searchLocationPlaces(String query) async {
+    final requestId = ++_locationSearchRequestId;
+
+    final uri = Uri.https(
+      'maps.googleapis.com',
+      '/maps/api/place/autocomplete/json',
+      {
+        'input': query,
+        'key': AppConfig.googlePlacesApiKey,
+        'components': 'country:in',
+        'types': 'geocode',
+        'language': 'en',
+        'sessiontoken': _locationSearchSessionToken,
+      },
+    );
+
+    try {
+      final response = await _placeConnect.get(uri.toString());
+      if (requestId != _locationSearchRequestId) return;
+
+      final body = response.body;
+      if (!response.isOk || body is! Map) {
+        _locationSuggestions = [];
+      } else {
+        final map = Map<String, dynamic>.from(body);
+        final status = map['status']?.toString() ?? '';
+        if (status == 'OK') {
+          _locationSuggestions =
+              (map['predictions'] as List<dynamic>? ?? [])
+                  .whereType<Map>()
+                  .map((p) => PlaceSuggestion.fromJson(
+                        Map<String, dynamic>.from(p)))
+                  .toList();
+        } else {
+          _locationSuggestions = [];
+        }
+      }
+    } catch (_) {
+      if (requestId != _locationSearchRequestId) return;
+      _locationSuggestions = [];
+    } finally {
+      if (requestId == _locationSearchRequestId) {
+        _isSearchingLocation = false;
+        update();
+      }
+    }
+  }
+
+  void selectLocationSuggestion(PlaceSuggestion suggestion) {
+    _locationSearchDebounce?.cancel();
+    _locationSearchRequestId++;
+    locationController.text = suggestion.description;
+    _locationSuggestions = [];
+    _isSearchingLocation = false;
+    _locationSearchSessionToken =
+        DateTime.now().microsecondsSinceEpoch.toString();
+    update();
+  }
+
+  void clearLocationSuggestions() {
+    _locationSearchDebounce?.cancel();
+    _locationSearchRequestId++;
+    _locationSuggestions = [];
+    _isSearchingLocation = false;
+    update();
+  }
+
   // ── Loading state ──
   bool _isLoading = false;
   bool get isLoading => _isLoading;
@@ -482,6 +586,9 @@ class ListProductController extends GetxController {
     kilometerController.clear();
     priceController.clear();
     locationController.clear();
+    _locationSuggestions = [];
+    _isSearchingLocation = false;
+    _locationSearchDebounce?.cancel();
     _category = '';
     _brand = '';
     _year = null;
@@ -505,6 +612,7 @@ class ListProductController extends GetxController {
 
   @override
   void onClose() {
+    _locationSearchDebounce?.cancel();
     titleController.dispose();
     descriptionController.dispose();
     kilometerController.dispose();
