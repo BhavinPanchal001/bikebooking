@@ -847,7 +847,8 @@ class _FilterResultScreenState extends State<FilterResultScreen>
                     ),
                   ),
                   const SizedBox(height: 12),
-                  ConstrainedBox(
+                  Flexible(
+                    child: ConstrainedBox(
                     constraints: const BoxConstraints(maxHeight: 360),
                     child: filteredBrands.isEmpty
                         ? Padding(
@@ -881,6 +882,7 @@ class _FilterResultScreenState extends State<FilterResultScreen>
                               );
                             },
                           ),
+                  ),
                   ),
                   const SizedBox(height: 12),
                   _buildBottomSheetActions(
