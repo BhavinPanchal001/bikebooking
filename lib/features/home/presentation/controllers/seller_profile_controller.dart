@@ -197,10 +197,13 @@ class SellerProfileController extends GetxController {
   }
 
   AppUserModel _buildFallbackSeller(String sellerId) {
+    final safeName = _looksLikePhoneNumber(_fallbackSellerName)
+        ? ''
+        : _fallbackSellerName;
     return AppUserModel(
       id: sellerId,
       phoneNumber: '',
-      fullName: _fallbackSellerName,
+      fullName: safeName,
     );
   }
 
