@@ -64,9 +64,6 @@ class AppUserModel {
     if (fullName.trim().isNotEmpty) {
       return fullName.trim();
     }
-    if (phoneNumber.trim().isNotEmpty) {
-      return phoneNumber.trim();
-    }
     return 'User';
   }
 
