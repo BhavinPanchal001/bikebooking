@@ -41,7 +41,7 @@ class EnterNameScreen extends StatelessWidget {
                     controller: controller.fullNameController,
                     textCapitalization: TextCapitalization.words,
                     textInputAction: TextInputAction.done,
-                    onSubmitted: (_) => _onContinue(controller),
+                    onSubmitted: (_) { if (!controller.isSavingProfile) _onContinue(controller); },
                     style: GoogleFonts.poppins(
                       fontSize: 16,
                       color: AppColors.primary,
