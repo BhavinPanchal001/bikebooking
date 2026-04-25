@@ -35,6 +35,10 @@ class ProductModel {
   final DateTime? boostExpiresAt;
   final String? boostPaymentId;
 
+  // Editorial featured (admin hand-picked, independent of paid boosts).
+  final bool isEditorialFeatured;
+  final DateTime? editorialFeaturedAt;
+
   ProductModel({
     this.id,
     required this.category,
@@ -61,6 +65,8 @@ class ProductModel {
     this.boostStartedAt,
     this.boostExpiresAt,
     this.boostPaymentId,
+    this.isEditorialFeatured = false,
+    this.editorialFeaturedAt,
   }) : status = ProductStatus.normalize(status);
 
   bool get isActive => ProductStatus.isActive(status);
@@ -73,6 +79,10 @@ class ProductModel {
 
   /// Returns `true` when the product has an active, non-expired boost.
   bool get isCurrentlyBoosted => isBoosted && boostExpiresAt != null && boostExpiresAt!.isAfter(DateTime.now());
+
+  /// Returns `true` when the admin has editorially featured this product.
+  /// Editorial feature has no expiry — admins must un-feature explicitly.
+  bool get isCurrentlyEditorialFeatured => isEditorialFeatured;
 
   ProductModel copyWith({
     String? id,
@@ -100,6 +110,8 @@ class ProductModel {
     DateTime? boostStartedAt,
     DateTime? boostExpiresAt,
     String? boostPaymentId,
+    bool? isEditorialFeatured,
+    DateTime? editorialFeaturedAt,
   }) {
     return ProductModel(
       id: id ?? this.id,
@@ -127,6 +139,8 @@ class ProductModel {
       boostStartedAt: boostStartedAt ?? this.boostStartedAt,
       boostExpiresAt: boostExpiresAt ?? this.boostExpiresAt,
       boostPaymentId: boostPaymentId ?? this.boostPaymentId,
+      isEditorialFeatured: isEditorialFeatured ?? this.isEditorialFeatured,
+      editorialFeaturedAt: editorialFeaturedAt ?? this.editorialFeaturedAt,
     );
   }
 
@@ -226,6 +240,8 @@ class ProductModel {
       boostStartedAt: (map['boostStartedAt'] as Timestamp?)?.toDate(),
       boostExpiresAt: (map['boostExpiresAt'] as Timestamp?)?.toDate(),
       boostPaymentId: map['boostPaymentId'],
+      isEditorialFeatured: map['isEditorialFeatured'] == true,
+      editorialFeaturedAt: (map['editorialFeaturedAt'] as Timestamp?)?.toDate(),
     );
   }
 }

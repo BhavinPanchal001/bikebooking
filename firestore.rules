@@ -52,7 +52,9 @@ service cloud.firestore {
                     && request.resource.data.get('boostPaymentId', null) == null
                     && request.resource.data.get('boostExpiresAt', null) == null
                     && request.resource.data.get('boostStartedAt', null) == null
-                    && request.resource.data.get('boostPlanId', null) == null;
+                    && request.resource.data.get('boostPlanId', null) == null
+                    && request.resource.data.get('isEditorialFeatured', false)
+                         == false;
 
       // Only the seller can update or delete their own product.
       // Sellers MUST NOT be able to flip payment-gated fields themselves.
@@ -74,6 +76,31 @@ service cloud.firestore {
                          resource.data.get('boostStartedAt', null)
                     && request.resource.data.get('boostPlanId', null) ==
                          resource.data.get('boostPlanId', null)
+                    // Admin-grant boost metadata (see adminGrantBoost
+                    // callable). Sellers cannot fabricate or rewrite these.
+                    && request.resource.data.get('boostGrantSource', null) ==
+                         resource.data.get('boostGrantSource', null)
+                    && request.resource.data.get('boostGrantedBy', null) ==
+                         resource.data.get('boostGrantedBy', null)
+                    && request.resource.data.get('boostGrantedByEmail', null) ==
+                         resource.data.get('boostGrantedByEmail', null)
+                    && request.resource.data.get('boostGrantNote', null) ==
+                         resource.data.get('boostGrantNote', null)
+                    // Editorial "featured" is owned by the server (admin
+                    // panel → adminSetEditorialFeatured callable). Sellers
+                    // cannot promote their own listings onto the editorial
+                    // rail or rewrite the admin attribution / timestamp
+                    // (which the admin UI orders by).
+                    && request.resource.data.get('isEditorialFeatured', false) ==
+                         resource.data.get('isEditorialFeatured', false)
+                    && request.resource.data.get('editorialFeaturedAt', null) ==
+                         resource.data.get('editorialFeaturedAt', null)
+                    && request.resource.data.get('editorialFeaturedBy', null) ==
+                         resource.data.get('editorialFeaturedBy', null)
+                    && request.resource.data.get('editorialFeaturedByEmail', null) ==
+                         resource.data.get('editorialFeaturedByEmail', null)
+                    && request.resource.data.get('editorialFeaturedNote', null) ==
+                         resource.data.get('editorialFeaturedNote', null)
                     // From `awaiting_payment` the seller may stay put or mark
                     // the listing as `sold`. Only the server (via the
                     // verifyPaymentSignature Cloud Function) is allowed to flip

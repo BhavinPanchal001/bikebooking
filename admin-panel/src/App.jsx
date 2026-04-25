@@ -6,6 +6,7 @@ import { useAdminAuth } from './hooks/useAdminAuth';
 import { useAdminData } from './hooks/useAdminData';
 import { DashboardPage } from './pages/DashboardPage';
 import { BikeOwnerMasterPage } from './pages/BikeOwnerMasterPage';
+import { BoostedListingsPage } from './pages/BoostedListingsPage';
 import { BrandMasterPage } from './pages/BrandMasterPage';
 import { FeeConfigMasterPage } from './pages/FeeConfigMasterPage';
 import { CmsPagesPage } from './pages/CmsPagesPage';
@@ -21,6 +22,7 @@ import { UsersPage } from './pages/UsersPage';
 const navItems = [
   { to: '/dashboard', label: 'Dashboard', eyebrow: 'Overview' },
   { to: '/listings', label: 'Listings', eyebrow: 'Inventory' },
+  { to: '/boosted', label: 'Boosted & Featured', eyebrow: 'Promotion' },
   { to: '/users', label: 'Users', eyebrow: 'People' },
   { to: '/payments', label: 'Payments', eyebrow: 'Billing' },
   { to: '/reported-persons', label: 'Reported Persons', eyebrow: 'Safety' },
@@ -122,6 +124,10 @@ function AdminShell() {
             <Route
               path="/payments"
               element={<PaymentsPage adminEmail={adminAuth.user.email} />}
+            />
+            <Route
+              path="/boosted"
+              element={<BoostedListingsPage />}
             />
             <Route
               path="/reported-persons"

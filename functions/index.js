@@ -4,9 +4,8 @@ const {
   getFirestore,
 } = require("firebase-admin/firestore");
 const {getMessaging} = require("firebase-admin/messaging");
-const {HttpsError, onCall} = require("firebase-functions/v2/https");
+const {HttpsError, onCall, onRequest} = require("firebase-functions/v2/https");
 const {onDocumentCreated} = require("firebase-functions/v2/firestore");
-const {onCall, onRequest} = require("firebase-functions/v2/https");
 const {onSchedule} = require("firebase-functions/v2/scheduler");
 
 initializeApp();
@@ -22,6 +21,12 @@ const {
 const {razorpayWebhookHandler} = require("./src/webhook");
 const {clearExpiredBoostsHandler} = require("./src/scheduled");
 const {setAdminClaimHandler} = require("./src/admin");
+const {
+  adminGrantBoostHandler,
+  adminExtendBoostHandler,
+  adminRevokeBoostHandler,
+  adminSetEditorialFeaturedHandler,
+} = require("./src/adminBoost");
 
 // Razorpay + bootstrap credentials are read directly from process.env so
 // they can be supplied via `functions/.env.<projectId>` at deploy time
@@ -43,6 +48,11 @@ exports.clearExpiredBoosts = onSchedule(
 );
 
 exports.setAdminClaim = onCall(setAdminClaimHandler);
+
+exports.adminGrantBoost = onCall(adminGrantBoostHandler);
+exports.adminExtendBoost = onCall(adminExtendBoostHandler);
+exports.adminRevokeBoost = onCall(adminRevokeBoostHandler);
+exports.adminSetEditorialFeatured = onCall(adminSetEditorialFeaturedHandler);
 
 exports.sendQueuedNotification = onDocumentCreated(
   "notification_queue/{requestId}",

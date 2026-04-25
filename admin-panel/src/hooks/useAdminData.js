@@ -621,6 +621,19 @@ async function fetchFirebaseAdminData() {
         subCategory: data.subCategory?.toString().trim() ?? '',
         condition: data.condition?.toString().trim() ?? '',
         sellerType: data.sellerType?.toString().trim() ?? '',
+        isBoosted: data.isBoosted === true,
+        boostPlanId: data.boostPlanId?.toString().trim() ?? '',
+        boostGrantSource: data.boostGrantSource?.toString().trim() ?? '',
+        boostGrantedByEmail:
+          data.boostGrantedByEmail?.toString().trim() ?? '',
+        boostStartedAt: toIsoString(data.boostStartedAt),
+        boostExpiresAt: toIsoString(data.boostExpiresAt),
+        isEditorialFeatured: data.isEditorialFeatured === true,
+        editorialFeaturedAt: toIsoString(data.editorialFeaturedAt),
+        editorialFeaturedByEmail:
+          data.editorialFeaturedByEmail?.toString().trim() ?? '',
+        editorialFeaturedNote:
+          data.editorialFeaturedNote?.toString().trim() ?? '',
       };
     }),
     conversations: resultMap.chats.docs.map((doc) => {

@@ -36,6 +36,13 @@ async function clearExpiredBoostsHandler() {
       boostExpiresAt: FieldValue.delete(),
       boostPaymentId: FieldValue.delete(),
       boostPaymentDocId: FieldValue.delete(),
+      // Admin-grant metadata (see adminGrantBoostHandler). Cleared here so
+      // expired admin grants land in the same clean-slate state as revoked
+      // ones.
+      boostGrantSource: FieldValue.delete(),
+      boostGrantedBy: FieldValue.delete(),
+      boostGrantedByEmail: FieldValue.delete(),
+      boostGrantNote: FieldValue.delete(),
       updatedAt: FieldValue.serverTimestamp(),
     }, {merge: true});
   }

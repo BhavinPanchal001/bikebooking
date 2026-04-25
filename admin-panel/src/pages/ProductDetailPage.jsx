@@ -1,11 +1,29 @@
 import { useState } from 'react';
 import { Link, Navigate, useParams } from 'react-router-dom';
 import { ActionMenu } from '../components/ActionMenu';
+import { BoostActionDialog } from '../components/BoostActionDialog';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { FeedbackBanner } from '../components/FeedbackBanner';
 import { PanelCard } from '../components/PanelCard';
+import { adminBoostService } from '../services/adminBoostService';
 import { adminListingsService } from '../services/adminListingsService';
 import { formatCurrency, formatDateTime } from '../utils/format';
+
+function remainingLabel(isoString) {
+  if (!isoString) return 'No expiry';
+  const expires = new Date(isoString);
+  if (Number.isNaN(expires.getTime())) return 'No expiry';
+  const diffMs = expires.getTime() - Date.now();
+  if (diffMs <= 0) return 'Expired';
+  const hours = Math.floor(diffMs / (60 * 60 * 1000));
+  if (hours < 1) {
+    const minutes = Math.max(1, Math.floor(diffMs / (60 * 1000)));
+    return `${minutes} min left`;
+  }
+  if (hours < 24) return `${hours} h left`;
+  const days = Math.floor(hours / 24);
+  return `${days} day${days === 1 ? '' : 's'} left`;
+}
 
 function DetailItem({ label, value }) {
   return (
@@ -75,6 +93,7 @@ export function ProductDetailPage({ data, adminEmail }) {
   const [busyActionKey, setBusyActionKey] = useState('');
   const [actionError, setActionError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  const [boostAction, setBoostAction] = useState(null);
   const listing = data.listings.find((item) => item.id === listingId);
   const seller = listing ? data.users.find((user) => user.id === listing.sellerId) : null;
   const relatedReports = listing
@@ -141,6 +160,68 @@ export function ProductDetailPage({ data, adminEmail }) {
       setActionError(error?.message || 'Unable to complete this listing action.');
     } finally {
       setBusyActionKey('');
+    }
+  }
+
+  async function handleBoostConfirm({ additionalDays, durationDays, note }) {
+    if (!boostAction?.listing) return { ok: false };
+    const { type, listing: actionListing } = boostAction;
+    clearFeedback();
+    try {
+      if (type === 'grant') {
+        await adminBoostService.grantBoost({
+          productId: actionListing.id,
+          durationDays,
+          planSlug: 'admin_grant',
+          note,
+        });
+        setSuccessMessage(
+          `Boost granted to ${actionListing.title} for ${durationDays} day${
+            durationDays === 1 ? '' : 's'
+          }.`,
+        );
+      } else if (type === 'extend') {
+        await adminBoostService.extendBoost({
+          productId: actionListing.id,
+          additionalDays,
+          note,
+        });
+        setSuccessMessage(
+          `Boost on ${actionListing.title} extended by ${additionalDays} day${
+            additionalDays === 1 ? '' : 's'
+          }.`,
+        );
+      } else if (type === 'revoke') {
+        await adminBoostService.revokeBoost({
+          productId: actionListing.id,
+          note,
+        });
+        setSuccessMessage(`Boost revoked on ${actionListing.title}.`);
+      } else if (type === 'feature') {
+        await adminBoostService.setEditorialFeatured({
+          productId: actionListing.id,
+          isFeatured: true,
+          note,
+        });
+        setSuccessMessage(`${actionListing.title} added to editorial featured.`);
+      } else if (type === 'unfeature') {
+        await adminBoostService.setEditorialFeatured({
+          productId: actionListing.id,
+          isFeatured: false,
+          note,
+        });
+        setSuccessMessage(
+          `${actionListing.title} removed from editorial featured.`,
+        );
+      }
+      setBoostAction(null);
+      data.refresh?.();
+      return { ok: true };
+    } catch (error) {
+      const message =
+        error?.message || 'Unable to complete this boost action.';
+      setActionError(message);
+      return { ok: false, error: message };
     }
   }
 
@@ -319,6 +400,116 @@ export function ProductDetailPage({ data, adminEmail }) {
           </PanelCard>
         </div>
 
+        <PanelCard
+          title="Boost & featuring"
+          subtitle="Grant, extend, or revoke paid-style boosts and pin listings to the editorial rail."
+          className="detail-panel"
+          actions={
+            <div className="boost-action-group">
+              {listing.isBoosted ? (
+                <>
+                  <button
+                    type="button"
+                    className="secondary-button"
+                    onClick={() => {
+                      clearFeedback();
+                      setBoostAction({ type: 'extend', listing });
+                    }}
+                  >
+                    Extend
+                  </button>
+                  <button
+                    type="button"
+                    className="danger-button"
+                    onClick={() => {
+                      clearFeedback();
+                      setBoostAction({ type: 'revoke', listing });
+                    }}
+                  >
+                    Revoke
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  className="primary-button"
+                  onClick={() => {
+                    clearFeedback();
+                    setBoostAction({ type: 'grant', listing });
+                  }}
+                >
+                  Grant boost
+                </button>
+              )}
+              <button
+                type="button"
+                className={
+                  listing.isEditorialFeatured ? 'danger-button' : 'secondary-button'
+                }
+                onClick={() => {
+                  clearFeedback();
+                  setBoostAction({
+                    type: listing.isEditorialFeatured ? 'unfeature' : 'feature',
+                    listing,
+                  });
+                }}
+              >
+                {listing.isEditorialFeatured ? 'Unfeature' : 'Feature'}
+              </button>
+            </div>
+          }
+        >
+          <div className="detail-grid">
+            <DetailItem
+              label="Boost status"
+              value={
+                listing.isBoosted
+                  ? `Boosted (${remainingLabel(listing.boostExpiresAt)})`
+                  : 'Not boosted'
+              }
+            />
+            <DetailItem
+              label="Boost source"
+              value={
+                listing.isBoosted
+                  ? listing.boostGrantSource === 'admin'
+                    ? 'Admin grant (free)'
+                    : 'Paid via Razorpay'
+                  : ''
+              }
+            />
+            <DetailItem label="Boost plan" value={listing.boostPlanId} />
+            <DetailItem
+              label="Boost started"
+              value={formatDateTime(listing.boostStartedAt)}
+            />
+            <DetailItem
+              label="Boost expires"
+              value={formatDateTime(listing.boostExpiresAt)}
+            />
+            <DetailItem
+              label="Granted by"
+              value={listing.boostGrantedByEmail}
+            />
+            <DetailItem
+              label="Editorial featured"
+              value={listing.isEditorialFeatured ? 'Yes' : 'No'}
+            />
+            <DetailItem
+              label="Featured since"
+              value={formatDateTime(listing.editorialFeaturedAt)}
+            />
+            <DetailItem
+              label="Featured by"
+              value={listing.editorialFeaturedByEmail}
+            />
+            <DetailItem
+              label="Editorial note"
+              value={listing.editorialFeaturedNote}
+            />
+          </div>
+        </PanelCard>
+
         {specs.length > 0 ? (
           <PanelCard
             title="Product specifications"
@@ -403,6 +594,16 @@ export function ProductDetailPage({ data, adminEmail }) {
             setPendingAction(null);
           }
         }}
+      />
+
+      <BoostActionDialog
+        action={
+          boostAction
+            ? { type: boostAction.type, record: boostAction.listing }
+            : null
+        }
+        onClose={() => setBoostAction(null)}
+        onConfirm={handleBoostConfirm}
       />
     </div>
   );
