@@ -64,7 +64,12 @@ class AppUserModel {
     if (fullName.trim().isNotEmpty) {
       return fullName.trim();
     }
-    return 'User';
+    return '';
+  }
+
+  String get displayNameLabel {
+    final name = displayName;
+    return name.isNotEmpty ? name : 'User';
   }
 
   String get primaryEmail =>

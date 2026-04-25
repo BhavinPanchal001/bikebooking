@@ -90,7 +90,7 @@ class HomeProductsController extends GetxController {
           product.sellerId.trim() != userId &&
           Get.isRegistered<NotificationDispatchService>()) {
         final viewer = _loginController.currentUserProfile;
-        final viewerName = viewer?.displayName ?? 'Someone';
+        final viewerName = viewer?.displayNameLabel ?? 'Someone';
         await Get.find<NotificationDispatchService>().dispatchNotification(
           recipientId: product.sellerId,
           title: 'Someone viewed your ad',

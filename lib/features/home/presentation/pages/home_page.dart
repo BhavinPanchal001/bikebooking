@@ -382,7 +382,7 @@ class _HomePageState extends State<HomePage> {
 
   /// Fallback avatar showing the user's initials.
   Widget _buildDefaultAvatar(LoginController controller) {
-    final name = controller.currentUserProfile?.displayName ?? '';
+    final name = controller.currentUserProfile?.displayNameLabel ?? '';
     final initial = name.isNotEmpty ? name[0].toUpperCase() : 'U';
     return Container(
       color: const Color(0xFFEAF0FB),

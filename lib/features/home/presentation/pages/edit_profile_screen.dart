@@ -13,7 +13,7 @@ class EditProfileScreen extends StatelessWidget {
     return GetBuilder<LoginController>(
       builder: (controller) {
         final displayName =
-            controller.currentUserProfile?.displayName ?? 'User';
+            controller.currentUserProfile?.displayNameLabel ?? 'User';
         final avatarLabel = displayName.isNotEmpty
             ? displayName.substring(0, 1).toUpperCase()
             : 'U';
