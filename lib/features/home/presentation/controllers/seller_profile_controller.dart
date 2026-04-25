@@ -429,11 +429,18 @@ class SellerProfileController extends GetxController {
       return displayName;
     }
 
-    if (_fallbackSellerName.isNotEmpty) {
+    if (_fallbackSellerName.isNotEmpty &&
+        !_looksLikePhoneNumber(_fallbackSellerName)) {
       return _fallbackSellerName;
     }
 
     return 'Seller';
+  }
+
+  static bool _looksLikePhoneNumber(String value) {
+    if (value.isEmpty) return false;
+    final digits = value.replaceAll(RegExp(r'[\s\-\+\(\)]'), '');
+    return digits.length >= 7 && RegExp(r'^\d+$').hasMatch(digits);
   }
 
   String get sellerPhone {
