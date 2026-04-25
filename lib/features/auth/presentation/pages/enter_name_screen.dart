@@ -140,6 +140,7 @@ class EnterNameScreen extends StatelessWidget {
       return;
     }
 
+    controller.errorMessage = null;
     final saved = await controller.saveProfile();
     if (!saved) return;
 
