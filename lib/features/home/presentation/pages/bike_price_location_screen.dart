@@ -54,6 +54,7 @@ class BikePriceLocationScreen extends StatelessWidget {
 
                 Expanded(
                   child: SingleChildScrollView(
+                    controller: controller.locationFormScrollController,
                     physics: const BouncingScrollPhysics(),
                     padding: const EdgeInsets.all(16.0),
                     child: Column(

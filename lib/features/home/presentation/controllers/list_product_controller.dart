@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:bikebooking/core/constants/global.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:bikebooking/core/constants/product_categories.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -331,6 +332,21 @@ class ListProductController extends GetxController {
   bool _isSearchingLocation = false;
   bool get isSearchingLocation => _isSearchingLocation;
 
+  final ScrollController locationFormScrollController = ScrollController();
+
+  void _scrollToLocationSuggestions() {
+    if (_locationSuggestions.isEmpty) return;
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      if (locationFormScrollController.hasClients) {
+        locationFormScrollController.animateTo(
+          locationFormScrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
+  }
+
   void onLocationQueryChanged(String value) {
     _locationSearchDebounce?.cancel();
     _locationSearchRequestId++;
@@ -396,6 +412,7 @@ class ListProductController extends GetxController {
       if (requestId == _locationSearchRequestId) {
         _isSearchingLocation = false;
         update();
+        _scrollToLocationSuggestions();
       }
     }
   }
@@ -613,6 +630,7 @@ class ListProductController extends GetxController {
   @override
   void onClose() {
     _locationSearchDebounce?.cancel();
+    locationFormScrollController.dispose();
     titleController.dispose();
     descriptionController.dispose();
     kilometerController.dispose();
