@@ -222,7 +222,17 @@ service cloud.firestore {
                       && request.auth.uid in
                            get(/databases/$(database)/documents/chats/$(chatId))
                              .data.participants;
-        allow update, delete: if false;
+        allow update: if isSignedIn()
+                      && request.auth.uid in
+                           get(/databases/$(database)/documents/chats/$(chatId))
+                             .data.participants
+                      && request.resource.data.senderId == resource.data.senderId
+                      && request.resource.data.text == resource.data.text
+                      && request.resource.data.timestamp == resource.data.timestamp
+                      && request.resource.data.type == resource.data.type
+                      && request.resource.data.readBy.hasAll(resource.data.readBy)
+                      && request.resource.data.readBy.hasAll([request.auth.uid]);
+        allow delete: if false;
       }
     }
 
