@@ -34,11 +34,13 @@ async function isAuthorizedAdminUser(user) {
 }
 
 export function useAdminAuth() {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(Boolean(auth));
+  const MOCK_UI_TEST = import.meta.env.DEV && import.meta.env.VITE_MOCK_ADMIN === 'true';
+  const [user, setUser] = useState(MOCK_UI_TEST ? { email: 'test@admin.local', uid: 'mock-admin' } : null);
+  const [loading, setLoading] = useState(MOCK_UI_TEST ? false : Boolean(auth));
   const [error, setError] = useState('');
 
   useEffect(() => {
+    if (MOCK_UI_TEST) return;
     if (!auth) {
       setLoading(false);
       setError('Firebase Auth is not configured for the admin panel.');
