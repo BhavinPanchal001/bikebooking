@@ -233,6 +233,8 @@ service cloud.firestore {
                       && request.resource.data.text == resource.data.text
                       && request.resource.data.timestamp == resource.data.timestamp
                       && request.resource.data.type == resource.data.type
+                      && request.resource.data.get('imageUrl', null) == resource.data.get('imageUrl', null)
+                      && request.resource.data.get('clientMessageId', null) == resource.data.get('clientMessageId', null)
                       && request.resource.data.readBy.hasAll(resource.data.readBy)
                       && request.resource.data.readBy.hasAll([request.auth.uid])
                       && request.resource.data.readBy.hasOnly(resource.data.readBy.concat([request.auth.uid]));
