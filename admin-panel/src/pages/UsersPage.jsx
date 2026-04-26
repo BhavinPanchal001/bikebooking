@@ -6,6 +6,18 @@ import { PanelCard } from '../components/PanelCard';
 import { adminUsersService } from '../services/adminUsersService';
 import { formatCurrency, formatDate, formatDateTime } from '../utils/format';
 
+function formatStatusLabel(value) {
+  if (!value) {
+    return 'Unknown';
+  }
+
+  return value
+    .split(/[_\s-]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+}
+
 function getDialogConfig(action) {
   if (!action?.user) {
     return null;
@@ -73,6 +85,38 @@ export function UsersPage({ data, adminEmail }) {
     [data.users, deferredSearch, filter],
   );
 
+  const userSummary = useMemo(() => {
+    const counts = data.users.reduce(
+      (summary, user) => {
+        summary.all += 1;
+
+        if (user.reportCount > 0) {
+          summary.reported += 1;
+        }
+
+        if (user.accountStatus === 'active') {
+          summary.active += 1;
+        }
+
+        if (user.accountStatus === 'blocked') {
+          summary.blocked += 1;
+        }
+
+        if (user.verificationStatus) {
+          summary[user.verificationStatus] = (summary[user.verificationStatus] ?? 0) + 1;
+        }
+
+        return summary;
+      },
+      { all: 0, reported: 0, active: 0, blocked: 0, verified: 0, incomplete: 0 },
+    );
+
+    return ['all', 'reported', 'active', 'blocked', 'verified', 'incomplete'].map((status) => ({
+      status,
+      count: counts[status] ?? 0,
+    }));
+  }, [data.users]);
+
   const dialogConfig = getDialogConfig(pendingAction);
 
   function clearFeedback() {
@@ -124,142 +168,155 @@ export function UsersPage({ data, adminEmail }) {
         title="User directory"
         subtitle="Seller and buyer health in one place."
         actions={
-          <div className="filter-row">
-            {['all', 'reported', 'active', 'blocked', 'verified', 'incomplete'].map((status) => (
-              <button
-                key={status}
-                type="button"
-                className={`filter-chip ${filter === status ? 'filter-chip-active' : ''}`}
-                onClick={() => setFilter(status)}
-              >
-                {status}
-              </button>
-            ))}
-          </div>
+          <label className="users-status-filter">
+            <span>Status</span>
+            <select
+              value={filter}
+              onChange={(event) => setFilter(event.target.value)}
+            >
+              {userSummary.map(({ status, count }) => (
+                <option key={status} value={status}>
+                  {formatStatusLabel(status)} ({count})
+                </option>
+              ))}
+            </select>
+          </label>
         }
       >
-        <FeedbackBanner tone="error">{actionError}</FeedbackBanner>
-        <FeedbackBanner tone="success">{successMessage}</FeedbackBanner>
+        <div className="users-page">
+          <FeedbackBanner tone="error">{actionError}</FeedbackBanner>
+          <FeedbackBanner tone="success">{successMessage}</FeedbackBanner>
 
-        <div className="toolbar">
-          <input
-            className="search-input"
-            type="search"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search users by name, phone, email, or location"
-          />
-          <div className="toolbar-note">{filteredUsers.length} users visible</div>
-        </div>
+          <div className="toolbar users-toolbar">
+            <label className="users-search-field">
+              <span>Search users</span>
+              <input
+                className="search-input"
+                type="search"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Name, phone, email, or location"
+              />
+            </label>
+            <div className="users-toolbar-note">
+              <strong>{filteredUsers.length}</strong>
+              <span>{filteredUsers.length === 1 ? 'user visible' : 'users visible'}</span>
+            </div>
+          </div>
 
-        <div className="user-grid">
-          {data.loading ? (
-            <div className="empty-state">Loading live users...</div>
-          ) : filteredUsers.length > 0 ? (
-            filteredUsers.map((user) => {
-              const isBlocked = user.accountStatus === 'blocked';
-              const accountActionType = isBlocked ? 'unblock' : 'block';
-              const accountActionBusyKey = `${accountActionType}:${user.id}`;
+          <div className="table-wrap users-table-wrap">
+            <table className="data-table users-table">
+              <thead>
+                <tr>
+                  <th>User</th>
+                  <th>Contact</th>
+                  <th>Activity</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.loading ? (
+                  <tr>
+                    <td colSpan="5">
+                      <div className="empty-state">Loading live users...</div>
+                    </td>
+                  </tr>
+                ) : filteredUsers.length > 0 ? (
+                  filteredUsers.map((user) => {
+                    const isBlocked = user.accountStatus === 'blocked';
+                    const accountActionType = isBlocked ? 'unblock' : 'block';
 
-              return (
-                <article key={user.id} className="user-card">
-                  <div className="user-card-head">
-                    <div>
-                      <h4>{user.fullName}</h4>
-                      <p>{user.location?.address || 'Location not shared'}</p>
-                    </div>
-                    <div className="row-actions">
-                      <span className={`status-pill status-${isBlocked ? 'blocked' : 'approved'}`}>
-                        {user.accountStatus}
-                      </span>
-                      <span className={`status-pill status-${user.verificationStatus}`}>
-                        {user.verificationStatus}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="user-card-body">
-                    <div>
-                      <span>Email</span>
-                      <strong>{user.email || 'Not added'}</strong>
-                    </div>
-                    <div>
-                      <span>Phone</span>
-                      <strong>{user.phoneNumber || 'Not added'}</strong>
-                    </div>
-                    <div>
-                      <span>Joined</span>
-                      <strong>{formatDate(user.joinedAt)}</strong>
-                    </div>
-                    <div>
-                      <span>Active listings</span>
-                      <strong>{user.activeListings}</strong>
-                    </div>
-                    <div>
-                      <span>Total sales</span>
-                      <strong>{formatCurrency(user.totalSales)}</strong>
-                    </div>
-                    <div>
-                      <span>Seller rating</span>
-                      <strong>{user.rating > 0 ? user.rating.toFixed(1) : 'New'}</strong>
-                    </div>
-                    <div>
-                      <span>Reports</span>
-                      <strong>
-                        {user.reportCount > 0
-                          ? `${user.reportCount} total · ${user.openReportCount} open`
-                          : 'None'}
-                      </strong>
-                    </div>
-                  </div>
-                  <div className="user-card-footer">
-                    <div className="user-card-note">
-                      {user.reportCount > 0
-                        ? `Latest report ${formatDateTime(user.latestReportAt)}${user.reportReasons?.[0] ? ` · ${user.reportReasons[0]}` : ''}`
-                        : isBlocked
-                          ? `Blocked ${user.adminBlockedAt ? formatDate(user.adminBlockedAt) : 'recently'}${user.adminBlockedBy ? ` by ${user.adminBlockedBy}` : ''}`
-                          : 'Account is active in the admin panel.'}
-                    </div>
-                    <div className="row-actions">
-                      <button
-                        type="button"
-                        className={isBlocked ? 'secondary-button' : 'danger-button'}
-                        disabled={busyActionKey === accountActionBusyKey}
-                        onClick={() => {
-                          clearFeedback();
-                          setPendingAction({ type: accountActionType, user });
-                        }}
-                      >
-                        {busyActionKey === accountActionBusyKey
-                          ? isBlocked
-                            ? 'Unblocking...'
-                            : 'Blocking...'
-                          : isBlocked
-                            ? 'Unblock user'
-                            : 'Block user'}
-                      </button>
-                      <ActionMenu
-                        label="More"
-                        items={[
-                          {
-                            key: 'delete',
-                            label: 'Delete user',
-                            tone: 'danger',
-                            disabled: busyActionKey === `delete:${user.id}`,
-                            onSelect() {
-                              clearFeedback();
-                              setPendingAction({ type: 'delete', user });
-                            },
-                          },
-                        ]}
-                      />
-                    </div>
-                  </div>
-                </article>
-              );
-            })
-          ) : (
-            <div className="empty-state">No users matched the current filters.</div>
-          )}
+                    return (
+                      <tr key={user.id}>
+                        <td>
+                          <div className="users-identity">
+                            <strong>{user.fullName || 'Unnamed user'}</strong>
+                            <span>{user.location?.address || 'Location not shared'}</span>
+                            <div className="users-meta-row">
+                              <span>Joined {formatDate(user.joinedAt)}</span>
+                              <span>{user.rating > 0 ? `${user.rating.toFixed(1)} rating` : 'New seller'}</span>
+                            </div>
+                          </div>
+                        </td>
+                        <td>
+                          <div className="users-contact-cell">
+                            <strong>{user.phoneNumber || 'Phone not added'}</strong>
+                            <span>{user.email || 'Email not added'}</span>
+                          </div>
+                        </td>
+                        <td>
+                          <div className="users-activity-cell">
+                            <div className="users-metric-row">
+                              <span>{user.activeListings} active</span>
+                              <span>{formatCurrency(user.totalSales)} sales</span>
+                              {user.reportCount > 0 ? (
+                                <span className="users-report-chip">
+                                  {user.openReportCount} open reports
+                                </span>
+                              ) : null}
+                            </div>
+                            <small>
+                              {user.reportCount > 0
+                                ? `Latest ${formatDateTime(user.latestReportAt)}${user.reportReasons?.[0] ? ` · ${user.reportReasons[0]}` : ''}`
+                                : isBlocked
+                                  ? `Blocked ${user.adminBlockedAt ? formatDate(user.adminBlockedAt) : 'recently'}`
+                                  : 'No open moderation issues'}
+                            </small>
+                          </div>
+                        </td>
+                        <td>
+                          <div className="users-status-cell">
+                            <span className={`status-pill status-${isBlocked ? 'blocked' : 'approved'}`}>
+                              {formatStatusLabel(user.accountStatus)}
+                            </span>
+                            <span className={`status-pill status-${user.verificationStatus}`}>
+                              {formatStatusLabel(user.verificationStatus)}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="table-actions-cell">
+                          <ActionMenu
+                            label={`Manage ${user.fullName || user.phoneNumber || 'user'}`}
+                            iconOnly
+                            items={[
+                              {
+                                key: accountActionType,
+                                label: isBlocked ? 'Unblock user' : 'Block user',
+                                tone: isBlocked ? 'default' : 'danger',
+                                disabled: busyActionKey === `${accountActionType}:${user.id}`,
+                                onSelect() {
+                                  clearFeedback();
+                                  setPendingAction({ type: accountActionType, user });
+                                },
+                              },
+                              {
+                                key: 'delete',
+                                label: 'Delete user',
+                                icon: 'delete',
+                                tone: 'danger',
+                                disabled: busyActionKey === `delete:${user.id}`,
+                                onSelect() {
+                                  clearFeedback();
+                                  setPendingAction({ type: 'delete', user });
+                                },
+                              },
+                            ]}
+                          />
+                        </td>
+                      </tr>
+                    );
+                  })
+                ) : (
+                  <tr>
+                    <td colSpan="5">
+                      <div className="empty-state">No users matched the current filters.</div>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </PanelCard>
 

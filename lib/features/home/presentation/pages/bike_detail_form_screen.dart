@@ -434,13 +434,8 @@ class BikeDetailFormScreen extends StatelessWidget {
 
         return StatefulBuilder(
           builder: (context, setModalState) {
-            final filteredBrands = BikeBrandCatalog.brands
-                .where(
-                  (brand) =>
-                      searchQuery.isEmpty ||
-                      brand.toLowerCase().contains(searchQuery.toLowerCase()),
-                )
-                .toList(growable: false);
+            final brandSections = _filteredBrandSections(searchQuery);
+            final hasBrands = brandSections.isNotEmpty;
 
             return Container(
               height: MediaQuery.of(context).size.height * 0.8,
@@ -561,7 +556,7 @@ class BikeDetailFormScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 16),
                   Expanded(
-                    child: filteredBrands.isEmpty
+                    child: !hasBrands
                         ? const Center(
                             child: Text(
                               'No brands found.',
@@ -571,15 +566,24 @@ class BikeDetailFormScreen extends StatelessWidget {
                               ),
                             ),
                           )
-                        : ListView.builder(
+                        : ListView(
                             physics: const BouncingScrollPhysics(),
-                            itemCount: filteredBrands.length,
-                            itemBuilder: (context, index) {
-                              return _buildBrandItem(
-                                filteredBrands[index],
-                                context,
-                              );
-                            },
+                            children: [
+                              for (final section in brandSections.entries) ...[
+                                _buildBrandItem(
+                                  section.key,
+                                  context,
+                                  isParent: true,
+                                ),
+                                for (final model in section.value)
+                                  _buildBrandItem(
+                                    model,
+                                    context,
+                                    value: '${section.key} $model',
+                                    isModel: true,
+                                  ),
+                              ],
+                            ],
                           ),
                   ),
                 ],
@@ -593,6 +597,35 @@ class BikeDetailFormScreen extends StatelessWidget {
     if (selectedBrand != null && selectedBrand.trim().isNotEmpty) {
       controller.setBrand(selectedBrand.trim());
     }
+  }
+
+  Map<String, List<String>> _filteredBrandSections(String searchQuery) {
+    final normalizedQuery = searchQuery.trim().toLowerCase();
+    final sections = <String, List<String>>{};
+
+    for (final brand in BikeBrandCatalog.brands) {
+      final models = BikeBrandCatalog.brandModels[brand] ?? const <String>[];
+      if (normalizedQuery.isEmpty) {
+        sections[brand] = models;
+        continue;
+      }
+
+      final brandMatches = brand.toLowerCase().contains(normalizedQuery);
+      final matchingModels = models
+          .where(
+            (model) =>
+                brandMatches ||
+                model.toLowerCase().contains(normalizedQuery) ||
+                '$brand $model'.toLowerCase().contains(normalizedQuery),
+          )
+          .toList(growable: false);
+
+      if (brandMatches || matchingModels.isNotEmpty) {
+        sections[brand] = matchingModels;
+      }
+    }
+
+    return sections;
   }
 
   Future<String?> _showCustomBrandDialog(
@@ -640,17 +673,28 @@ class BikeDetailFormScreen extends StatelessWidget {
 
   Widget _buildBrandItem(
     String name,
-    BuildContext context,
-  ) {
+    BuildContext context, {
+    String? value,
+    bool isParent = false,
+    bool isModel = false,
+  }) {
+    final selectedValue = value ?? name;
+
     return GestureDetector(
       onTap: () {
-        Navigator.pop(context, name);
+        Navigator.pop(context, selectedValue);
       },
       child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        margin: EdgeInsets.only(
+          left: isModel ? 28 : 0,
+          bottom: isModel ? 8 : 12,
+        ),
+        padding: EdgeInsets.symmetric(
+          horizontal: isModel ? 14 : 16,
+          vertical: isModel ? 10 : 12,
+        ),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: isModel ? const Color(0xFFF8FAFC) : Colors.white,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: Colors.black.withOpacity(0.05)),
         ),
@@ -660,21 +704,30 @@ class BikeDetailFormScreen extends StatelessWidget {
               width: 40,
               height: 22,
               decoration: BoxDecoration(
-                color: const Color(0xFFF5F7FA),
+                color: isModel ? Colors.white : const Color(0xFFF5F7FA),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Icon(
-                Icons.two_wheeler_rounded,
-                color: Color(0xFF5E6E8C),
+              child: Icon(
+                isModel
+                    ? Icons.subdirectory_arrow_right_rounded
+                    : Icons.two_wheeler_rounded,
+                color: isParent
+                    ? const Color(0xFF233A66)
+                    : const Color(0xFF5E6E8C),
+                size: isModel ? 18 : 24,
               ),
             ),
             const SizedBox(width: 16),
-            Text(
-              name,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-                color: Color(0xFF2E3E5C),
+            Expanded(
+              child: Text(
+                name,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: isModel ? 14 : 16,
+                  fontWeight: isParent ? FontWeight.w700 : FontWeight.w500,
+                  color: const Color(0xFF2E3E5C),
+                ),
               ),
             ),
           ],

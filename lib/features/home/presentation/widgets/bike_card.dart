@@ -18,6 +18,12 @@ class BikeCard extends StatelessWidget {
   final VoidCallback? onTap;
   final VoidCallback? onFavoriteTap;
 
+  static const double _cardHeight = 252;
+  static const double _imageHeight = 110;
+  static const double _titleHeight = 34;
+  static const double _tagsHeight = 28;
+  static const double _locationHeight = 24;
+
   @override
   Widget build(BuildContext context) {
     final favoritesController = Get.isRegistered<FavoritesController>()
@@ -33,6 +39,7 @@ class BikeCard extends StatelessWidget {
               ),
       child: Container(
         width: width,
+        height: _cardHeight,
         margin: const EdgeInsets.only(right: 16, bottom: 5),
         decoration: BoxDecoration(
           color: Colors.white,
@@ -161,50 +168,60 @@ class BikeCard extends StatelessWidget {
               ],
             ),
             Padding(
-              padding: const EdgeInsets.all(10),
+              padding: const EdgeInsets.all(8),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    _buildTitle(),
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13,
-                      color: Color(0xFF0C0E1B),
+                  SizedBox(
+                    height: _titleHeight,
+                    child: Text(
+                      _buildTitle(),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                        color: Color(0xFF0C0E1B),
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 4,
-                    runSpacing: 4,
-                    children:
-                        _buildTags().map(_buildInfoTag).toList(growable: false),
+                  const SizedBox(height: 6),
+                  SizedBox(
+                    height: _tagsHeight,
+                    child: Wrap(
+                      spacing: 4,
+                      runSpacing: 4,
+                      children: _buildTags()
+                          .map(_buildInfoTag)
+                          .toList(growable: false),
+                    ),
                   ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.location_on_outlined,
-                        size: 10,
-                        color: Colors.grey.shade500,
-                      ),
-                      const SizedBox(width: 2),
-                      Expanded(
-                        child: Text(
-                          _buildLocation(),
-                          style: const TextStyle(
-                            color: Color(0xFF262A36),
-                            fontSize: 9,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
+                  const SizedBox(height: 6),
+                  SizedBox(
+                    height: _locationHeight,
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.location_on_outlined,
+                          size: 10,
+                          color: Colors.grey.shade500,
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 2),
+                        Expanded(
+                          child: Text(
+                            _buildLocation(),
+                            style: const TextStyle(
+                              color: Color(0xFF262A36),
+                              fontSize: 9,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 6),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -246,7 +263,7 @@ class BikeCard extends StatelessWidget {
     if (imageUrl.isNotEmpty) {
       return ProductCachedImage(
         imageUrl: imageUrl,
-        height: 120,
+        height: _imageHeight,
         width: double.infinity,
         fit: BoxFit.cover,
         errorBuilder: (_) => _buildImageFallback(),
@@ -259,7 +276,7 @@ class BikeCard extends StatelessWidget {
 
   Widget _buildImageFallback() {
     return Container(
-      height: 120,
+      height: _imageHeight,
       width: double.infinity,
       alignment: Alignment.center,
       color: const Color(0xFFF1F4F8),

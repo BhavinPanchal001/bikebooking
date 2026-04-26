@@ -59,6 +59,18 @@ function getDialogConfig(action) {
   }
 }
 
+function formatStatusLabel(value) {
+  if (!value) {
+    return 'Unknown';
+  }
+
+  return value
+    .split(/[_\s-]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+}
+
 export function ListingsPage({ data, adminEmail }) {
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('all');
@@ -82,6 +94,23 @@ export function ListingsPage({ data, adminEmail }) {
       }),
     [data.listings, deferredSearch, filter],
   );
+
+  const listingSummary = useMemo(() => {
+    const counts = data.listings.reduce(
+      (summary, listing) => {
+        const moderationStatus = listing.moderationStatus || 'pending';
+        summary[moderationStatus] = (summary[moderationStatus] ?? 0) + 1;
+        summary.all += 1;
+        return summary;
+      },
+      { all: 0 },
+    );
+
+    return ['all', 'approved', 'flagged', 'pending', 'closed'].map((status) => ({
+      status,
+      count: counts[status] ?? 0,
+    }));
+  }, [data.listings]);
 
   const dialogConfig = getDialogConfig(pendingAction);
 
@@ -151,53 +180,58 @@ export function ListingsPage({ data, adminEmail }) {
     <div className="page-stack">
       <PanelCard
         title="Listing moderation"
-        subtitle="Review live inventory, trace seller performance, and inspect listing details."
+        subtitle="Review live inventory, seller context, and moderation state from one focused queue."
         actions={
-          <div className="filter-row">
-            {['all', 'approved', 'flagged', 'pending', 'closed'].map((status) => (
-              <button
-                key={status}
-                type="button"
-                className={`filter-chip ${filter === status ? 'filter-chip-active' : ''}`}
-                onClick={() => setFilter(status)}
-              >
-                {status}
-              </button>
-            ))}
-          </div>
+          <label className="listing-status-filter">
+            <span>Status</span>
+            <select
+              value={filter}
+              onChange={(event) => setFilter(event.target.value)}
+            >
+              {listingSummary.map(({ status, count }) => (
+                <option key={status} value={status}>
+                  {formatStatusLabel(status)} ({count})
+                </option>
+              ))}
+            </select>
+          </label>
         }
       >
         <FeedbackBanner tone="error">{actionError}</FeedbackBanner>
         <FeedbackBanner tone="success">{successMessage}</FeedbackBanner>
 
-        <div className="toolbar">
-          <input
-            className="search-input"
-            type="search"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search by title, seller, brand, or city"
-          />
-          <div className="toolbar-note">{filteredListings.length} listings visible</div>
+        <div className="toolbar listing-toolbar">
+          <label className="listing-search-field">
+            <span>Search listings</span>
+            <input
+              className="search-input"
+              type="search"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Title, seller, brand, or city"
+            />
+          </label>
+          <div className="listing-toolbar-note">
+            <strong>{filteredListings.length}</strong>
+            <span>{filteredListings.length === 1 ? 'listing visible' : 'listings visible'}</span>
+          </div>
         </div>
 
-        <div className="table-wrap">
-          <table className="data-table">
+        <div className="table-wrap listing-table-wrap">
+          <table className="data-table listing-table">
             <thead>
               <tr>
                 <th>Listing</th>
-                <th>Category</th>
                 <th>Seller</th>
                 <th>Price</th>
                 <th>Status</th>
-                <th>Posted</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
               {data.loading ? (
                 <tr>
-                  <td colSpan="7">
+                  <td colSpan="5">
                     <div className="empty-state">Loading live listings...</div>
                   </td>
                 </tr>
@@ -205,34 +239,48 @@ export function ListingsPage({ data, adminEmail }) {
                 filteredListings.map((listing) => (
                   <tr key={listing.id}>
                     <td>
-                      <div className="primary-cell">
-                        <strong>{listing.title}</strong>
-                        <span>
-                          {listing.brand} · {listing.location}
+                      <div className="listing-identity">
+                        <div>
+                          <strong>{listing.title}</strong>
+                          <span>{listing.brand || 'Unknown brand'} · {listing.location || 'Unknown city'}</span>
+                        </div>
+                        <div className="listing-meta-row">
+                          <span>{listing.category || 'Uncategorised'}</span>
+                          <span>{formatStatusLabel(listing.status)}</span>
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <div className="listing-seller-cell">
+                        <strong>{listing.sellerName || 'Unknown seller'}</strong>
+                      </div>
+                    </td>
+                    <td>
+                      <strong className="listing-price">{formatCurrency(listing.price)}</strong>
+                    </td>
+                    <td>
+                      <div className="listing-review-cell">
+                        <span className={`status-pill status-${listing.moderationStatus}`}>
+                          {formatStatusLabel(listing.moderationStatus)}
                         </span>
                       </div>
                     </td>
-                    <td>{listing.category}</td>
-                    <td>{listing.sellerName}</td>
-                    <td>{formatCurrency(listing.price)}</td>
-                    <td>
-                      <span className={`status-pill status-${listing.moderationStatus}`}>
-                        {listing.moderationStatus}
-                      </span>
-                    </td>
-                    <td>{formatDateTime(listing.createdAt)}</td>
                     <td className="table-actions-cell">
                       <ActionMenu
+                        label={`Manage ${listing.title || 'listing'}`}
+                        iconOnly
                         items={[
                           {
                             key: 'details',
                             label: 'Open details',
+                            icon: 'details',
                             to: `/listings/${listing.id}`,
                           },
                           listing.moderationStatus !== 'approved' || listing.status !== 'active'
                             ? {
                               key: 'approve',
                               label: 'Approve listing',
+                              icon: 'approve',
                               disabled: busyActionKey === `approve:${listing.id}`,
                               onSelect() {
                                 clearFeedback();
@@ -244,6 +292,7 @@ export function ListingsPage({ data, adminEmail }) {
                             ? {
                               key: 'flag',
                               label: 'Flag listing',
+                              icon: 'flag',
                               tone: 'danger',
                               disabled: busyActionKey === `flag:${listing.id}`,
                               onSelect() {
@@ -255,6 +304,7 @@ export function ListingsPage({ data, adminEmail }) {
                           {
                             key: listing.status === 'sold' ? 'reopen' : 'close',
                             label: listing.status === 'sold' ? 'Reopen listing' : 'Close listing',
+                            icon: listing.status === 'sold' ? 'reopen' : 'close',
                             tone: listing.status === 'sold' ? 'default' : 'danger',
                             disabled:
                               busyActionKey === `${listing.status === 'sold' ? 'reopen' : 'close'}:${listing.id}`,
@@ -269,6 +319,7 @@ export function ListingsPage({ data, adminEmail }) {
                           {
                             key: 'delete',
                             label: 'Delete listing',
+                            icon: 'delete',
                             tone: 'danger',
                             disabled: busyActionKey === `delete:${listing.id}`,
                             onSelect() {
@@ -283,7 +334,7 @@ export function ListingsPage({ data, adminEmail }) {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="7">
+                  <td colSpan="5">
                     <div className="empty-state">No listings found for this filter.</div>
                   </td>
                 </tr>
