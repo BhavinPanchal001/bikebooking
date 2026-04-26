@@ -139,7 +139,10 @@ service cloud.firestore {
 
       match /favorites/{favoriteId} {
         allow read: if isSignedIn() && request.auth.uid == userId;
-        allow write: if isSignedIn() && request.auth.uid == userId;
+        allow create, update: if isSignedIn()
+                              && request.auth.uid == userId
+                              && request.resource.data.productId == favoriteId;
+        allow delete: if isSignedIn() && request.auth.uid == userId;
       }
     }
      
@@ -231,7 +234,8 @@ service cloud.firestore {
                       && request.resource.data.timestamp == resource.data.timestamp
                       && request.resource.data.type == resource.data.type
                       && request.resource.data.readBy.hasAll(resource.data.readBy)
-                      && request.resource.data.readBy.hasAll([request.auth.uid]);
+                      && request.resource.data.readBy.hasAll([request.auth.uid])
+                      && request.resource.data.readBy.hasOnly(resource.data.readBy.concat([request.auth.uid]));
         allow delete: if false;
       }
     }
