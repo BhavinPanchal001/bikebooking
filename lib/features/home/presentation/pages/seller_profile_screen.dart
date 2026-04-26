@@ -354,14 +354,6 @@ class _SellerProfileScreenState extends State<SellerProfileScreen> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 6),
-                    Text(
-                      controller.sellerPhone,
-                      style: TextStyle(
-                        color: Colors.grey[700],
-                        fontSize: 13,
-                      ),
-                    ),
                     if (sellerLocation.isNotEmpty) ...[
                       const SizedBox(height: 6),
                       Row(

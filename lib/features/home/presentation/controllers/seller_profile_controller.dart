@@ -197,10 +197,13 @@ class SellerProfileController extends GetxController {
   }
 
   AppUserModel _buildFallbackSeller(String sellerId) {
+    final safeName = _looksLikePhoneNumber(_fallbackSellerName)
+        ? ''
+        : _fallbackSellerName;
     return AppUserModel(
       id: sellerId,
       phoneNumber: '',
-      fullName: _fallbackSellerName,
+      fullName: safeName,
     );
   }
 
@@ -429,11 +432,18 @@ class SellerProfileController extends GetxController {
       return displayName;
     }
 
-    if (_fallbackSellerName.isNotEmpty) {
+    if (_fallbackSellerName.isNotEmpty &&
+        !_looksLikePhoneNumber(_fallbackSellerName)) {
       return _fallbackSellerName;
     }
 
     return 'Seller';
+  }
+
+  static bool _looksLikePhoneNumber(String value) {
+    if (value.isEmpty) return false;
+    final digits = value.replaceAll(RegExp(r'[\s\-\+\(\)]'), '');
+    return digits.length >= 7 && RegExp(r'^\d+$').hasMatch(digits);
   }
 
   String get sellerPhone {

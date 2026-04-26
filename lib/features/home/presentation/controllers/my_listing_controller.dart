@@ -145,7 +145,7 @@ class MyListingController extends GetxController {
             body: body,
             type: 'listing_update',
             senderId: seller?.id,
-            senderName: seller?.displayName ?? 'Bikebooking',
+            senderName: seller?.displayNameLabel ?? 'Bikebooking',
             senderPhotoUrl: seller?.photoUrl,
             targetRoute: '/my_listing',
             productId: existingProduct.id,

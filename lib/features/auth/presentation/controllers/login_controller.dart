@@ -99,6 +99,7 @@ class LoginController extends GetxController {
   static const String _prefKeyUserId = 'bikenest_session_user_id';
   static const String _prefKeyPhoneNumber = 'bikenest_session_phone';
   static const String _prefKeyHasLocation = 'bikenest_session_has_location';
+  static const String _prefKeyFullName = 'bikenest_session_full_name';
   static const String _prefKeyAccountStatus = 'bikenest_session_account_status';
   static const String _prefKeyAdminBlocked = 'bikenest_session_admin_blocked';
   static const Duration _currentLocationTimeout = Duration(seconds: 15);
@@ -257,12 +258,7 @@ class LoginController extends GetxController {
 
         final resolvedUser = currentUserProfile ?? localUser;
         await _assertAccountAccessAllowed(resolvedUser);
-        if (resolvedUser.hasLocation) {
-          Get.offAllNamed('/home');
-          return;
-        }
-
-        Get.offAllNamed('/select_location');
+        _navigateAfterAuth(resolvedUser);
         return;
       }
 
@@ -273,11 +269,7 @@ class LoginController extends GetxController {
           await _assertAccountAccessAllowed(savedSession);
           _setCurrentUserProfile(savedSession);
           phoneNumber = savedSession.phoneNumber;
-          if (savedSession.hasLocation) {
-            Get.offAllNamed('/home');
-            return;
-          }
-          Get.offAllNamed('/select_location');
+          _navigateAfterAuth(savedSession);
           return;
         }
 
@@ -293,12 +285,8 @@ class LoginController extends GetxController {
           fallbackPhoneNumber: firebaseUser.phoneNumber,
         );
 
-        if (userProfile.hasLocation) {
-          Get.offAllNamed('/home');
-          return;
-        }
-
-        Get.offAllNamed('/select_location');
+        await _assertAccountAccessAllowed(userProfile);
+        _navigateAfterAuth(userProfile);
       } on StateError {
         rethrow;
       } catch (_) {
@@ -308,11 +296,7 @@ class LoginController extends GetxController {
           await _assertAccountAccessAllowed(savedSession);
           _setCurrentUserProfile(savedSession);
           phoneNumber = savedSession.phoneNumber;
-          if (savedSession.hasLocation) {
-            Get.offAllNamed('/home');
-            return;
-          }
-          Get.offAllNamed('/select_location');
+          _navigateAfterAuth(savedSession);
           return;
         }
 
@@ -476,13 +460,7 @@ class LoginController extends GetxController {
         );
 
         _completeOtpVerification();
-
-        if (userProfile.hasLocation) {
-          Get.offAllNamed('/home');
-          return;
-        }
-
-        Get.offAllNamed('/select_location');
+        _navigateAfterAuth(userProfile);
         return;
       } catch (_) {
         _completeOtpVerification();
@@ -1252,12 +1230,7 @@ class LoginController extends GetxController {
       // Non-critical — ignore failures.
     }
 
-    if (userProfile.hasLocation) {
-      Get.offAllNamed('/home');
-      return;
-    }
-
-    Get.offAllNamed('/select_location');
+    _navigateAfterAuth(userProfile);
   }
 
   Future<void> _completeBypassedPhoneAuthSignIn(
@@ -1476,6 +1449,18 @@ class LoginController extends GetxController {
       longitude: longitude,
       label: resultMap['name']?.toString() ?? suggestion.title,
     );
+  }
+
+  void _navigateAfterAuth(AppUserModel userProfile) {
+    if (userProfile.fullName.trim().isEmpty) {
+      Get.offAllNamed('/enter_name');
+      return;
+    }
+    if (userProfile.hasLocation) {
+      Get.offAllNamed('/home');
+      return;
+    }
+    Get.offAllNamed('/select_location');
   }
 
   void _syncProfileControllers(AppUserModel userProfile) {
@@ -1939,6 +1924,7 @@ class LoginController extends GetxController {
       await prefs.setString(_prefKeyUserId, user.id);
       await prefs.setString(_prefKeyPhoneNumber, user.phoneNumber);
       await prefs.setBool(_prefKeyHasLocation, user.hasLocation);
+      await prefs.setString(_prefKeyFullName, user.fullName);
       await prefs.setString(_prefKeyAccountStatus, user.accountStatus);
       await prefs.setBool(_prefKeyAdminBlocked, user.adminBlocked);
     } catch (_) {
@@ -1966,6 +1952,7 @@ class LoginController extends GetxController {
       }
 
       final hasLocation = prefs.getBool(_prefKeyHasLocation) ?? false;
+      final fullName = prefs.getString(_prefKeyFullName)?.trim() ?? '';
       final accountStatus =
           prefs.getString(_prefKeyAccountStatus)?.trim().toLowerCase() ??
               'active';
@@ -1974,6 +1961,7 @@ class LoginController extends GetxController {
       return AppUserModel(
         id: userId,
         phoneNumber: phone,
+        fullName: fullName,
         accountStatus: accountStatus,
         adminBlocked: adminBlocked,
         location: hasLocation
@@ -1995,6 +1983,7 @@ class LoginController extends GetxController {
       await prefs.remove(_prefKeyUserId);
       await prefs.remove(_prefKeyPhoneNumber);
       await prefs.remove(_prefKeyHasLocation);
+      await prefs.remove(_prefKeyFullName);
       await prefs.remove(_prefKeyAccountStatus);
       await prefs.remove(_prefKeyAdminBlocked);
     } catch (_) {

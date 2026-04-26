@@ -13,7 +13,7 @@ class ProfileOverviewScreen extends StatelessWidget {
     return GetBuilder<LoginController>(
       builder: (controller) {
         final user = controller.currentUserProfile;
-        final displayName = user?.displayName ?? 'User';
+        final displayName = user?.displayNameLabel ?? 'User';
         final primaryEmail = user?.primaryEmail ?? 'Add your email';
         final primaryPhone = user?.primaryPhone ?? 'Add your phone number';
         final savedAddress = user?.location?.address ?? 'No saved location yet';

@@ -54,6 +54,7 @@ class BikePriceLocationScreen extends StatelessWidget {
 
                 Expanded(
                   child: SingleChildScrollView(
+                    controller: controller.locationFormScrollController,
                     physics: const BouncingScrollPhysics(),
                     padding: const EdgeInsets.all(16.0),
                     child: Column(
@@ -71,13 +72,71 @@ class BikePriceLocationScreen extends StatelessWidget {
                         const SizedBox(height: 24),
                         _buildLabel('Location'),
                         _buildTextField(
-                          'Select location',
+                          'Search for area, city or address',
                           controller: controller.locationController,
-                          onTap: () {
-                            // Open location selector
-                          },
-                          readOnly: false,
+                          onChanged: controller.onLocationQueryChanged,
                         ),
+                        if (controller.isSearchingLocation)
+                          const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 8),
+                            child: SizedBox(
+                              height: 24,
+                              width: 24,
+                              child:
+                                  CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          ),
+                        if (controller.locationSuggestions.isNotEmpty)
+                          Container(
+                            margin: const EdgeInsets.only(bottom: 8),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                  color: const Color(0xFFDDDDDD)),
+                            ),
+                            child: ListView.separated(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount:
+                                  controller.locationSuggestions.length,
+                              separatorBuilder: (_, __) => Divider(
+                                height: 1,
+                                color: Colors.grey.shade200,
+                              ),
+                              itemBuilder: (context, index) {
+                                final suggestion =
+                                    controller.locationSuggestions[index];
+                                return ListTile(
+                                  dense: true,
+                                  leading: Icon(
+                                    Icons.location_on_outlined,
+                                    color: const Color(0xFF4A6495)
+                                        .withOpacity(0.8),
+                                    size: 20,
+                                  ),
+                                  title: Text(
+                                    suggestion.title,
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFF2E3E5C),
+                                    ),
+                                  ),
+                                  subtitle: Text(
+                                    suggestion.subtitle,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey.shade500,
+                                    ),
+                                  ),
+                                  onTap: () => controller
+                                      .selectLocationSuggestion(
+                                          suggestion),
+                                );
+                              },
+                            ),
+                          ),
                         const SizedBox(height: 12),
                         GestureDetector(
                           onTap: controller.useCurrentLocationForProduct,
@@ -201,6 +260,7 @@ class BikePriceLocationScreen extends StatelessWidget {
     TextEditingController? controller,
     TextInputType? keyboardType,
     List<TextInputFormatter>? inputFormatters,
+    ValueChanged<String>? onChanged,
   }) {
     return TextField(
       onTap: onTap,
@@ -208,6 +268,7 @@ class BikePriceLocationScreen extends StatelessWidget {
       controller: controller,
       keyboardType: keyboardType,
       inputFormatters: inputFormatters,
+      onChanged: onChanged,
       style: const TextStyle(
         color: AppColors.primary,
         fontSize: 15,

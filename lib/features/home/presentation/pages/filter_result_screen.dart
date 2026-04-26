@@ -756,6 +756,7 @@ class _FilterResultScreenState extends State<FilterResultScreen>
   ) async {
     final brands = controller.availableBrands;
     var selectedBrand = controller.filterState.selectedBrand;
+    var brandSearchQuery = '';
 
     await showModalBottomSheet<void>(
       context: context,
@@ -764,21 +765,73 @@ class _FilterResultScreenState extends State<FilterResultScreen>
       builder: (sheetContext) {
         return StatefulBuilder(
           builder: (sheetContext, setModalState) {
+            final filteredBrands = brandSearchQuery.isEmpty
+                ? brands
+                : brands
+                    .where(
+                      (b) => b
+                          .toLowerCase()
+                          .contains(brandSearchQuery.toLowerCase()),
+                    )
+                    .toList(growable: false);
+
             return _buildBottomSheetContainer(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildBottomSheetHeader('Brand'),
-                  ConstrainedBox(
+                  Container(
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: Colors.grey.shade300),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.search,
+                          size: 16,
+                          color: Color(0xFFB0B0B0),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: TextField(
+                            onChanged: (value) {
+                              setModalState(() {
+                                brandSearchQuery = value.trim();
+                              });
+                            },
+                            decoration: const InputDecoration(
+                              hintText: 'Search Brand',
+                              hintStyle: TextStyle(
+                                color: Color(0xFFB0B0B0),
+                                fontSize: 14,
+                              ),
+                              border: InputBorder.none,
+                              isDense: true,
+                              contentPadding: EdgeInsets.zero,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Flexible(
+                    child: ConstrainedBox(
                     constraints: const BoxConstraints(maxHeight: 360),
-                    child: brands.isEmpty
-                        ? const Padding(
-                            padding: EdgeInsets.symmetric(vertical: 24),
+                    child: filteredBrands.isEmpty
+                        ? Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 24),
                             child: Center(
                               child: Text(
-                                'No brands available right now.',
-                                style: TextStyle(
+                                brandSearchQuery.isEmpty
+                                    ? 'No brands available right now.'
+                                    : 'No brands match your search.',
+                                style: const TextStyle(
                                   color: Color(0xFF5E6E8C),
                                   fontSize: 14,
                                 ),
@@ -787,9 +840,9 @@ class _FilterResultScreenState extends State<FilterResultScreen>
                           )
                         : ListView.builder(
                             shrinkWrap: true,
-                            itemCount: brands.length,
+                            itemCount: filteredBrands.length,
                             itemBuilder: (context, index) {
-                              final brand = brands[index];
+                              final brand = filteredBrands[index];
                               final isSelected = selectedBrand == brand;
                               return _buildBottomSheetTile(
                                 label: brand,
@@ -802,6 +855,7 @@ class _FilterResultScreenState extends State<FilterResultScreen>
                               );
                             },
                           ),
+                  ),
                   ),
                   const SizedBox(height: 12),
                   _buildBottomSheetActions(

@@ -71,12 +71,12 @@ class ChatFirestoreService {
       participants: [currentUserId, otherUserId],
       participantDetails: {
         currentUserId: ChatParticipant(
-          name: currentUser.displayName,
+          name: currentUser.displayNameLabel,
           photoUrl: currentUser.photoUrl,
           phoneNumber: currentUser.phoneNumber,
         ),
         otherUserId: ChatParticipant(
-          name: otherUser.displayName,
+          name: otherUser.displayNameLabel,
           photoUrl: otherUser.photoUrl,
           phoneNumber: otherUser.phoneNumber,
         ),

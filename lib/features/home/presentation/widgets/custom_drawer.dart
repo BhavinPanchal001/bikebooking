@@ -93,7 +93,7 @@ class CustomDrawer extends StatelessWidget {
     return GetBuilder<LoginController>(
       builder: (controller) {
         final displayName =
-            controller.currentUserProfile?.displayName ?? 'Hello';
+            controller.currentUserProfile?.displayNameLabel ?? 'Hello';
         final initial = displayName.isNotEmpty
             ? displayName.characters.first.toUpperCase()
             : 'U';

@@ -8,6 +8,7 @@ import 'package:bikebooking/core/theme/app_theme.dart';
 import 'features/auth/presentation/pages/splash_screen.dart';
 import 'features/auth/presentation/pages/login_screen.dart';
 import 'features/auth/presentation/pages/otp_verification_screen.dart';
+import 'features/auth/presentation/pages/enter_name_screen.dart';
 import 'features/location/presentation/pages/select_location_screen.dart';
 import 'features/location/presentation/pages/location_search_screen.dart';
 import 'features/location/presentation/pages/change_location_screen.dart';
@@ -116,6 +117,9 @@ class MyApp extends StatelessWidget {
         if (settings.name == '/otp') {
           final phoneNumber = settings.arguments as String;
           return buildRoute(OtpVerificationScreen(phoneNumber: phoneNumber));
+        }
+        if (settings.name == '/enter_name') {
+          return buildRoute(const EnterNameScreen());
         }
         if (settings.name == '/select_location') {
           return buildRoute(const SelectLocationScreen());

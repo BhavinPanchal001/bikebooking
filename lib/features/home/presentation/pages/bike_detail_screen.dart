@@ -768,7 +768,9 @@ class _BikeDetailScreenState extends State<BikeDetailScreen> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    final displayName = _seller?.displayName ?? product.sellerName.trim();
+    final rawFallback = product.sellerName.trim();
+    final fallback = _looksLikePhoneNumber(rawFallback) ? '' : rawFallback;
+    final displayName = _seller?.displayNameLabel ?? fallback;
     final sellerName = displayName.isNotEmpty ? displayName : 'Seller';
     final joinedYear = _seller?.createdAt?.year.toString() ?? '—';
     final photoUrl = _seller?.photoUrl ?? '';
@@ -1138,12 +1140,12 @@ class _BikeDetailScreenState extends State<BikeDetailScreen> {
         participants: [currentChatUser.id, sellerUser.id],
         participantDetails: {
           currentChatUser.id: ChatParticipant(
-            name: currentChatUser.displayName,
+            name: currentChatUser.displayNameLabel,
             photoUrl: currentChatUser.photoUrl,
             phoneNumber: currentChatUser.phoneNumber,
           ),
           sellerUser.id: ChatParticipant(
-            name: sellerUser.displayName,
+            name: sellerUser.displayNameLabel,
             photoUrl: sellerUser.photoUrl,
             phoneNumber: sellerUser.phoneNumber,
           ),
@@ -1172,5 +1174,11 @@ class _BikeDetailScreenState extends State<BikeDetailScreen> {
         snackPosition: SnackPosition.BOTTOM,
       );
     }
+  }
+
+  static bool _looksLikePhoneNumber(String value) {
+    if (value.isEmpty) return false;
+    final digits = value.replaceAll(RegExp(r'[\s\-\+\(\)]'), '');
+    return digits.length >= 7 && RegExp(r'^\d+$').hasMatch(digits);
   }
 }

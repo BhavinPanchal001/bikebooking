@@ -188,7 +188,7 @@ class NotificationsController extends GetxController {
       return notification.copyWith(
         senderName: (notification.senderName ?? '').trim().isNotEmpty
             ? notification.senderName
-            : senderProfile?.displayName,
+            : senderProfile?.displayNameLabel,
         senderPhotoUrl: (notification.senderPhotoUrl ?? '').trim().isNotEmpty
             ? notification.senderPhotoUrl
             : senderProfile?.photoUrl,
