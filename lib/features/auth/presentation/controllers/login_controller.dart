@@ -182,6 +182,7 @@ class LoginController extends GetxController with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (currentUserProfile == null) return;
     final userId = resolvedCurrentUserId;
     if (userId.isEmpty) return;
 
