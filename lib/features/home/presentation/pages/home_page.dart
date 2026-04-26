@@ -1,8 +1,10 @@
 import 'package:bikebooking/core/constants/global.dart';
+import 'package:bikebooking/core/widgets/app_snackbar.dart';
 import 'package:bikebooking/features/auth/presentation/controllers/login_controller.dart';
 import 'package:bikebooking/features/home/presentation/controllers/home_products_controller.dart';
 import 'package:bikebooking/features/home/presentation/controllers/notifications_controller.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import '../widgets/bike_card.dart';
 import '../widgets/app_bottom_nav_bar.dart';
@@ -40,6 +42,7 @@ class _HomePageState extends State<HomePage> {
   ];
 
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  DateTime? _lastBackPressTime;
   late final HomeProductsController _homeController;
   late final NotificationsController _notificationsController;
 
@@ -70,8 +73,28 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      key: _scaffoldKey,
+    return PopScope(
+      canPop: false,
+      onPopInvoked: (didPop) {
+        if (didPop) {
+          return;
+        }
+        final now = DateTime.now();
+        if (_lastBackPressTime != null &&
+            now.difference(_lastBackPressTime!) < const Duration(seconds: 2)) {
+          SystemNavigator.pop();
+          return;
+        }
+        _lastBackPressTime = now;
+        AppSnackbar.show(
+          title: 'Exit',
+          message: 'Press back again to exit',
+          backgroundColor: Colors.black87,
+          duration: const Duration(seconds: 2),
+        );
+      },
+      child: Scaffold(
+        key: _scaffoldKey,
       backgroundColor: const Color(0xFFF9FBFF),
       drawer: const CustomDrawer(),
       body: SafeArea(
@@ -216,6 +239,7 @@ class _HomePageState extends State<HomePage> {
         ),
       ),
       bottomNavigationBar: const AppBottomNavBar(currentIndex: 0),
+    ),
     );
   }
 
