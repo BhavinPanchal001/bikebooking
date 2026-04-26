@@ -7,7 +7,6 @@ import 'package:bikebooking/features/home/presentation/controllers/filter_result
 import 'package:bikebooking/features/home/presentation/widgets/app_bottom_nav_bar.dart';
 import 'package:bikebooking/features/home/presentation/widgets/product_status_badge.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
 class FilterResultScreen extends StatefulWidget {
@@ -34,13 +33,6 @@ class _FilterResultScreenState extends State<FilterResultScreen>
     '₹1L-₹1.5L',
     '₹1.5L-₹2L',
     '₹2L+',
-  ];
-
-  static const List<String> _bikeAgeOptions = <String>[
-    '2 year or less',
-    '4 year or less',
-    '6 year or less',
-    '8 year or less',
   ];
 
   late final FilterResultController _controller;
@@ -163,31 +155,6 @@ class _FilterResultScreenState extends State<FilterResultScreen>
                                       ),
                                     ),
                                   ],
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          GestureDetector(
-                            onTap: () {
-                              Navigator.pushReplacementNamed(
-                                context,
-                                '/filter',
-                                arguments: controller.filterState,
-                              );
-                            },
-                            child: Container(
-                              height: 43,
-                              width: 43,
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: const Center(
-                                child: Icon(
-                                  Icons.tune,
-                                  size: 18,
-                                  color: Color(0xFF5E6E8C),
                                 ),
                               ),
                             ),
@@ -627,6 +594,17 @@ class _FilterResultScreenState extends State<FilterResultScreen>
         physics: const BouncingScrollPhysics(),
         children: [
           _buildFilterActionChip(
+            label: 'Filter',
+            isActive: filterState.hasActiveFilters,
+            onTap: () {
+              Navigator.pushNamed(
+                context,
+                '/filter',
+                arguments: controller.filterState,
+              );
+            },
+          ),
+          _buildFilterActionChip(
             label: _sortChipLabel(filterState),
             isActive: _hasSortFilter(filterState),
             onTap: () => _showSortFilterBottomSheet(controller),
@@ -640,11 +618,6 @@ class _FilterResultScreenState extends State<FilterResultScreen>
             label: _priceChipLabel(filterState),
             isActive: _hasPriceFilter(filterState),
             onTap: () => _showPriceFilterBottomSheet(controller),
-          ),
-          _buildFilterActionChip(
-            label: _yearChipLabel(filterState),
-            isActive: _hasYearFilter(filterState),
-            onTap: () => _showYearFilterBottomSheet(controller),
           ),
         ],
       ),
@@ -927,32 +900,6 @@ class _FilterResultScreenState extends State<FilterResultScreen>
     );
   }
 
-  Future<void> _showYearFilterBottomSheet(
-    FilterResultController controller,
-  ) async {
-    final result = await showModalBottomSheet<_YearFilterSheetResult>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => _YearFilterBottomSheet(
-        initialMinYear: controller.filterState.minYear,
-        initialMaxYear: controller.filterState.maxYear,
-        initialBikeAge: controller.filterState.selectedBikeAge,
-        bikeAgeOptions: _bikeAgeOptions,
-      ),
-    );
-
-    if (result == null) {
-      return;
-    }
-
-    controller.updateYearFilter(
-      minYear: result.minYear,
-      maxYear: result.maxYear,
-      selectedBikeAge: result.selectedBikeAge,
-    );
-  }
-
   Widget _buildBottomSheetContainer({
     required Widget child,
   }) {
@@ -1178,12 +1125,6 @@ class _FilterResultScreenState extends State<FilterResultScreen>
         filterState.maxPrice != null;
   }
 
-  bool _hasYearFilter(ProductFilterState filterState) {
-    return (filterState.selectedBikeAge?.trim().isNotEmpty ?? false) ||
-        filterState.minYear != null ||
-        filterState.maxYear != null;
-  }
-
   String _brandChipLabel(ProductFilterState filterState) {
     final brand = filterState.selectedBrand?.trim() ?? '';
     return brand.isEmpty ? 'Brand' : brand;
@@ -1201,16 +1142,6 @@ class _FilterResultScreenState extends State<FilterResultScreen>
 
     final customPrice = _customPriceSummary(filterState);
     return customPrice ?? 'Price';
-  }
-
-  String _yearChipLabel(ProductFilterState filterState) {
-    final bikeAge = filterState.selectedBikeAge?.trim() ?? '';
-    if (bikeAge.isNotEmpty) {
-      return bikeAge;
-    }
-
-    final manualYear = _manualYearSummary(filterState);
-    return manualYear ?? 'Year';
   }
 
   String? _customPriceSummary(ProductFilterState filterState) {
@@ -1404,292 +1335,5 @@ class _FilterResultScreenState extends State<FilterResultScreen>
     }
     final years = (difference.inDays / 365).floor();
     return '$years yr ago';
-  }
-}
-
-class _YearFilterSheetResult {
-  const _YearFilterSheetResult({
-    required this.minYear,
-    required this.maxYear,
-    required this.selectedBikeAge,
-  });
-
-  final int? minYear;
-  final int? maxYear;
-  final String? selectedBikeAge;
-}
-
-class _YearFilterBottomSheet extends StatefulWidget {
-  const _YearFilterBottomSheet({
-    required this.initialMinYear,
-    required this.initialMaxYear,
-    required this.initialBikeAge,
-    required this.bikeAgeOptions,
-  });
-
-  final int? initialMinYear;
-  final int? initialMaxYear;
-  final String? initialBikeAge;
-  final List<String> bikeAgeOptions;
-
-  @override
-  State<_YearFilterBottomSheet> createState() => _YearFilterBottomSheetState();
-}
-
-class _YearFilterBottomSheetState extends State<_YearFilterBottomSheet> {
-  late final TextEditingController _minYearController;
-  late final TextEditingController _maxYearController;
-  String? _selectedBikeAge;
-
-  @override
-  void initState() {
-    super.initState();
-    _minYearController = TextEditingController(
-      text: widget.initialMinYear?.toString() ?? '',
-    );
-    _maxYearController = TextEditingController(
-      text: widget.initialMaxYear?.toString() ?? '',
-    );
-    _selectedBikeAge = widget.initialBikeAge;
-  }
-
-  @override
-  void dispose() {
-    _minYearController.dispose();
-    _maxYearController.dispose();
-    super.dispose();
-  }
-
-  bool get _hasAnySelection =>
-      _minYearController.text.trim().isNotEmpty ||
-      _maxYearController.text.trim().isNotEmpty ||
-      (_selectedBikeAge?.trim().isNotEmpty ?? false);
-
-  @override
-  Widget build(BuildContext context) {
-    final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
-
-    return SafeArea(
-      top: false,
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(12, 12, 12, bottomInset + 12),
-        child: Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-          ),
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 42,
-                  height: 4,
-                  margin: const EdgeInsets.only(bottom: 18),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFD7DDE8),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                ),
-              ),
-              const Text(
-                'Year',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF233A66),
-                ),
-              ),
-              const SizedBox(height: 18),
-              const Text(
-                'Choose a year range',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF2E3E5C),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildYearField(
-                      controller: _minYearController,
-                      hintText: 'From',
-                    ),
-                  ),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 12),
-                    child: Text('To'),
-                  ),
-                  Expanded(
-                    child: _buildYearField(
-                      controller: _maxYearController,
-                      hintText: 'To',
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              const Text(
-                'Popular bike age',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF2E3E5C),
-                ),
-              ),
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 10,
-                runSpacing: 10,
-                children: widget.bikeAgeOptions
-                    .map(
-                      (option) => _buildOptionChip(
-                        label: option,
-                        isSelected: _selectedBikeAge == option,
-                        onTap: () {
-                          setState(() {
-                            _selectedBikeAge =
-                                _selectedBikeAge == option ? null : option;
-                          });
-                        },
-                      ),
-                    )
-                    .toList(growable: false),
-              ),
-              const SizedBox(height: 20),
-              Row(
-                children: [
-                  TextButton(
-                    onPressed: !_hasAnySelection
-                        ? null
-                        : () {
-                            FocusScope.of(context).unfocus();
-                            Navigator.of(context).pop(
-                              const _YearFilterSheetResult(
-                                minYear: null,
-                                maxYear: null,
-                                selectedBikeAge: null,
-                              ),
-                            );
-                          },
-                    child: Text(
-                      'Clear',
-                      style: TextStyle(
-                        color: !_hasAnySelection
-                            ? const Color(0xFFB7C0D0)
-                            : AppColors.primary,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                  const Spacer(),
-                  ElevatedButton(
-                    onPressed: _apply,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 12,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: const Text('Apply'),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _apply() {
-    final minYear = int.tryParse(_minYearController.text.trim());
-    final maxYear = int.tryParse(_maxYearController.text.trim());
-
-    if (minYear != null && maxYear != null && minYear > maxYear) {
-      Get.snackbar(
-        'Invalid year range',
-        'From year should be less than or equal to To year.',
-        snackPosition: SnackPosition.BOTTOM,
-      );
-      return;
-    }
-
-    FocusScope.of(context).unfocus();
-    Navigator.of(context).pop(
-      _YearFilterSheetResult(
-        minYear: minYear,
-        maxYear: maxYear,
-        selectedBikeAge: _selectedBikeAge,
-      ),
-    );
-  }
-
-  Widget _buildOptionChip({
-    required String label,
-    required bool isSelected,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFFF1F4FA) : Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isSelected ? AppColors.primary : const Color(0xFFE5E5E5),
-          ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: isSelected ? AppColors.primary : const Color(0xFF2E3E5C),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildYearField({
-    required TextEditingController controller,
-    required String hintText,
-  }) {
-    return TextField(
-      controller: controller,
-      keyboardType: TextInputType.number,
-      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-      decoration: InputDecoration(
-        hintText: hintText,
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 12,
-          vertical: 12,
-        ),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Color(0xFFE5E5E5)),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Color(0xFFE5E5E5)),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: AppColors.primary),
-        ),
-      ),
-      onChanged: (_) => setState(() {}),
-    );
   }
 }

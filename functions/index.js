@@ -1,4 +1,5 @@
 const {initializeApp} = require("firebase-admin/app");
+const {getAuth} = require("firebase-admin/auth");
 const {
   FieldValue,
   getFirestore,
@@ -184,6 +185,24 @@ exports.sendQueuedNotification = onDocumentCreated(
   },
 );
 
+async function syncAuthDisabledState(userId, disabled) {
+  try {
+    await getAuth().updateUser(userId, {disabled});
+    return disabled ? "disabled" : "enabled";
+  } catch (error) {
+    const code = String(error?.code || "").trim().toLowerCase();
+    if (code === "auth/user-not-found" || code === "user-not-found") {
+      return "auth_user_not_found";
+    }
+
+    console.error(
+      `Unable to ${disabled ? "disable" : "enable"} auth access for user ${userId}.`,
+      error,
+    );
+    return "auth_sync_failed";
+  }
+}
+
 exports.adminBlockUser = onCall(async (request) => {
   const actor = await requireAdmin(request);
   const userId = readRequiredString(request.data?.userId, "userId");
@@ -196,6 +215,7 @@ exports.adminBlockUser = onCall(async (request) => {
 
   const before = serializeValue(userSnapshot.data());
   const adminActor = actor.email || actor.uid;
+  const authAccessState = await syncAuthDisabledState(userId, true);
 
   await userRef.set({
     adminBlocked: true,
@@ -216,6 +236,7 @@ exports.adminBlockUser = onCall(async (request) => {
       adminBlocked: true,
       accountStatus: "blocked",
       adminBlockedBy: adminActor,
+      authAccessState,
     },
   });
 
@@ -223,6 +244,7 @@ exports.adminBlockUser = onCall(async (request) => {
     ok: true,
     userId,
     accountStatus: "blocked",
+    authAccessState,
   };
 });
 
@@ -237,6 +259,7 @@ exports.adminUnblockUser = onCall(async (request) => {
   }
 
   const before = serializeValue(userSnapshot.data());
+  const authAccessState = await syncAuthDisabledState(userId, false);
 
   await userRef.set({
     adminBlocked: false,
@@ -258,6 +281,7 @@ exports.adminUnblockUser = onCall(async (request) => {
       accountStatus: "active",
       adminBlockedAt: null,
       adminBlockedBy: null,
+      authAccessState,
     },
   });
 
@@ -265,6 +289,7 @@ exports.adminUnblockUser = onCall(async (request) => {
     ok: true,
     userId,
     accountStatus: "active",
+    authAccessState,
   };
 });
 

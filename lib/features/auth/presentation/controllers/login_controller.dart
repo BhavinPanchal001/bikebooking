@@ -99,6 +99,11 @@ class LoginController extends GetxController {
   static const String _prefKeyUserId = 'bikenest_session_user_id';
   static const String _prefKeyPhoneNumber = 'bikenest_session_phone';
   static const String _prefKeyHasLocation = 'bikenest_session_has_location';
+  static const String _prefKeyAccountStatus = 'bikenest_session_account_status';
+  static const String _prefKeyAdminBlocked = 'bikenest_session_admin_blocked';
+  static const Duration _currentLocationTimeout = Duration(seconds: 15);
+  static const String _blockedAccountMessage =
+      'Your account has been blocked by the admin. Please contact support.';
   bool get _bypassPhoneAuth => GetPlatform.isIOS;
 
   final TextEditingController phoneController = TextEditingController();
@@ -232,6 +237,7 @@ class LoginController extends GetxController {
           return;
         }
 
+        await _assertAccountAccessAllowed(localUser);
         phoneNumber = localUser.phoneNumber;
         _setCurrentUserProfile(localUser);
 
@@ -240,13 +246,17 @@ class LoginController extends GetxController {
           final storedUser =
               await _userFirestoreService.getUserById(localUser.id);
           if (storedUser != null) {
+            await _assertAccountAccessAllowed(storedUser);
             _setCurrentUserProfile(storedUser);
           }
+        } on StateError {
+          rethrow;
         } catch (_) {
           // Use local data if Firestore is unreachable.
         }
 
         final resolvedUser = currentUserProfile ?? localUser;
+        await _assertAccountAccessAllowed(resolvedUser);
         if (resolvedUser.hasLocation) {
           Get.offAllNamed('/home');
           return;
@@ -260,6 +270,7 @@ class LoginController extends GetxController {
       if (firebaseUser == null) {
         // No Firebase session — check if we have a saved session to recover.
         if (savedSession != null) {
+          await _assertAccountAccessAllowed(savedSession);
           _setCurrentUserProfile(savedSession);
           phoneNumber = savedSession.phoneNumber;
           if (savedSession.hasLocation) {
@@ -288,10 +299,13 @@ class LoginController extends GetxController {
         }
 
         Get.offAllNamed('/select_location');
+      } on StateError {
+        rethrow;
       } catch (_) {
         // Firestore failed but Firebase Auth session exists — don't sign out.
         // Use saved session or navigate to home optimistically.
         if (savedSession != null) {
+          await _assertAccountAccessAllowed(savedSession);
           _setCurrentUserProfile(savedSession);
           phoneNumber = savedSession.phoneNumber;
           if (savedSession.hasLocation) {
@@ -303,6 +317,15 @@ class LoginController extends GetxController {
         }
 
         // No saved session and Firestore failed — must re-login.
+        await _safeSignOut();
+        await _clearPersistedSession();
+        _clearLocalSession();
+        Get.offAllNamed('/login');
+      }
+    } on StateError catch (exception) {
+      if (_isBlockedAccountError(exception)) {
+        _setError(exception.message);
+      } else {
         await _safeSignOut();
         await _clearPersistedSession();
         _clearLocalSession();
@@ -362,14 +385,20 @@ class LoginController extends GetxController {
               fallbackPhoneNumber: formattedPhoneNumber,
             );
           } on FirebaseAuthException catch (exception) {
+            isSendingOtp = false;
+            update();
             _setFirebaseError(
               exception,
               fallback:
                   'Auto verification failed. Please enter the OTP manually.',
             );
           } on StateError catch (exception) {
+            isSendingOtp = false;
+            update();
             _setError(exception.message);
           } catch (_) {
+            isSendingOtp = false;
+            update();
             _setError(
               'Auto verification failed. Please enter the OTP manually.',
             );
@@ -530,11 +559,7 @@ class LoginController extends GetxController {
         );
       }
 
-      final position = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.low,
-        ),
-      ).timeout(const Duration(seconds: 10));
+      final position = await _getCurrentPosition();
 
       var title = 'Current Location';
       var description =
@@ -616,7 +641,7 @@ class LoginController extends GetxController {
         label: title,
       );
     } catch (error) {
-      final message = error.toString().replaceFirst('Exception: ', '');
+      final message = _friendlyLocationError(error);
       placeSearchError = message;
       Get.snackbar(
         'Location Error',
@@ -630,6 +655,26 @@ class LoginController extends GetxController {
     } finally {
       isFetchingCurrentLocation = false;
       update();
+    }
+  }
+
+  Future<Position> _getCurrentPosition() async {
+    try {
+      return await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.low,
+          timeLimit: _currentLocationTimeout,
+        ),
+      );
+    } on TimeoutException {
+      final lastKnownPosition = await Geolocator.getLastKnownPosition();
+      if (lastKnownPosition != null) {
+        return lastKnownPosition;
+      }
+
+      throw Exception(
+        'Unable to detect your location right now. Move to an open area, make sure GPS is on, and try again.',
+      );
     }
   }
 
@@ -1033,10 +1078,18 @@ class LoginController extends GetxController {
       if (localUser == null) {
         return;
       }
+      if (localUser.isBlocked) {
+        await _handleBlockedAccountAccess(showMessage: true);
+        return;
+      }
 
       try {
         final storedUser =
             await _userFirestoreService.getUserById(localUser.id);
+        if (storedUser?.isBlocked == true) {
+          await _handleBlockedAccountAccess(showMessage: true);
+          return;
+        }
         _setCurrentUserProfile(storedUser ?? localUser);
       } catch (_) {
         _setCurrentUserProfile(localUser);
@@ -1048,6 +1101,10 @@ class LoginController extends GetxController {
     final userProfile =
         await _userFirestoreService.getUserById(firebaseUser.uid);
     if (userProfile == null) {
+      return;
+    }
+    if (userProfile.isBlocked) {
+      await _handleBlockedAccountAccess(showMessage: true);
       return;
     }
 
@@ -1230,12 +1287,26 @@ class LoginController extends GetxController {
     User? firebaseUser, {
     String? fallbackPhoneNumber,
   }) async {
-    if (_bypassPhoneAuth) {
-      return _ensureLocalUserDocument(
-        fallbackPhoneNumber: fallbackPhoneNumber,
-      );
-    }
+    final userProfile = _bypassPhoneAuth
+        ? await _ensureLocalUserDocument(
+            fallbackPhoneNumber: fallbackPhoneNumber,
+          )
+        : await _ensureSignedInUserDocument(
+            firebaseUser,
+            fallbackPhoneNumber: fallbackPhoneNumber,
+          );
 
+    await _assertAccountAccessAllowed(userProfile);
+    _setCurrentUserProfile(userProfile);
+    update();
+
+    return userProfile;
+  }
+
+  Future<AppUserModel> _ensureSignedInUserDocument(
+    User? firebaseUser, {
+    String? fallbackPhoneNumber,
+  }) async {
     if (firebaseUser == null) {
       throw StateError('Unable to find the signed-in user.');
     }
@@ -1245,15 +1316,66 @@ class LoginController extends GetxController {
       fallbackPhoneNumber: fallbackPhoneNumber ?? phoneNumber,
     );
 
-    final userProfile = await _userFirestoreService.ensureUser(
+    return _userFirestoreService.ensureUser(
       userId: firebaseUser.uid,
       phoneNumber: resolvedPhoneNumber,
     );
+  }
 
-    _setCurrentUserProfile(userProfile);
+  Future<void> _assertAccountAccessAllowed(AppUserModel userProfile) async {
+    if (!userProfile.isBlocked) {
+      return;
+    }
+
+    await _handleBlockedAccountAccess();
+    throw StateError(_blockedAccountMessage);
+  }
+
+  Future<void> _handleBlockedAccountAccess({
+    bool showMessage = false,
+  }) async {
+    await _safeSignOut();
+    await _clearPersistedSession();
+    _clearLocalSession();
     update();
+    _navigateToLogin();
+    if (showMessage) {
+      _setError(_blockedAccountMessage);
+    }
+  }
 
-    return userProfile;
+  bool _isBlockedAccountError(StateError error) {
+    return error.message == _blockedAccountMessage;
+  }
+
+  Future<AppUserModel> _ensureLocalUserDocument({
+    String? fallbackPhoneNumber,
+  }) async {
+    final localUser = _createOrUpdateLocalSession(
+      fallbackPhoneNumber: fallbackPhoneNumber,
+    );
+
+    try {
+      final persistedUser = await _userFirestoreService.ensureUser(
+        userId: localUser.id,
+        phoneNumber: localUser.phoneNumber,
+      );
+
+      final mergedUser = persistedUser.copyWith(
+        fullName: localUser.fullName,
+        email: localUser.email,
+        registeredMobileNumber: localUser.registeredMobileNumber,
+        photoUrl: localUser.photoUrl,
+        location: localUser.location ?? persistedUser.location,
+        createdAt: persistedUser.createdAt ?? localUser.createdAt,
+        updatedAt: persistedUser.updatedAt ?? localUser.updatedAt,
+      );
+
+      _setCurrentUserProfile(mergedUser);
+      return mergedUser;
+    } catch (_) {
+      return localUser;
+    }
   }
 
   Future<void> _persistLocationForCurrentUser(
@@ -1400,6 +1522,10 @@ class LoginController extends GetxController {
               ? existingUser!.registeredMobileNumber
               : resolvedPhoneNumber,
       photoUrl: existingUser?.photoUrl ?? '',
+      accountStatus: existingUser?.accountStatus ?? 'active',
+      adminBlocked: existingUser?.adminBlocked ?? false,
+      adminBlockedAt: existingUser?.adminBlockedAt,
+      adminBlockedBy: existingUser?.adminBlockedBy ?? '',
       location: existingUser?.location,
       createdAt: existingUser?.createdAt ?? DateTime.now(),
       updatedAt: DateTime.now(),
@@ -1407,36 +1533,6 @@ class LoginController extends GetxController {
 
     _setCurrentUserProfile(updatedUser);
     return updatedUser;
-  }
-
-  Future<AppUserModel> _ensureLocalUserDocument({
-    String? fallbackPhoneNumber,
-  }) async {
-    final localUser = _createOrUpdateLocalSession(
-      fallbackPhoneNumber: fallbackPhoneNumber,
-    );
-
-    try {
-      final persistedUser = await _userFirestoreService.ensureUser(
-        userId: localUser.id,
-        phoneNumber: localUser.phoneNumber,
-      );
-
-      final mergedUser = persistedUser.copyWith(
-        fullName: localUser.fullName,
-        email: localUser.email,
-        registeredMobileNumber: localUser.registeredMobileNumber,
-        photoUrl: localUser.photoUrl,
-        location: localUser.location ?? persistedUser.location,
-        createdAt: persistedUser.createdAt ?? localUser.createdAt,
-        updatedAt: persistedUser.updatedAt ?? localUser.updatedAt,
-      );
-
-      _setCurrentUserProfile(mergedUser);
-      return mergedUser;
-    } catch (_) {
-      return localUser;
-    }
   }
 
   void _clearLocalSession() {
@@ -1693,6 +1789,9 @@ class LoginController extends GetxController {
     if (normalizedCode == 'invalid-phone-number') {
       return 'Enter a valid phone number.';
     }
+    if (normalizedCode == 'user-disabled') {
+      return _blockedAccountMessage;
+    }
     if (normalizedCode == 'too-many-requests' ||
         normalizedCode == 'quota-exceeded') {
       return 'Too many attempts. Please wait a bit and try again.';
@@ -1765,6 +1864,19 @@ class LoginController extends GetxController {
     return fallback;
   }
 
+  String _friendlyLocationError(Object error) {
+    if (error is TimeoutException) {
+      return 'Unable to detect your location right now. Move to an open area, make sure GPS is on, and try again.';
+    }
+
+    final message = error.toString().replaceFirst('Exception: ', '');
+    if (message.toLowerCase().contains('timeoutexception')) {
+      return 'Unable to detect your location right now. Move to an open area, make sure GPS is on, and try again.';
+    }
+
+    return message;
+  }
+
   String? _formatPhoneNumber(String rawPhoneNumber) {
     final digitsOnly = rawPhoneNumber.replaceAll(RegExp(r'[^0-9]'), '');
     if (digitsOnly.length == 10) {
@@ -1827,6 +1939,8 @@ class LoginController extends GetxController {
       await prefs.setString(_prefKeyUserId, user.id);
       await prefs.setString(_prefKeyPhoneNumber, user.phoneNumber);
       await prefs.setBool(_prefKeyHasLocation, user.hasLocation);
+      await prefs.setString(_prefKeyAccountStatus, user.accountStatus);
+      await prefs.setBool(_prefKeyAdminBlocked, user.adminBlocked);
     } catch (_) {
       // Non-critical — worst case the user will need to log in again.
     }
@@ -1843,8 +1957,7 @@ class LoginController extends GetxController {
 
       // Try to load the full profile from Firestore.
       try {
-        final firestoreUser =
-            await _userFirestoreService.getUserById(userId);
+        final firestoreUser = await _userFirestoreService.getUserById(userId);
         if (firestoreUser != null) {
           return firestoreUser;
         }
@@ -1853,9 +1966,16 @@ class LoginController extends GetxController {
       }
 
       final hasLocation = prefs.getBool(_prefKeyHasLocation) ?? false;
+      final accountStatus =
+          prefs.getString(_prefKeyAccountStatus)?.trim().toLowerCase() ??
+              'active';
+      final adminBlocked =
+          prefs.getBool(_prefKeyAdminBlocked) ?? accountStatus == 'blocked';
       return AppUserModel(
         id: userId,
         phoneNumber: phone,
+        accountStatus: accountStatus,
+        adminBlocked: adminBlocked,
         location: hasLocation
             ? const UserLocationModel(
                 address: 'Saved Location',
@@ -1875,6 +1995,8 @@ class LoginController extends GetxController {
       await prefs.remove(_prefKeyUserId);
       await prefs.remove(_prefKeyPhoneNumber);
       await prefs.remove(_prefKeyHasLocation);
+      await prefs.remove(_prefKeyAccountStatus);
+      await prefs.remove(_prefKeyAdminBlocked);
     } catch (_) {
       // Non-critical.
     }
