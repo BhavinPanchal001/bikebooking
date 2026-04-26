@@ -240,7 +240,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                         ? Text(
                             controller.otherUserName.isNotEmpty
                                 ? controller.otherUserName[0].toUpperCase()
-                                : 'U',
+                                : 'S',
                             style: const TextStyle(
                               color: Color(0xFF233A66),
                               fontWeight: FontWeight.bold,
@@ -276,7 +276,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                           child: Text(
                             controller.otherUserName.isNotEmpty
                                 ? controller.otherUserName
-                                : 'User',
+                                : 'Seller',
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 18,

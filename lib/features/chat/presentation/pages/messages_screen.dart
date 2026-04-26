@@ -195,11 +195,11 @@ class _MessagesScreenState extends State<MessagesScreen> {
   Widget _buildChatTile(ChatModel chat) {
     final userId = _currentUserId;
     final otherDetails = chat.otherParticipantDetails(userId);
-    final otherName = otherDetails?.name ?? 'User';
+    final otherName = otherDetails?.displayLabel() ?? 'Seller';
     final otherPhoto = otherDetails?.photoUrl ?? '';
     final lastMsg = chat.lastMessage;
     final unread = chat.unreadCountFor(userId);
-    final initial = otherName.isNotEmpty ? otherName[0].toUpperCase() : 'U';
+    final initial = otherName.isNotEmpty ? otherName[0].toUpperCase() : 'S';
 
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),

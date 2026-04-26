@@ -28,6 +28,21 @@ class ChatParticipant {
       phoneNumber: map['phoneNumber']?.toString() ?? '',
     );
   }
+
+  /// Returns the name if it is a real name (not empty, not 'User', and not a
+  /// phone-number-like string). Falls back to [fallback] otherwise.
+  String displayLabel({String fallback = 'Seller'}) {
+    final trimmed = name.trim();
+    if (trimmed.isEmpty || trimmed == 'User') return fallback;
+
+    // Treat strings that look like phone numbers as unavailable.
+    final digitsOnly = trimmed.replaceAll(RegExp(r'[\s\-\(\)\+]'), '');
+    if (digitsOnly.isNotEmpty && RegExp(r'^\d+$').hasMatch(digitsOnly)) {
+      return fallback;
+    }
+
+    return trimmed;
+  }
 }
 
 /// Snapshot of the product that triggered this conversation.
