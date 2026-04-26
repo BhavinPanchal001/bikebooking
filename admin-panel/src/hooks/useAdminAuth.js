@@ -123,6 +123,10 @@ export function useAdminAuth() {
   }
 
   async function logout() {
+    if (MOCK_UI_TEST) {
+      setUser(null);
+      return;
+    }
     if (!auth) {
       return;
     }
