@@ -455,6 +455,7 @@ class NotificationPushService extends GetxController
         await _notificationService.upsertNotification(
           notification,
           documentId: _notificationDocumentId(message),
+          preserveReadStatus: true,
         );
       } catch (error, stackTrace) {
         debugPrint(
@@ -622,6 +623,7 @@ class NotificationPushService extends GetxController
             data,
             fallbackNotificationId: fallbackNotificationId,
           ),
+          preserveReadStatus: true,
         );
       } catch (error, stackTrace) {
         debugPrint('Error persisting opened notification: $error\n$stackTrace');

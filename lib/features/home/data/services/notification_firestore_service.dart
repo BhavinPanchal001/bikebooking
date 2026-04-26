@@ -39,6 +39,7 @@ class NotificationFirestoreService {
   Future<void> upsertNotification(
     AppNotificationModel notification, {
     String? documentId,
+    bool preserveReadStatus = false,
   }) async {
     final resolvedDocumentId = documentId?.trim().isNotEmpty == true
         ? documentId!.trim()
@@ -56,6 +57,10 @@ class NotificationFirestoreService {
                 ? FieldValue.serverTimestamp()
                 : Timestamp.fromDate(notification.createdAt!),
           };
+
+    if (preserveReadStatus && resolvedDocumentId.isNotEmpty) {
+      payload.remove('isRead');
+    }
 
     await ref.set(payload, SetOptions(merge: true));
   }
