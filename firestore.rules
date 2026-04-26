@@ -137,6 +137,13 @@ service cloud.firestore {
     match /users/{userId} {
       allow read: if true;
       allow write: if isSignedIn() && request.auth.uid == userId;
+
+      // ── favorites subcollection ───────────────────────────────────────────
+      // Each user can read/write only their own favorites.
+      match /favorites/{favoriteId} {
+        allow read: if isSignedIn() && request.auth.uid == userId;
+        allow write: if isSignedIn() && request.auth.uid == userId;
+      }
     }
 
     // ── admin_users (admin panel authorization allowlist) ─────────────────────
