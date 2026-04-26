@@ -22,7 +22,7 @@ class BikeCard extends StatelessWidget {
   static const double _imageHeight = 110;
   static const double _titleHeight = 34;
   static const double _tagsHeight = 28;
-  static const double _locationHeight = 24;
+  static const double _locationHeight = 22;
 
   @override
   Widget build(BuildContext context) {
@@ -196,26 +196,30 @@ class BikeCard extends StatelessWidget {
                           .toList(growable: false),
                     ),
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 9),
                   SizedBox(
                     height: _locationHeight,
                     child: Row(
                       children: [
                         Icon(
                           Icons.location_on_outlined,
-                          size: 10,
+                          size: 9,
                           color: Colors.grey.shade500,
                         ),
                         const SizedBox(width: 2),
                         Expanded(
-                          child: Text(
-                            _buildLocation(),
-                            style: const TextStyle(
-                              color: Color(0xFF262A36),
-                              fontSize: 9,
+                          child: FractionallySizedBox(
+                            widthFactor: 0.88,
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              _buildLocation(),
+                              style: const TextStyle(
+                                color: Color(0xFF262A36),
+                                fontSize: 8,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
                             ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                       ],

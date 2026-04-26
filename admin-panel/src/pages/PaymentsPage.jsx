@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { ActionMenu } from '../components/ActionMenu';
 import { FeedbackBanner } from '../components/FeedbackBanner';
 import { PanelCard } from '../components/PanelCard';
 import { paymentsService } from '../services/paymentsService';
@@ -44,6 +45,10 @@ function statusBadgeClass(status) {
     default:
       return 'status-badge status-pending';
   }
+}
+
+function optionLabel(options, value) {
+  return options.find((option) => option.value === value)?.label || value || '-';
 }
 
 export function PaymentsPage({ adminEmail }) {
@@ -164,64 +169,74 @@ export function PaymentsPage({ adminEmail }) {
           </div>
         </div>
 
-        <div className="toolbar">
-          <select
-            className="filter-select"
-            value={statusFilter}
-            onChange={(event) => setStatusFilter(event.target.value)}
-            aria-label="Filter by status"
-          >
-            {STATUS_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-          <select
-            className="filter-select"
-            value={kindFilter}
-            onChange={(event) => setKindFilter(event.target.value)}
-            aria-label="Filter by kind"
-          >
-            {KIND_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-          <input
-            className="search-input"
-            type="search"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search by user id, email, razorpay id, product id"
-          />
-          <div className="toolbar-note">{filteredRecords.length} visible</div>
+        <div className="toolbar payments-toolbar">
+          <div className="payments-filter-group">
+            <label className="payments-filter">
+              <span>Status</span>
+              <select
+                value={statusFilter}
+                onChange={(event) => setStatusFilter(event.target.value)}
+                aria-label="Filter by status"
+              >
+                {STATUS_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="payments-filter">
+              <span>Kind</span>
+              <select
+                value={kindFilter}
+                onChange={(event) => setKindFilter(event.target.value)}
+                aria-label="Filter by kind"
+              >
+                {KIND_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <label className="payments-search-field">
+            <span>Search payments</span>
+            <input
+              className="search-input"
+              type="search"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="User, email, Razorpay, or product ID"
+            />
+          </label>
+          <div className="payments-toolbar-note">
+            <strong>{filteredRecords.length}</strong>
+            <span>{filteredRecords.length === 1 ? 'payment visible' : 'payments visible'}</span>
+          </div>
         </div>
 
-        <div className="table-wrap">
-          <table className="data-table">
+        <div className="table-wrap payments-table-wrap">
+          <table className="data-table payments-table">
             <thead>
               <tr>
-                <th>Created</th>
-                <th>User</th>
-                <th>Kind</th>
-                <th>Amount</th>
+                <th>Payment</th>
+                <th>Customer</th>
+                <th>Type</th>
                 <th>Status</th>
-                <th>Razorpay</th>
-                <th>Action</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={7}>
+                  <td colSpan={5}>
                     <div className="empty-state">Loading payments…</div>
                   </td>
                 </tr>
               ) : filteredRecords.length === 0 ? (
                 <tr>
-                  <td colSpan={7}>
+                  <td colSpan={5}>
                     <div className="empty-state">
                       No payments match the current filters.
                     </div>
@@ -230,34 +245,54 @@ export function PaymentsPage({ adminEmail }) {
               ) : (
                 filteredRecords.map((record) => (
                   <tr key={record.id}>
-                    <td>{formatDateTime(record.createdAt)}</td>
                     <td>
-                      <div className="primary-cell">
-                        <strong>{record.userEmail || record.userId || '—'}</strong>
-                        <span>{record.userId || ''}</span>
-                      </div>
-                    </td>
-                    <td>{record.kind || '—'}</td>
-                    <td>{formatAmount(record.amountPaise, record.currency)}</td>
-                    <td>
-                      <span className={statusBadgeClass(record.status)}>
-                        {record.status}
-                      </span>
-                    </td>
-                    <td>
-                      <div className="primary-cell">
-                        <span>{record.razorpayPaymentId || '—'}</span>
-                        <small>{record.razorpayOrderId || ''}</small>
+                      <div className="payments-identity">
+                        <strong>{formatAmount(record.amountPaise, record.currency)}</strong>
+                        <span>{formatDateTime(record.createdAt)}</span>
+                        <div className="payments-meta-row">
+                          <span>{record.razorpayPaymentId || 'No payment id'}</span>
+                          <span>{record.razorpayOrderId || 'No order id'}</span>
+                        </div>
                       </div>
                     </td>
                     <td>
-                      <button
-                        type="button"
-                        className="secondary-button"
-                        onClick={() => setSelectedId(record.id)}
-                      >
-                        View
-                      </button>
+                      <div className="payments-user-cell">
+                        <strong>{record.userEmail || record.userId || '-'}</strong>
+                        <span>{record.userId || 'User id not recorded'}</span>
+                      </div>
+                    </td>
+                    <td>
+                      <div className="payments-kind-cell">
+                        <strong>{optionLabel(KIND_OPTIONS, record.kind)}</strong>
+                        <span>{record.metadata?.feeSlug || record.target?.type || 'No fee metadata'}</span>
+                        <div className="payments-meta-row">
+                          <span>{record.target?.id || 'No target id'}</span>
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <div className="payments-status-cell">
+                        <span className={statusBadgeClass(record.status)}>
+                          {record.status || 'unknown'}
+                        </span>
+                        <span>{record.paymentMethod || optionLabel(STATUS_OPTIONS, record.status)}</span>
+                      </div>
+                    </td>
+                    <td className="table-actions-cell">
+                      <ActionMenu
+                        label={`Manage payment ${record.id}`}
+                        iconOnly
+                        items={[
+                          {
+                            key: 'details',
+                            label: 'View details',
+                            icon: 'details',
+                            onSelect() {
+                              setSelectedId(record.id);
+                            },
+                          },
+                        ]}
+                      />
                     </td>
                   </tr>
                 ))
