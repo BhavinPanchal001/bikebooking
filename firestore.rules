@@ -156,6 +156,15 @@ service cloud.firestore {
       allow delete: if isSignedIn() && request.auth.uid == userId;
     }
 
+    // ── user notifications ───────────────────────────────────────────────────
+    // Parent document rules do not cascade into subcollections, so
+    // notifications need their own explicit permissions.
+    match /users/{userId}/notifications/{notificationId} {
+      allow read: if isSignedIn() && request.auth.uid == userId;
+      allow create: if isSignedIn();
+      allow update, delete: if isSignedIn() && request.auth.uid == userId;
+    }
+
     // ── admin_users (admin panel authorization allowlist) ─────────────────────
     // The admin panel (useAdminAuth) reads /admin_users/{uid} to decide whether
     // a signed-in Firebase Auth user is allowed into the admin UI. Each user
