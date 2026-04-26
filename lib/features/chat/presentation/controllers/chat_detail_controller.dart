@@ -341,7 +341,7 @@ class ChatDetailController extends GetxController {
   /// The other participant's display name.
   String get otherUserName {
     if (chat == null) return '';
-    return chat!.otherParticipantDetails(_currentUserId)?.name ?? '';
+    return chat!.otherParticipantDetails(_currentUserId)?.displayLabel() ?? 'Seller';
   }
 
   /// The other participant's photo URL.
