@@ -1,4 +1,5 @@
 import 'package:bikebooking/core/constants/global.dart';
+import 'package:bikebooking/core/widgets/app_snackbar.dart';
 import 'package:bikebooking/features/auth/presentation/controllers/login_controller.dart';
 import 'package:bikebooking/features/home/presentation/controllers/home_products_controller.dart';
 import 'package:bikebooking/features/home/presentation/controllers/notifications_controller.dart';
@@ -85,14 +86,12 @@ class _HomePageState extends State<HomePage> {
           return;
         }
         _lastBackPressTime = now;
-        ScaffoldMessenger.of(context)
-          ..removeCurrentSnackBar()
-          ..showSnackBar(
-            const SnackBar(
-              content: Text('Press back again to exit'),
-              duration: Duration(seconds: 2),
-            ),
-          );
+        AppSnackbar.show(
+          title: 'Exit',
+          message: 'Press back again to exit',
+          backgroundColor: Colors.black87,
+          duration: const Duration(seconds: 2),
+        );
       },
       child: Scaffold(
         key: _scaffoldKey,
