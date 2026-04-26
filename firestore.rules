@@ -234,7 +234,9 @@ service cloud.firestore {
       allow create: if isSignedIn()
                     && request.auth.uid == request.resource.data.blockerId;
       allow update: if isSignedIn()
-                    && request.auth.uid == resource.data.blockerId;
+                    && request.auth.uid == resource.data.blockerId
+                    && request.resource.data.blockerId == resource.data.blockerId
+                    && request.resource.data.blockedUserId == resource.data.blockedUserId;
       allow delete: if isSignedIn()
                     && request.auth.uid == resource.data.blockerId;
     }
