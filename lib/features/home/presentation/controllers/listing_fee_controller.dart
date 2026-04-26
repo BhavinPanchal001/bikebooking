@@ -148,7 +148,7 @@ class ListingFeeController extends GetxController {
     // Demo mock path: Razorpay checkout runs without a server-minted
     // order_id, so signature / orderId may be empty. The mock verifier
     // doesn't validate them, so only enforce presence on the real path.
-    final requireSignedPayload = !kUseMockPayments;
+    const requireSignedPayload = !kUseMockPayments;
     if (razorpayPaymentId.isEmpty ||
         (requireSignedPayload && razorpaySignature.isEmpty) ||
         (requireSignedPayload && razorpayOrderId.isEmpty) ||

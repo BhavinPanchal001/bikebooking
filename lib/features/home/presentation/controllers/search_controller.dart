@@ -1,5 +1,8 @@
 import 'dart:async';
+import 'dart:math';
 
+import 'package:bikebooking/core/constants/bike_brand_catalog.dart';
+import 'package:bikebooking/features/home/data/models/product_filter_state.dart';
 import 'package:bikebooking/features/auth/presentation/controllers/login_controller.dart';
 import 'package:bikebooking/features/home/data/models/product_model.dart';
 import 'package:bikebooking/features/home/data/services/product_firestore_service.dart';
@@ -27,8 +30,9 @@ class SearchController extends GetxController {
   final SellerActionFirestoreService _sellerActionService;
   final LoginController _loginController;
 
-  static const int _maxRecentSearches = 8;
+  static const int _maxRecentSearches = 4;
   static const int _minRecentSearchLength = 2;
+  static const Object _noChange = Object();
 
   final TextEditingController searchTextController = TextEditingController();
 
@@ -44,6 +48,17 @@ class SearchController extends GetxController {
   Set<String> _hiddenUserIds = <String>{};
   List<ProductModel> _searchResults = [];
   List<ProductModel> get searchResults => List.unmodifiable(_searchResults);
+
+  ProductFilterState _filterState = ProductFilterState(category: 'Bikes');
+  ProductFilterState get filterState => _filterState;
+
+  List<String> get availableBrands {
+    final productBrands = _allProducts
+        .map((product) => product.brand.trim())
+        .where((brand) => brand.isNotEmpty)
+        .toList(growable: false);
+    return BikeBrandCatalog.mergeWith(productBrands);
+  }
 
   List<ProductModel> _recommendedProducts = [];
   List<ProductModel> get recommendedProducts =>
@@ -77,7 +92,7 @@ class SearchController extends GetxController {
       _rebuildRecommendations();
 
       if (hasQuery) {
-        _searchResults = _filterProducts(_currentQuery);
+        _searchResults = _buildSearchResults(_currentQuery);
       } else {
         _searchResults = [];
       }
@@ -101,7 +116,7 @@ class SearchController extends GetxController {
     }
 
     _searchDebounce = Timer(const Duration(milliseconds: 250), () async {
-      _searchResults = _filterProducts(_currentQuery);
+      _searchResults = _buildSearchResults(_currentQuery);
       if (_currentQuery.length >= _minRecentSearchLength) {
         await _saveRecentSearch(_currentQuery);
         _rebuildRecommendations();
@@ -121,7 +136,7 @@ class SearchController extends GetxController {
       selection: TextSelection.collapsed(offset: resolvedQuery.length),
     );
     _currentQuery = resolvedQuery;
-    _searchResults = _filterProducts(resolvedQuery);
+    _searchResults = _buildSearchResults(resolvedQuery);
     await _saveRecentSearch(resolvedQuery);
     _rebuildRecommendations();
     update();
@@ -141,10 +156,67 @@ class SearchController extends GetxController {
     update();
   }
 
+  void updateBrandFilter(String? brand) {
+    _filterState = _copyFilterState(selectedBrand: _normalizeString(brand));
+    _searchResults = _buildSearchResults(_currentQuery);
+    update();
+  }
+
+  void updatePriceFilter({
+    String? selectedQuickPrice,
+    double? maxPrice,
+  }) {
+    _filterState = _copyFilterState(
+      selectedQuickPrice: _normalizeString(selectedQuickPrice),
+      maxPrice: maxPrice,
+    );
+    _searchResults = _buildSearchResults(_currentQuery);
+    update();
+  }
+
+  void updateYearFilter({
+    int? minYear,
+    int? maxYear,
+    String? selectedBikeAge,
+  }) {
+    _filterState = _copyFilterState(
+      minYear: minYear,
+      maxYear: maxYear,
+      selectedBikeAge: _normalizeString(selectedBikeAge),
+    );
+    _searchResults = _buildSearchResults(_currentQuery);
+    update();
+  }
+
+  void updateSortFilter(String? selectedSort) {
+    _filterState = _copyFilterState(
+      selectedSort: _normalizeString(selectedSort),
+    );
+    _searchResults = _buildSearchResults(_currentQuery);
+    update();
+  }
+
+  void clearFilters() {
+    _filterState = ProductFilterState(category: _filterState.category);
+    _searchResults = _buildSearchResults(_currentQuery);
+    update();
+  }
+
   Future<void> removeRecentSearch(String query) async {
     _recentSearches.removeWhere(
       (item) => item.trim().toLowerCase() == query.trim().toLowerCase(),
     );
+    await _persistRecentSearches();
+    _rebuildRecommendations();
+    update();
+  }
+
+  Future<void> clearRecentSearches() async {
+    if (_recentSearches.isEmpty) {
+      return;
+    }
+
+    _recentSearches.clear();
     await _persistRecentSearches();
     _rebuildRecommendations();
     update();
@@ -197,6 +269,18 @@ class SearchController extends GetxController {
     });
 
     return matchedProducts;
+  }
+
+  List<ProductModel> _buildSearchResults(String query) {
+    final filtered = _filterProducts(query).where((product) {
+      if (!_matchesBrand(product, _filterState)) return false;
+      if (!_matchesPrice(product, _filterState)) return false;
+      if (!_matchesYear(product, _filterState)) return false;
+      return true;
+    }).toList();
+
+    _sortProducts(filtered, _filterState.selectedSort);
+    return filtered;
   }
 
   int _searchScore(ProductModel product, List<String> tokens) {
@@ -344,6 +428,7 @@ class SearchController extends GetxController {
     return searches
         .map((item) => item.trim())
         .where((item) => item.isNotEmpty)
+        .take(_maxRecentSearches)
         .toList(growable: true);
   }
 
@@ -385,6 +470,166 @@ class SearchController extends GetxController {
       product.sellerType ?? '',
       product.condition ?? '',
     ].join(' ').toLowerCase();
+  }
+
+  bool _matchesBrand(ProductModel product, ProductFilterState filterState) {
+    final brand = filterState.selectedBrand;
+    if (brand == null || brand.trim().isEmpty) {
+      return true;
+    }
+    return product.brand.trim().toLowerCase() == brand.trim().toLowerCase();
+  }
+
+  bool _matchesPrice(ProductModel product, ProductFilterState filterState) {
+    final price = product.price;
+    final quickRange = _parsePriceRange(filterState.selectedQuickPrice);
+    final minPrice = quickRange.$1;
+    final maxPrice = quickRange.$2 ?? filterState.maxPrice;
+
+    if (minPrice == null && maxPrice == null) {
+      return true;
+    }
+    if (price == null) {
+      return false;
+    }
+    if (minPrice != null && price < minPrice) {
+      return false;
+    }
+    if (maxPrice != null && price > maxPrice) {
+      return false;
+    }
+    return true;
+  }
+
+  bool _matchesYear(ProductModel product, ProductFilterState filterState) {
+    final year = product.year;
+    final minYear = switch ((
+      filterState.minYear,
+      _minYearFromBikeAge(filterState.selectedBikeAge)
+    )) {
+      (null, null) => null,
+      (final manual?, null) => manual,
+      (null, final bikeAge?) => bikeAge,
+      (final manual?, final bikeAge?) => max(manual, bikeAge),
+    };
+    final maxYear = filterState.maxYear;
+
+    if (minYear == null && maxYear == null) {
+      return true;
+    }
+    if (year == null) {
+      return false;
+    }
+    if (minYear != null && year < minYear) {
+      return false;
+    }
+    if (maxYear != null && year > maxYear) {
+      return false;
+    }
+    return true;
+  }
+
+  void _sortProducts(List<ProductModel> products, String? selectedSort) {
+    switch (selectedSort) {
+      case 'Low to High':
+        products.sort((first, second) {
+          final firstPrice = first.price ?? double.infinity;
+          final secondPrice = second.price ?? double.infinity;
+          return firstPrice.compareTo(secondPrice);
+        });
+        break;
+      case 'High to Low':
+        products.sort((first, second) {
+          final firstPrice = first.price ?? 0;
+          final secondPrice = second.price ?? 0;
+          return secondPrice.compareTo(firstPrice);
+        });
+        break;
+      case 'Newest First':
+        products.sort((first, second) {
+          final firstCreatedAt =
+              first.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+          final secondCreatedAt =
+              second.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+          return secondCreatedAt.compareTo(firstCreatedAt);
+        });
+        break;
+    }
+  }
+
+  (double?, double?) _parsePriceRange(String? selectedQuickPrice) {
+    switch (selectedQuickPrice) {
+      case '₹0k-₹25k':
+        return (0, 25000);
+      case '₹25k-₹50k':
+        return (25000, 50000);
+      case '₹50k-₹1L':
+        return (50000, 100000);
+      case '₹1L-₹1.5L':
+        return (100000, 150000);
+      case '₹1.5L-₹2L':
+        return (150000, 200000);
+      case '₹2L+':
+        return (200000, null);
+      default:
+        return (null, null);
+    }
+  }
+
+  int? _minYearFromBikeAge(String? selectedBikeAge) {
+    final currentYear = DateTime.now().year;
+    switch (selectedBikeAge) {
+      case '2 year or less':
+        return currentYear - 2;
+      case '4 year or less':
+        return currentYear - 4;
+      case '6 year or less':
+        return currentYear - 6;
+      case '8 year or less':
+        return currentYear - 8;
+      default:
+        return null;
+    }
+  }
+
+  ProductFilterState _copyFilterState({
+    Object? selectedBrand = _noChange,
+    Object? selectedSort = _noChange,
+    Object? maxPrice = _noChange,
+    Object? selectedQuickPrice = _noChange,
+    Object? minYear = _noChange,
+    Object? maxYear = _noChange,
+    Object? selectedBikeAge = _noChange,
+  }) {
+    return ProductFilterState(
+      category: _filterState.category,
+      selectedBrand: identical(selectedBrand, _noChange)
+          ? _filterState.selectedBrand
+          : selectedBrand as String?,
+      selectedSort: identical(selectedSort, _noChange)
+          ? _filterState.selectedSort
+          : selectedSort as String?,
+      maxPrice: identical(maxPrice, _noChange)
+          ? _filterState.maxPrice
+          : maxPrice as double?,
+      selectedQuickPrice: identical(selectedQuickPrice, _noChange)
+          ? _filterState.selectedQuickPrice
+          : selectedQuickPrice as String?,
+      minYear: identical(minYear, _noChange)
+          ? _filterState.minYear
+          : minYear as int?,
+      maxYear: identical(maxYear, _noChange)
+          ? _filterState.maxYear
+          : maxYear as int?,
+      selectedBikeAge: identical(selectedBikeAge, _noChange)
+          ? _filterState.selectedBikeAge
+          : selectedBikeAge as String?,
+    );
+  }
+
+  String? _normalizeString(String? value) {
+    final trimmed = value?.trim() ?? '';
+    return trimmed.isEmpty ? null : trimmed;
   }
 
   String get _recentSearchStorageKey {

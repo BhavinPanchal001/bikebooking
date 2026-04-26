@@ -11,6 +11,7 @@ import 'features/auth/presentation/pages/otp_verification_screen.dart';
 import 'features/auth/presentation/pages/enter_name_screen.dart';
 import 'features/location/presentation/pages/select_location_screen.dart';
 import 'features/location/presentation/pages/location_search_screen.dart';
+import 'features/location/presentation/pages/change_location_screen.dart';
 import 'features/home/presentation/pages/home_page.dart';
 import 'features/home/presentation/pages/select_category_screen.dart';
 import 'features/home/presentation/pages/search_screen.dart';
@@ -125,6 +126,9 @@ class MyApp extends StatelessWidget {
         }
         if (settings.name == '/location_search') {
           return buildRoute(const LocationSearchScreen());
+        }
+        if (settings.name == '/change_location') {
+          return buildRoute(const ChangeLocationScreen());
         }
         if (settings.name == '/home') {
           return buildRoute(const HomePage());

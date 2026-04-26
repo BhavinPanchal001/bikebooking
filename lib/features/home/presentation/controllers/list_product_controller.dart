@@ -49,6 +49,7 @@ class ListProductController extends GetxController {
   final String Function()? _sellerIdProvider;
   final String Function()? _sellerNameProvider;
   static const int _maxProductImages = 6;
+  static const Duration _currentLocationTimeout = Duration(seconds: 15);
 
   /// Non-null when the just-submitted product needs a listing-fee payment
   /// before it will appear in public listings. Consumed by the UI to open
@@ -507,9 +508,8 @@ class ListProductController extends GetxController {
       final requiresListingFee =
           listingFee != null && listingFee.amountPaise > 0;
 
-      final effectiveStatus = requiresListingFee
-          ? ProductStatus.awaitingPayment
-          : _status;
+      final effectiveStatus =
+          requiresListingFee ? ProductStatus.awaitingPayment : _status;
 
       final product = ProductModel(
         id: _editingProductId,
@@ -739,11 +739,7 @@ class ListProductController extends GetxController {
         );
       }
 
-      final position = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
-        ),
-      );
+      final position = await _getCurrentPosition();
 
       var resolvedAddress =
           '${position.latitude.toStringAsFixed(5)}, ${position.longitude.toStringAsFixed(5)}';
@@ -776,7 +772,7 @@ class ListProductController extends GetxController {
         snackPosition: SnackPosition.BOTTOM,
       );
     } catch (error) {
-      final message = error.toString().replaceFirst('Exception: ', '');
+      final message = _friendlyLocationError(error);
       Get.snackbar(
         'Location Error',
         message,
@@ -787,6 +783,26 @@ class ListProductController extends GetxController {
     } finally {
       _isFetchingCurrentLocation = false;
       update();
+    }
+  }
+
+  Future<Position> _getCurrentPosition() async {
+    try {
+      return await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.low,
+          timeLimit: _currentLocationTimeout,
+        ),
+      );
+    } on TimeoutException {
+      final lastKnownPosition = await Geolocator.getLastKnownPosition();
+      if (lastKnownPosition != null) {
+        return lastKnownPosition;
+      }
+
+      throw Exception(
+        'Unable to detect your location right now. Move to an open area, make sure GPS is on, and try again.',
+      );
     }
   }
 
@@ -1045,6 +1061,19 @@ class ListProductController extends GetxController {
     }
 
     return fallback;
+  }
+
+  String _friendlyLocationError(Object error) {
+    if (error is TimeoutException) {
+      return 'Unable to detect your location right now. Move to an open area, make sure GPS is on, and try again.';
+    }
+
+    final message = error.toString().replaceFirst('Exception: ', '');
+    if (message.toLowerCase().contains('timeoutexception')) {
+      return 'Unable to detect your location right now. Move to an open area, make sure GPS is on, and try again.';
+    }
+
+    return message;
   }
 
   static String _joinAddressParts(List<String?> parts) {

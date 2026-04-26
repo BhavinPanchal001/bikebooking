@@ -28,6 +28,7 @@ class BikeDetailScreen extends StatefulWidget {
 
 class _BikeDetailScreenState extends State<BikeDetailScreen> {
   late final FavoritesController _favoritesController;
+  late final PageController _imagePageController;
   ProductModel? _product;
   bool _isOwnerView = false;
   List<String> _imageUrls = const [];
@@ -44,9 +45,16 @@ class _BikeDetailScreenState extends State<BikeDetailScreen> {
   @override
   void initState() {
     super.initState();
+    _imagePageController = PageController();
     _favoritesController = Get.isRegistered<FavoritesController>()
         ? Get.find<FavoritesController>()
         : Get.put(FavoritesController(), permanent: true);
+  }
+
+  @override
+  void dispose() {
+    _imagePageController.dispose();
+    super.dispose();
   }
 
   @override
@@ -84,19 +92,25 @@ class _BikeDetailScreenState extends State<BikeDetailScreen> {
         .map((url) => url.trim())
         .where((url) => url.isNotEmpty)
         .toList(growable: false);
+    _selectedIndex = 0;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || !Get.isRegistered<HomeProductsController>()) {
         return;
       }
 
+      if (_imagePageController.hasClients) {
+        _imagePageController.jumpToPage(0);
+      }
+
       Get.find<HomeProductsController>().recordProductView(product);
     });
 
-    _loadSellerInfo(product.sellerId);
+    _loadSellerInfo(product);
   }
 
-  Future<void> _loadSellerInfo(String sellerId) async {
+  Future<void> _loadSellerInfo(ProductModel product) async {
+    final sellerId = product.sellerId;
     final normalizedId = sellerId.trim();
     if (normalizedId.isEmpty) return;
 
@@ -104,45 +118,93 @@ class _BikeDetailScreenState extends State<BikeDetailScreen> {
       setState(() => _loadingSeller = true);
     }
 
-    try {
-      final userRepo = UserFirestoreService();
-      final productRepo = ProductFirestoreService();
-      final reviewRepo = SellerReviewFirestoreService();
+    final userRepo = UserFirestoreService();
+    final productRepo = ProductFirestoreService();
+    final reviewRepo = SellerReviewFirestoreService();
 
-      final futures = await Future.wait([
-        userRepo.getUserById(normalizedId),
-        productRepo.getUserProducts(
-          normalizedId,
-          includeInactive: _isOwnerView,
-        ),
-        reviewRepo.getSellerReviews(normalizedId),
-      ]);
+    final seller = await _loadSellerSafely(userRepo, normalizedId);
+    final listings = _listingsWithCurrentProduct(
+      await _loadSellerListingsSafely(productRepo, normalizedId),
+      product,
+      sellerId: normalizedId,
+    );
+    final reviews = await _loadSellerReviewsSafely(reviewRepo, normalizedId);
 
-      if (!mounted) return;
+    if (!mounted) return;
 
-      final seller = futures[0] as AppUserModel?;
-      final listings = futures[1] as List<ProductModel>;
-      final reviews = futures[2] as List<SellerReviewModel>;
-
-      double avgRating = 0;
-      if (reviews.isNotEmpty) {
-        final total = reviews.fold<double>(0, (sum, item) => sum + item.rating);
-        avgRating = total / reviews.length;
-      }
-
-      setState(() {
-        _seller = seller;
-        _sellerTotalListings = listings.length;
-        _sellerReviewCount = reviews.length;
-        _sellerAverageRating = avgRating;
-        _loadingSeller = false;
-      });
-    } catch (e) {
-      debugPrint('Error loading seller info: $e');
-      if (mounted) {
-        setState(() => _loadingSeller = false);
-      }
+    double avgRating = 0;
+    if (reviews.isNotEmpty) {
+      final total = reviews.fold<double>(0, (sum, item) => sum + item.rating);
+      avgRating = total / reviews.length;
     }
+
+    setState(() {
+      _seller = seller;
+      _sellerTotalListings = listings.length;
+      _sellerReviewCount = reviews.length;
+      _sellerAverageRating = avgRating;
+      _loadingSeller = false;
+    });
+  }
+
+  Future<AppUserModel?> _loadSellerSafely(
+    UserFirestoreService userRepo,
+    String sellerId,
+  ) async {
+    try {
+      return await userRepo.getUserById(sellerId);
+    } catch (error) {
+      debugPrint('Error loading seller profile: $error');
+      return null;
+    }
+  }
+
+  Future<List<ProductModel>> _loadSellerListingsSafely(
+    ProductFirestoreService productRepo,
+    String sellerId,
+  ) async {
+    try {
+      return await productRepo.getUserProducts(
+        sellerId,
+        includeInactive: _isOwnerView,
+      );
+    } catch (error) {
+      debugPrint('Error loading seller listings: $error');
+      return const <ProductModel>[];
+    }
+  }
+
+  Future<List<SellerReviewModel>> _loadSellerReviewsSafely(
+    SellerReviewFirestoreService reviewRepo,
+    String sellerId,
+  ) async {
+    try {
+      return await reviewRepo.getSellerReviews(sellerId);
+    } catch (error) {
+      debugPrint('Error loading seller reviews: $error');
+      return const <SellerReviewModel>[];
+    }
+  }
+
+  List<ProductModel> _listingsWithCurrentProduct(
+    List<ProductModel> listings,
+    ProductModel currentProduct, {
+    required String sellerId,
+  }) {
+    final currentSellerId = currentProduct.sellerId.trim();
+    if (currentSellerId != sellerId ||
+        (!_isOwnerView && !currentProduct.isActive)) {
+      return listings;
+    }
+
+    final currentProductId = currentProduct.id?.trim() ?? '';
+    final containsCurrentProduct = currentProductId.isNotEmpty &&
+        listings.any((listing) => listing.id?.trim() == currentProductId);
+    if (containsCurrentProduct) {
+      return listings;
+    }
+
+    return <ProductModel>[currentProduct, ...listings];
   }
 
   @override
@@ -245,6 +307,13 @@ class _BikeDetailScreenState extends State<BikeDetailScreen> {
                               setState(() {
                                 _selectedIndex = index;
                               });
+                              if (_imagePageController.hasClients) {
+                                _imagePageController.animateToPage(
+                                  index,
+                                  duration: const Duration(milliseconds: 220),
+                                  curve: Curves.easeOut,
+                                );
+                              }
                             },
                           ),
                         ),
@@ -409,19 +478,50 @@ class _BikeDetailScreenState extends State<BikeDetailScreen> {
       );
     }
 
-    return ProductCachedImage(
-      imageUrl: _imageUrls[_selectedIndex],
-      fit: BoxFit.contain,
-      errorBuilder: (_) => const Icon(
-        Icons.image_outlined,
-        size: 100,
-        color: Colors.grey,
-      ),
-      placeholderBuilder: (_) => const Center(
-        child: CircularProgressIndicator(
-          color: Color(0xFF2E3E5C),
+    if (_imageUrls.length == 1) {
+      return ProductCachedImage(
+        imageUrl: _imageUrls.first,
+        fit: BoxFit.contain,
+        errorBuilder: (_) => const Icon(
+          Icons.image_outlined,
+          size: 100,
+          color: Colors.grey,
         ),
-      ),
+        placeholderBuilder: (_) => const Center(
+          child: CircularProgressIndicator(
+            color: Color(0xFF2E3E5C),
+          ),
+        ),
+      );
+    }
+
+    return PageView.builder(
+      controller: _imagePageController,
+      physics: const BouncingScrollPhysics(),
+      itemCount: _imageUrls.length,
+      onPageChanged: (index) {
+        setState(() {
+          _selectedIndex = index;
+        });
+      },
+      itemBuilder: (context, index) {
+        return Center(
+          child: ProductCachedImage(
+            imageUrl: _imageUrls[index],
+            fit: BoxFit.contain,
+            errorBuilder: (_) => const Icon(
+              Icons.image_outlined,
+              size: 100,
+              color: Colors.grey,
+            ),
+            placeholderBuilder: (_) => const Center(
+              child: CircularProgressIndicator(
+                color: Color(0xFF2E3E5C),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 

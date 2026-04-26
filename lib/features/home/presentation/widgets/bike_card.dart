@@ -1,7 +1,6 @@
 import 'package:bikebooking/core/widgets/product_cached_image.dart';
 import 'package:bikebooking/features/home/data/models/product_model.dart';
 import 'package:bikebooking/features/home/presentation/controllers/favorites_controller.dart';
-import 'package:bikebooking/features/home/presentation/widgets/product_status_badge.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 

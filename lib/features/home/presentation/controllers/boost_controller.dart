@@ -191,7 +191,7 @@ class BoostController extends GetxController {
     // server-minted order_id, so Razorpay's success response may come
     // back with an empty signature / orderId. The mock verifier doesn't
     // care about either, so we only enforce them in the real path.
-    final requireSignedPayload = !kUseMockPayments;
+    const requireSignedPayload = !kUseMockPayments;
     if (paymentId.isEmpty ||
         (requireSignedPayload && signature.isEmpty) ||
         (requireSignedPayload && orderId.isEmpty) ||

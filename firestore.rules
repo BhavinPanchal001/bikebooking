@@ -137,6 +137,23 @@ service cloud.firestore {
     match /users/{userId} {
       allow read: if true;
       allow write: if isSignedIn() && request.auth.uid == userId;
+
+      match /reviews/{reviewerId} {
+        allow read: if true;
+        allow create: if isSignedIn() && request.auth.uid == reviewerId;
+        allow update, delete: if isSignedIn() && request.auth.uid == reviewerId;
+      }
+    }
+
+    // ── user favorites ────────────────────────────────────────────────────────
+    // Parent document rules do not cascade into subcollections, so favorites
+    // need their own owner-only permissions.
+    match /users/{userId}/favorites/{productId} {
+      allow read: if isSignedIn() && request.auth.uid == userId;
+      allow create, update: if isSignedIn()
+                            && request.auth.uid == userId
+                            && request.resource.data.productId == productId;
+      allow delete: if isSignedIn() && request.auth.uid == userId;
     }
 
     // ── admin_users (admin panel authorization allowlist) ─────────────────────
