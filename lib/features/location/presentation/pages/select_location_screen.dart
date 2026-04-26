@@ -1,4 +1,5 @@
 import 'package:bikebooking/features/auth/presentation/controllers/login_controller.dart';
+import 'package:bikebooking/features/location/presentation/widgets/location_option_card.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -121,60 +122,11 @@ class _SelectLocationScreenState extends State<SelectLocationScreen> {
     required VoidCallback? onTap,
     required Widget leading,
   }) {
-    return Container(
-      decoration: BoxDecoration(
-        border: Border.all(color: const Color(0xFFDDDDDD)),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          child: Row(
-            children: [
-              // Custom Leading
-              leading,
-              const SizedBox(width: 16),
-
-              // Text Content
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      title,
-                      style: GoogleFonts.poppins(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black,
-                      ),
-                    ),
-                    if (subtitle.isNotEmpty) ...[
-                      const SizedBox(height: 2),
-                      Text(
-                        subtitle,
-                        style: GoogleFonts.poppins(
-                          fontSize: 11,
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-
-              // Trailing Arrow
-              const Icon(
-                Icons.arrow_forward_ios,
-                size: 14,
-                color: AppColors.primary,
-              ),
-            ],
-          ),
-        ),
-      ),
+    return LocationOptionCard(
+      title: title,
+      subtitle: subtitle,
+      onTap: onTap,
+      leading: leading,
     );
   }
 }

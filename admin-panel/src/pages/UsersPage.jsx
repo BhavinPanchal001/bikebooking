@@ -156,101 +156,107 @@ export function UsersPage({ data, adminEmail }) {
           {data.loading ? (
             <div className="empty-state">Loading live users...</div>
           ) : filteredUsers.length > 0 ? (
-            filteredUsers.map((user) => (
-              <article key={user.id} className="user-card">
-                <div className="user-card-head">
-                  <div>
-                    <h4>{user.fullName}</h4>
-                    <p>{user.location?.address || 'Location not shared'}</p>
+            filteredUsers.map((user) => {
+              const isBlocked = user.accountStatus === 'blocked';
+              const accountActionType = isBlocked ? 'unblock' : 'block';
+              const accountActionBusyKey = `${accountActionType}:${user.id}`;
+
+              return (
+                <article key={user.id} className="user-card">
+                  <div className="user-card-head">
+                    <div>
+                      <h4>{user.fullName}</h4>
+                      <p>{user.location?.address || 'Location not shared'}</p>
+                    </div>
+                    <div className="row-actions">
+                      <span className={`status-pill status-${isBlocked ? 'blocked' : 'approved'}`}>
+                        {user.accountStatus}
+                      </span>
+                      <span className={`status-pill status-${user.verificationStatus}`}>
+                        {user.verificationStatus}
+                      </span>
+                    </div>
                   </div>
-                  <div className="row-actions">
-                    <span className={`status-pill status-${user.accountStatus === 'blocked' ? 'blocked' : 'approved'}`}>
-                      {user.accountStatus}
-                    </span>
-                    <span className={`status-pill status-${user.verificationStatus}`}>
-                      {user.verificationStatus}
-                    </span>
+                  <div className="user-card-body">
+                    <div>
+                      <span>Email</span>
+                      <strong>{user.email || 'Not added'}</strong>
+                    </div>
+                    <div>
+                      <span>Phone</span>
+                      <strong>{user.phoneNumber || 'Not added'}</strong>
+                    </div>
+                    <div>
+                      <span>Joined</span>
+                      <strong>{formatDate(user.joinedAt)}</strong>
+                    </div>
+                    <div>
+                      <span>Active listings</span>
+                      <strong>{user.activeListings}</strong>
+                    </div>
+                    <div>
+                      <span>Total sales</span>
+                      <strong>{formatCurrency(user.totalSales)}</strong>
+                    </div>
+                    <div>
+                      <span>Seller rating</span>
+                      <strong>{user.rating > 0 ? user.rating.toFixed(1) : 'New'}</strong>
+                    </div>
+                    <div>
+                      <span>Reports</span>
+                      <strong>
+                        {user.reportCount > 0
+                          ? `${user.reportCount} total · ${user.openReportCount} open`
+                          : 'None'}
+                      </strong>
+                    </div>
                   </div>
-                </div>
-                <div className="user-card-body">
-                  <div>
-                    <span>Email</span>
-                    <strong>{user.email || 'Not added'}</strong>
-                  </div>
-                  <div>
-                    <span>Phone</span>
-                    <strong>{user.phoneNumber || 'Not added'}</strong>
-                  </div>
-                  <div>
-                    <span>Joined</span>
-                    <strong>{formatDate(user.joinedAt)}</strong>
-                  </div>
-                  <div>
-                    <span>Active listings</span>
-                    <strong>{user.activeListings}</strong>
-                  </div>
-                  <div>
-                    <span>Total sales</span>
-                    <strong>{formatCurrency(user.totalSales)}</strong>
-                  </div>
-                  <div>
-                    <span>Seller rating</span>
-                    <strong>{user.rating > 0 ? user.rating.toFixed(1) : 'New'}</strong>
-                  </div>
-                  <div>
-                    <span>Reports</span>
-                    <strong>
+                  <div className="user-card-footer">
+                    <div className="user-card-note">
                       {user.reportCount > 0
-                        ? `${user.reportCount} total · ${user.openReportCount} open`
-                        : 'None'}
-                    </strong>
-                  </div>
-                </div>
-                <div className="user-card-footer">
-                  <div className="user-card-note">
-                    {user.reportCount > 0
-                      ? `Latest report ${formatDateTime(user.latestReportAt)}${user.reportReasons?.[0] ? ` · ${user.reportReasons[0]}` : ''}`
-                      : user.accountStatus === 'blocked'
-                        ? `Blocked ${user.adminBlockedAt ? formatDate(user.adminBlockedAt) : 'recently'}${user.adminBlockedBy ? ` by ${user.adminBlockedBy}` : ''}`
-                        : 'Account is active in the admin panel.'}
-                  </div>
-                  <ActionMenu
-                    items={[
-                      user.accountStatus === 'blocked'
-                        ? {
-                          key: 'unblock',
-                          label: 'Unblock user',
-                          disabled: busyActionKey === `unblock:${user.id}`,
-                          onSelect() {
-                            clearFeedback();
-                            setPendingAction({ type: 'unblock', user });
-                          },
-                        }
-                        : {
-                          key: 'block',
-                          label: 'Block user',
-                          tone: 'danger',
-                          disabled: busyActionKey === `block:${user.id}`,
-                          onSelect() {
-                            clearFeedback();
-                            setPendingAction({ type: 'block', user });
-                          },
-                        },
-                      {
-                        key: 'delete',
-                        label: 'Delete user',
-                        tone: 'danger',
-                        disabled: busyActionKey === `delete:${user.id}`,
-                        onSelect() {
+                        ? `Latest report ${formatDateTime(user.latestReportAt)}${user.reportReasons?.[0] ? ` · ${user.reportReasons[0]}` : ''}`
+                        : isBlocked
+                          ? `Blocked ${user.adminBlockedAt ? formatDate(user.adminBlockedAt) : 'recently'}${user.adminBlockedBy ? ` by ${user.adminBlockedBy}` : ''}`
+                          : 'Account is active in the admin panel.'}
+                    </div>
+                    <div className="row-actions">
+                      <button
+                        type="button"
+                        className={isBlocked ? 'secondary-button' : 'danger-button'}
+                        disabled={busyActionKey === accountActionBusyKey}
+                        onClick={() => {
                           clearFeedback();
-                          setPendingAction({ type: 'delete', user });
-                        },
-                      },
-                    ]}
-                  />
-                </div>
-              </article>
-            ))
+                          setPendingAction({ type: accountActionType, user });
+                        }}
+                      >
+                        {busyActionKey === accountActionBusyKey
+                          ? isBlocked
+                            ? 'Unblocking...'
+                            : 'Blocking...'
+                          : isBlocked
+                            ? 'Unblock user'
+                            : 'Block user'}
+                      </button>
+                      <ActionMenu
+                        label="More"
+                        items={[
+                          {
+                            key: 'delete',
+                            label: 'Delete user',
+                            tone: 'danger',
+                            disabled: busyActionKey === `delete:${user.id}`,
+                            onSelect() {
+                              clearFeedback();
+                              setPendingAction({ type: 'delete', user });
+                            },
+                          },
+                        ]}
+                      />
+                    </div>
+                  </div>
+                </article>
+              );
+            })
           ) : (
             <div className="empty-state">No users matched the current filters.</div>
           )}
