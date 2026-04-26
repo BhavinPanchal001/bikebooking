@@ -308,21 +308,102 @@ class _FilterResultScreenState extends State<FilterResultScreen>
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: Container(
-                  width: 108,
-                  height: 108,
-                  color: const Color(0xFFF1F4F8),
-                  child: primaryImage != null
-                      ? ProductCachedImage(
-                          imageUrl: primaryImage,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_) => _buildImageFallback(),
-                          placeholderBuilder: (_) => _buildImageFallback(),
-                        )
-                      : _buildImageFallback(),
-                ),
+              Stack(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      width: 108,
+                      height: 108,
+                      color: const Color(0xFFF1F4F8),
+                      child: primaryImage != null
+                          ? ProductCachedImage(
+                              imageUrl: primaryImage,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_) => _buildImageFallback(),
+                              placeholderBuilder: (_) => _buildImageFallback(),
+                            )
+                          : _buildImageFallback(),
+                    ),
+                  ),
+                  Positioned(
+                    top: 6,
+                    left: 6,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (product.isCurrentlyEditorialFeatured) ...[
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFF2E4475), Color(0xFF5270B6)],
+                              ),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.star,
+                                  size: 10,
+                                  color: Colors.white,
+                                ),
+                                SizedBox(width: 2),
+                                Text(
+                                  'Featured',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 8,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                        ],
+                        if (product.isCurrentlyBoosted) ...[
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFFFF8C00), Color(0xFFFFAD33)],
+                              ),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.bolt,
+                                  size: 10,
+                                  color: Colors.white,
+                                ),
+                                SizedBox(width: 2),
+                                Text(
+                                  'Boosted',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 8,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(width: 16),
               Expanded(

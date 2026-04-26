@@ -58,8 +58,7 @@ class BikeCard extends StatelessWidget {
             Stack(
               children: [
                 ClipRRect(
-                  borderRadius:
-                      const BorderRadius.vertical(top: Radius.circular(20)),
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
                   child: _buildImage(),
                 ),
                 Positioned(
@@ -145,8 +144,7 @@ class BikeCard extends StatelessWidget {
                     builder: (controller) {
                       final isFavorite = controller.isFavorite(product);
                       return GestureDetector(
-                        onTap: onFavoriteTap ??
-                            () => favoritesController.toggleFavorite(product),
+                        onTap: onFavoriteTap ?? () => favoritesController.toggleFavorite(product),
                         child: Container(
                           padding: const EdgeInsets.all(7),
                           decoration: const BoxDecoration(
@@ -156,9 +154,7 @@ class BikeCard extends StatelessWidget {
                           child: Icon(
                             isFavorite ? Icons.favorite : Icons.favorite_border,
                             size: 16,
-                            color: isFavorite
-                                ? Colors.red
-                                : const Color(0xFF5E6E8C),
+                            color: isFavorite ? Colors.red : const Color(0xFF5E6E8C),
                           ),
                         ),
                       );
@@ -191,9 +187,7 @@ class BikeCard extends StatelessWidget {
                     child: Wrap(
                       spacing: 4,
                       runSpacing: 4,
-                      children: _buildTags()
-                          .map(_buildInfoTag)
-                          .toList(growable: false),
+                      children: _buildTags().map(_buildInfoTag).toList(growable: false),
                     ),
                   ),
                   const SizedBox(height: 9),
@@ -260,9 +254,7 @@ class BikeCard extends StatelessWidget {
   }
 
   Widget _buildImage() {
-    final imageUrl = product.imageUrls
-        .map((url) => url.trim())
-        .firstWhere((url) => url.isNotEmpty, orElse: () => '');
+    final imageUrl = product.imageUrls.map((url) => url.trim()).firstWhere((url) => url.isNotEmpty, orElse: () => '');
 
     if (imageUrl.isNotEmpty) {
       return ProductCachedImage(

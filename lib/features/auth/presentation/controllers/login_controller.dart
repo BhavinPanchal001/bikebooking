@@ -1022,6 +1022,34 @@ class LoginController extends GetxController with WidgetsBindingObserver {
     }
   }
 
+  Future<bool> removeProfilePhoto() async {
+    if (isUploadingProfilePhoto) {
+      return false;
+    }
+
+    final userProfile = currentUserProfile;
+    if (userProfile == null || userProfile.photoUrl.trim().isEmpty) {
+      return false;
+    }
+
+    isUploadingProfilePhoto = true;
+    update();
+
+    try {
+      await _profilePhotoStorageService.deleteProfilePhoto(userProfile.photoUrl);
+      final updatedUser = await _persistProfilePhoto('');
+      _setCurrentUserProfile(updatedUser);
+      _showInfo('Profile photo removed successfully.');
+      return true;
+    } catch (_) {
+      _setError('Unable to remove your profile photo right now.');
+      return false;
+    } finally {
+      isUploadingProfilePhoto = false;
+      update();
+    }
+  }
+
   Future<bool> deleteAccount() async {
     if (isDeletingAccount) {
       return false;

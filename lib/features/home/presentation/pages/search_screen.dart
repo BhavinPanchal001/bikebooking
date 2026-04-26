@@ -343,7 +343,7 @@ class _SearchScreenState extends State<SearchScreen> {
                     icon: Icons.add_circle_outline,
                     label: loginController.isSavingLocation
                         ? 'Saving...'
-                        : 'Add New Address',
+                        : 'Change location',
                     onTap: loginController.isSavingLocation
                         ? null
                         : () async {
