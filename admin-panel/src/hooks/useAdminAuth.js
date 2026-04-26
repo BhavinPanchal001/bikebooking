@@ -87,6 +87,10 @@ export function useAdminAuth() {
 
   async function login(email, password) {
     setError('');
+    if (MOCK_UI_TEST) {
+      setUser({ email: email.trim() || 'test@admin.local', uid: 'mock-admin' });
+      return { email: email.trim() || 'test@admin.local', uid: 'mock-admin' };
+    }
     if (!auth) {
       const message = 'Firebase Auth is not configured for the admin panel.';
       setError(message);
