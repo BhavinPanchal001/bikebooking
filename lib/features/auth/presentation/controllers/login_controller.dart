@@ -262,17 +262,10 @@ class LoginController extends GetxController {
         return;
       }
 
-      final firebaseUser = _authService.currentUser;
+      final firebaseUser = await _authService.currentUserAfterRestore();
       if (firebaseUser == null) {
-        // No Firebase session — check if we have a saved session to recover.
-        if (savedSession != null) {
-          await _assertAccountAccessAllowed(savedSession);
-          _setCurrentUserProfile(savedSession);
-          phoneNumber = savedSession.phoneNumber;
-          _navigateAfterAuth(savedSession);
-          return;
-        }
-
+        // A cached profile is not enough for protected Firestore reads.
+        // Chats, notifications, favorites, and writes require Firebase Auth.
         await _clearPersistedSession();
         _clearLocalSession();
         Get.offAllNamed('/login');
@@ -1117,9 +1110,15 @@ class LoginController extends GetxController {
       return true;
     }
 
-    if (!_authService.isConfigured || !_bypassPhoneAuth) {
+    if (!_authService.isConfigured) {
       _firestoreSessionErrorMessage =
           'Firebase Authentication is not configured for this build.';
+      return false;
+    }
+
+    if (!_bypassPhoneAuth) {
+      _firestoreSessionErrorMessage =
+          'Your sign-in session expired. Please sign in again to view messages.';
       return false;
     }
 

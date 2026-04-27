@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -60,6 +62,29 @@ class FirebaseAuthService {
   }
 
   User? get currentUser => _authOrNull?.currentUser;
+
+  Future<User?> currentUserAfterRestore({
+    Duration timeout = const Duration(seconds: 2),
+  }) async {
+    final auth = _authOrNull;
+    if (auth == null) {
+      return null;
+    }
+
+    final currentUser = auth.currentUser;
+    if (currentUser != null) {
+      return currentUser;
+    }
+
+    try {
+      return await auth
+          .authStateChanges()
+          .firstWhere((user) => user != null)
+          .timeout(timeout, onTimeout: () => auth.currentUser);
+    } on TimeoutException {
+      return auth.currentUser;
+    }
+  }
 
   Future<User?> ensureSignedInAnonymously() async {
     final currentUser = _authOrNull?.currentUser;

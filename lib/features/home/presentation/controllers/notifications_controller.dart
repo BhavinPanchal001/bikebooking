@@ -55,6 +55,16 @@ class NotificationsController extends GetxController {
       return;
     }
 
+    final hasSession = await _loginController.ensureFirestoreSession();
+    if (!hasSession) {
+      _notifications = [];
+      _errorMessage = _loginController.firestoreSessionErrorMessage ??
+          'Please sign in again to view your notifications.';
+      _isLoading = false;
+      update();
+      return;
+    }
+
     if (_boundUserId == userId && _subscription != null) {
       return;
     }
@@ -87,6 +97,15 @@ class NotificationsController extends GetxController {
     if (userId == null || userId.isEmpty) {
       _notifications = [];
       _errorMessage = 'Sign in to view your notifications.';
+      update();
+      return;
+    }
+
+    final hasSession = await _loginController.ensureFirestoreSession();
+    if (!hasSession) {
+      _notifications = [];
+      _errorMessage = _loginController.firestoreSessionErrorMessage ??
+          'Please sign in again to view your notifications.';
       update();
       return;
     }
