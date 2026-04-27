@@ -7,6 +7,7 @@ import 'package:bikebooking/features/home/data/models/product_filter_state.dart'
 import 'package:bikebooking/features/home/data/models/product_model.dart';
 import 'package:bikebooking/features/home/data/services/product_firestore_service.dart';
 import 'package:bikebooking/features/home/data/services/seller_action_firestore_service.dart';
+import 'package:bikebooking/features/home/presentation/controllers/home_product_ranker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 
@@ -187,6 +188,16 @@ class FilterResultController extends GetxController {
       if (!_matchesSellerType(product, filterState)) return false;
       return true;
     }).toList();
+
+    if (!filterState.hasActiveFilters) {
+      final selectedAddress =
+          _loginController.currentUserProfile?.location?.address ?? '';
+      return rankJustAddedProductsByLocation(
+        products: filtered,
+        selectedLocationAddress: selectedAddress,
+        limit: filtered.length,
+      );
+    }
 
     _sortProducts(filtered, filterState.selectedSort);
     return filtered;

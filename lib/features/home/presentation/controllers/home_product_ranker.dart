@@ -8,19 +8,22 @@ List<ProductModel> rankJustAddedProductsByLocation({
 }) {
   final editorial = <ProductModel>[];
   final matchingBoosted = <ProductModel>[];
-  final matchingRegular = <ProductModel>[];
+  final exactMatchingRegular = <ProductModel>[];
+  final partialMatchingRegular = <ProductModel>[];
   final otherProducts = <ProductModel>[];
 
   for (final product in products) {
-    final matchesSelectedLocation = _matchesSelectedLocation(
+    final matchScore = _getLocationMatchScore(
       product.location,
       selectedLocationAddress,
     );
 
     if (product.isCurrentlyEditorialFeatured) {
       editorial.add(product);
-    } else if (product.isCurrentlyBoosted && matchesSelectedLocation) {
-      matchingBoosted.add(product);
+    } else if (product.isCurrentlyBoosted) {
+      if (matchScore > 0) {
+        matchingBoosted.add(product);
+      }
     } else {
       if (product.isBoosted && !product.isCurrentlyBoosted) {
         final productId = product.id?.trim() ?? '';
@@ -29,8 +32,10 @@ List<ProductModel> rankJustAddedProductsByLocation({
         }
       }
 
-      if (matchesSelectedLocation) {
-        matchingRegular.add(product);
+      if (matchScore == 2) {
+        exactMatchingRegular.add(product);
+      } else if (matchScore == 1) {
+        partialMatchingRegular.add(product);
       } else {
         otherProducts.add(product);
       }
@@ -40,31 +45,36 @@ List<ProductModel> rankJustAddedProductsByLocation({
   return [
     ...editorial,
     ...matchingBoosted,
-    ...matchingRegular,
+    ...exactMatchingRegular,
+    ...partialMatchingRegular,
     ...otherProducts,
   ].take(limit).toList(growable: false);
 }
 
-bool _matchesSelectedLocation(String? productLocation, String selectedAddress) {
+int _getLocationMatchScore(String? productLocation, String selectedAddress) {
   final listingLocation = _normalizeLocationText(productLocation);
   final selectedLocation = _normalizeLocationText(selectedAddress);
   if (listingLocation.isEmpty || selectedLocation.isEmpty) {
-    return false;
+    return 0; // No match
   }
 
   if (listingLocation == selectedLocation ||
       selectedLocation.contains(listingLocation) ||
       listingLocation.contains(selectedLocation)) {
-    return true;
+    return 2; // Exact or substring match (Location)
   }
 
   final listingTokens = _locationTokens(listingLocation);
   final selectedTokens = _locationTokens(selectedLocation);
   if (listingTokens.isEmpty || selectedTokens.isEmpty) {
-    return false;
+    return 0; // No match
   }
 
-  return listingTokens.any(selectedTokens.contains);
+  if (listingTokens.any(selectedTokens.contains)) {
+    return 1; // Token match (District/Nearby)
+  }
+
+  return 0; // No match
 }
 
 String _normalizeLocationText(String? value) {

@@ -231,6 +231,9 @@ class SearchController extends GetxController {
   }
 
   void refreshRecommendations() {
+    if (hasQuery) {
+      _searchResults = _buildSearchResults(_currentQuery);
+    }
     _rebuildRecommendations();
     update();
   }
@@ -273,6 +276,7 @@ class SearchController extends GetxController {
 
   List<ProductModel> _buildSearchResults(String query) {
     final filtered = _filterProducts(query).where((product) {
+      if (!_matchesLocation(product)) return false;
       if (!_matchesBrand(product, _filterState)) return false;
       if (!_matchesPrice(product, _filterState)) return false;
       if (!_matchesYear(product, _filterState)) return false;
@@ -281,6 +285,22 @@ class SearchController extends GetxController {
 
     _sortProducts(filtered, _filterState.selectedSort);
     return filtered;
+  }
+
+  bool _matchesLocation(ProductModel product) {
+    final userLocation = _loginController.currentUserProfile?.location?.address
+            .trim()
+            .toLowerCase() ??
+        '';
+    if (userLocation.isEmpty) {
+      return true;
+    }
+    final productLocation = (product.location ?? '').trim().toLowerCase();
+    if (productLocation.isEmpty) {
+      return false;
+    }
+    return productLocation.contains(userLocation) ||
+        userLocation.contains(productLocation);
   }
 
   int _searchScore(ProductModel product, List<String> tokens) {

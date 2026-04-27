@@ -425,13 +425,14 @@ class BikeDetailFormScreen extends StatelessWidget {
     BuildContext context,
     ListProductController controller,
   ) async {
+    var searchQuery = '';
+    final searchController = TextEditingController();
+
     final selectedBrand = await showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (sheetContext) {
-        var searchQuery = '';
-
         return StatefulBuilder(
           builder: (context, setModalState) {
             final brandSections = _filteredBrandSections(searchQuery);
@@ -469,6 +470,7 @@ class BikeDetailFormScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 16),
                   TextField(
+                    controller: searchController,
                     onChanged: (value) {
                       setModalState(() {
                         searchQuery = value.trim();
@@ -593,6 +595,8 @@ class BikeDetailFormScreen extends StatelessWidget {
         );
       },
     );
+
+    searchController.dispose();
 
     if (selectedBrand != null && selectedBrand.trim().isNotEmpty) {
       controller.setBrand(selectedBrand.trim());

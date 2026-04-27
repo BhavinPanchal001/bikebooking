@@ -75,7 +75,7 @@ class PlaceSuggestion {
   }
 }
 
-class LoginController extends GetxController {
+class LoginController extends GetxController with WidgetsBindingObserver {
   LoginController(
     this._authService,
     this._userFirestoreService, {
@@ -157,7 +157,14 @@ class LoginController extends GetxController {
   bool get isPhoneAuthBypassed => _bypassPhoneAuth;
 
   @override
+  void onInit() {
+    super.onInit();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
   void onClose() {
+    WidgetsBinding.instance.removeObserver(this);
     phoneController.dispose();
     fullNameController.dispose();
     emailController.dispose();
@@ -171,6 +178,39 @@ class LoginController extends GetxController {
     }
     _placeSearchDebounce?.cancel();
     super.onClose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (currentUserProfile == null) return;
+    final userId = resolvedCurrentUserId;
+    if (userId.isEmpty) return;
+
+    switch (state) {
+      case AppLifecycleState.resumed:
+        _updateOnlineStatus(userId: userId, isOnline: true);
+      case AppLifecycleState.paused:
+      case AppLifecycleState.detached:
+      case AppLifecycleState.hidden:
+        _updateOnlineStatus(userId: userId, isOnline: false);
+      case AppLifecycleState.inactive:
+        break;
+    }
+  }
+
+  Future<void> _updateOnlineStatus({
+    required String userId,
+    required bool isOnline,
+  }) async {
+    try {
+      final chatService = ChatFirestoreService();
+      await chatService.updateUserOnlineStatus(
+        userId: userId,
+        isOnline: isOnline,
+      );
+    } catch (_) {
+      // Non-critical — ignore failures.
+    }
   }
 
   void updatePhoneNumber(String value) {
@@ -975,6 +1015,34 @@ class LoginController extends GetxController {
     }
   }
 
+  Future<bool> removeProfilePhoto() async {
+    if (isUploadingProfilePhoto) {
+      return false;
+    }
+
+    final userProfile = currentUserProfile;
+    if (userProfile == null || userProfile.photoUrl.trim().isEmpty) {
+      return false;
+    }
+
+    isUploadingProfilePhoto = true;
+    update();
+
+    try {
+      await _profilePhotoStorageService.deleteProfilePhoto(userProfile.photoUrl);
+      final updatedUser = await _persistProfilePhoto('');
+      _setCurrentUserProfile(updatedUser);
+      _showInfo('Profile photo removed successfully.');
+      return true;
+    } catch (_) {
+      _setError('Unable to remove your profile photo right now.');
+      return false;
+    } finally {
+      isUploadingProfilePhoto = false;
+      update();
+    }
+  }
+
   Future<bool> deleteAccount() async {
     if (isDeletingAccount) {
       return false;
@@ -1218,16 +1286,7 @@ class LoginController extends GetxController {
     infoMessage = null;
     update();
 
-    // Set user online status.
-    try {
-      final chatService = ChatFirestoreService();
-      await chatService.updateUserOnlineStatus(
-        userId: userProfile.id,
-        isOnline: true,
-      );
-    } catch (_) {
-      // Non-critical — ignore failures.
-    }
+    unawaited(_updateOnlineStatus(userId: userProfile.id, isOnline: true));
 
     _navigateAfterAuth(userProfile);
   }
@@ -1565,12 +1624,7 @@ class LoginController extends GetxController {
 
     if (normalizedUserId.isNotEmpty) {
       try {
-        final chatService = ChatFirestoreService();
-        await chatService
-            .updateUserOnlineStatus(
-              userId: normalizedUserId,
-              isOnline: false,
-            )
+        await _updateOnlineStatus(userId: normalizedUserId, isOnline: false)
             .timeout(const Duration(seconds: 3));
       } catch (_) {
         // Non-critical.

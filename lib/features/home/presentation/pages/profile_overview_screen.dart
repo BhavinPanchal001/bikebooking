@@ -596,17 +596,35 @@ class ProfileOverviewScreen extends StatelessWidget {
                   context: sheetContext,
                   icon: Icons.photo_library_outlined,
                   title: 'Choose from gallery',
-                  source: ImageSource.gallery,
-                  controller: controller,
+                  onTap: () async {
+                    Navigator.pop(sheetContext);
+                    await controller.uploadProfilePhoto(ImageSource.gallery);
+                  },
                 ),
                 const SizedBox(height: 12),
                 _buildPhotoSourceTile(
                   context: sheetContext,
                   icon: Icons.photo_camera_outlined,
                   title: 'Take a photo',
-                  source: ImageSource.camera,
-                  controller: controller,
+                  onTap: () async {
+                    Navigator.pop(sheetContext);
+                    await controller.uploadProfilePhoto(ImageSource.camera);
+                  },
                 ),
+                if (controller.currentUserProfile?.photoUrl.trim().isNotEmpty == true) ...[
+                  const SizedBox(height: 12),
+                  _buildPhotoSourceTile(
+                    context: sheetContext,
+                    icon: Icons.delete_outline,
+                    title: 'Remove photo',
+                    iconColor: Colors.red,
+                    textColor: Colors.red,
+                    onTap: () async {
+                      Navigator.pop(sheetContext);
+                      await controller.removeProfilePhoto();
+                    },
+                  ),
+                ],
               ],
             ),
           ),
@@ -619,15 +637,13 @@ class ProfileOverviewScreen extends StatelessWidget {
     required BuildContext context,
     required IconData icon,
     required String title,
-    required ImageSource source,
-    required LoginController controller,
+    required VoidCallback onTap,
+    Color? iconColor,
+    Color? textColor,
   }) {
     return InkWell(
       borderRadius: BorderRadius.circular(16),
-      onTap: () async {
-        Navigator.pop(context);
-        await controller.uploadProfilePhoto(source);
-      },
+      onTap: onTap,
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -647,7 +663,7 @@ class ProfileOverviewScreen extends StatelessWidget {
               ),
               child: Icon(
                 icon,
-                color: const Color(0xFF233A66),
+                color: iconColor ?? const Color(0xFF233A66),
                 size: 20,
               ),
             ),
@@ -655,10 +671,10 @@ class ProfileOverviewScreen extends StatelessWidget {
             Expanded(
               child: Text(
                 title,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFF2E3E5C),
+                  color: textColor ?? const Color(0xFF2E3E5C),
                 ),
               ),
             ),
