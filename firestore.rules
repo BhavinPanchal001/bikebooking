@@ -76,8 +76,6 @@ service cloud.firestore {
                          resource.data.get('boostStartedAt', null)
                     && request.resource.data.get('boostPlanId', null) ==
                          resource.data.get('boostPlanId', null)
-                    // Admin-grant boost metadata (see adminGrantBoost
-                    // callable). Sellers cannot fabricate or rewrite these.
                     && request.resource.data.get('boostGrantSource', null) ==
                          resource.data.get('boostGrantSource', null)
                     && request.resource.data.get('boostGrantedBy', null) ==
@@ -86,11 +84,6 @@ service cloud.firestore {
                          resource.data.get('boostGrantedByEmail', null)
                     && request.resource.data.get('boostGrantNote', null) ==
                          resource.data.get('boostGrantNote', null)
-                    // Editorial "featured" is owned by the server (admin
-                    // panel → adminSetEditorialFeatured callable). Sellers
-                    // cannot promote their own listings onto the editorial
-                    // rail or rewrite the admin attribution / timestamp
-                    // (which the admin UI orders by).
                     && request.resource.data.get('isEditorialFeatured', false) ==
                          resource.data.get('isEditorialFeatured', false)
                     && request.resource.data.get('editorialFeaturedAt', null) ==
@@ -143,18 +136,16 @@ service cloud.firestore {
         allow create: if isSignedIn() && request.auth.uid == reviewerId;
         allow update, delete: if isSignedIn() && request.auth.uid == reviewerId;
       }
-    }
 
-    // ── user favorites ────────────────────────────────────────────────────────
-    // Parent document rules do not cascade into subcollections, so favorites
-    // need their own owner-only permissions.
-    match /users/{userId}/favorites/{productId} {
-      allow read: if isSignedIn() && request.auth.uid == userId;
-      allow create, update: if isSignedIn()
-                            && request.auth.uid == userId
-                            && request.resource.data.productId == productId;
-      allow delete: if isSignedIn() && request.auth.uid == userId;
+      match /favorites/{favoriteId} {
+        allow read: if isSignedIn() && request.auth.uid == userId;
+        allow create, update: if isSignedIn()
+                              && request.auth.uid == userId
+                              && request.resource.data.productId == favoriteId;
+        allow delete: if isSignedIn() && request.auth.uid == userId;
+      }
     }
+     
 
     // ── admin_users (admin panel authorization allowlist) ─────────────────────
     // The admin panel (useAdminAuth) reads /admin_users/{uid} to decide whether
@@ -211,6 +202,67 @@ service cloud.firestore {
     match /audit_logs/{logId} {
       allow read: if isAdmin();
       allow write: if false;
+    }
+
+    // ── chats ───────────────────────────────────────────────────────────────
+    match /chats/{chatId} {
+      allow read: if isSignedIn()
+                  && request.auth.uid in resource.data.participants;
+      allow create: if isSignedIn()
+                    && request.auth.uid in request.resource.data.participants;
+      allow update: if isSignedIn()
+                    && request.auth.uid in resource.data.participants
+                    && request.resource.data.participants == resource.data.participants;
+      allow delete: if false;
+
+      match /messages/{messageId} {
+        allow read: if isSignedIn()
+                    && request.auth.uid in
+                         get(/databases/$(database)/documents/chats/$(chatId))
+                           .data.participants;
+        allow create: if isSignedIn()
+                      && request.resource.data.senderId == request.auth.uid
+                      && request.auth.uid in
+                           get(/databases/$(database)/documents/chats/$(chatId))
+                             .data.participants;
+        allow update: if isSignedIn()
+                      && request.auth.uid in
+                           get(/databases/$(database)/documents/chats/$(chatId))
+                             .data.participants
+                      && request.resource.data.senderId == resource.data.senderId
+                      && request.resource.data.text == resource.data.text
+                      && request.resource.data.timestamp == resource.data.timestamp
+                      && request.resource.data.type == resource.data.type
+                      && request.resource.data.get('imageUrl', null) == resource.data.get('imageUrl', null)
+                      && request.resource.data.get('clientMessageId', null) == resource.data.get('clientMessageId', null)
+                      && request.resource.data.readBy.hasAll(resource.data.readBy)
+                      && request.resource.data.readBy.hasAll([request.auth.uid])
+                      && request.resource.data.readBy.hasOnly(resource.data.readBy.concat([request.auth.uid]));
+        allow delete: if false;
+      }
+    }
+
+    // ── user_blocks ─────────────────────────────────────────────────────────
+    match /user_blocks/{blockId} {
+      allow read: if isSignedIn()
+                  && (request.auth.uid == resource.data.blockerId
+                      || request.auth.uid == resource.data.blockedUserId);
+      allow create: if isSignedIn()
+                    && request.auth.uid == request.resource.data.blockerId;
+      allow update: if isSignedIn()
+                    && request.auth.uid == resource.data.blockerId
+                    && request.resource.data.blockerId == resource.data.blockerId
+                    && request.resource.data.blockedUserId == resource.data.blockedUserId;
+      allow delete: if isSignedIn()
+                    && request.auth.uid == resource.data.blockerId;
+    }
+
+    // ── seller_reports (append-only, admin-readable) ────────────────────────
+    match /seller_reports/{reportId} {
+      allow read: if isAdmin();
+      allow create: if isSignedIn()
+                    && request.resource.data.reporterId == request.auth.uid;
+      allow update, delete: if false;
     }
   }
 }
