@@ -59,7 +59,10 @@ class NotificationFirestoreService {
           };
 
     if (preserveReadStatus && resolvedDocumentId.isNotEmpty) {
-      payload.remove('isRead');
+      final existingDoc = await ref.get();
+      if (existingDoc.exists) {
+        payload.remove('isRead');
+      }
     }
 
     await ref.set(payload, SetOptions(merge: true));
