@@ -164,7 +164,6 @@ service cloud.firestore {
       allow create: if isSignedIn()
                     && request.resource.data.recipientId == userId
                     && (request.auth.uid == userId
-                        || request.resource.data.get('senderId', null) == null
                         || request.resource.data.get('senderId', '') == request.auth.uid);
       allow update, delete: if isSignedIn() && request.auth.uid == userId;
     }
