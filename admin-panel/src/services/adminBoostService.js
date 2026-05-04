@@ -60,6 +60,29 @@ function snapshotToProduct(docSnap) {
   };
 }
 
+function formatCallableError(error, fallback) {
+  const code = (error?.code || '').replace(/^functions\//, '');
+  const message = (error?.message || '').trim();
+
+  if (code === 'not-found') {
+    return 'The Cloud Function for this action is not deployed yet. Deploy the latest functions and try again.';
+  }
+  if (code === 'unauthenticated') {
+    return 'Your admin session expired. Sign in again and retry.';
+  }
+  if (code === 'permission-denied') {
+    return 'This account does not have permission to update featured listings.';
+  }
+  if (code === 'invalid-argument') {
+    return message || 'The selected listing could not be updated.';
+  }
+  if (code === 'internal' || message.toLowerCase() === 'internal') {
+    return 'The Cloud Function failed internally. Deploy the latest functions or check Firebase logs for details.';
+  }
+
+  return message || fallback;
+}
+
 export const adminBoostService = {
   /**
    * Subscribes to the set of products where `isBoosted == true`. The
@@ -133,29 +156,27 @@ export const adminBoostService = {
 
   async grantBoost({ productId, durationDays, planSlug, note }) {
     const callable = httpsCallable(ensureFunctions(), 'adminGrantBoost');
-    const result = await callable({
-      productId,
-      durationDays: Number(durationDays),
-      planSlug: planSlug || undefined,
-      note: note || undefined,
-    });
-    return result.data;
-  },
-
-  async extendBoost({ productId, additionalDays, note }) {
-    const callable = httpsCallable(ensureFunctions(), 'adminExtendBoost');
-    const result = await callable({
-      productId,
-      additionalDays: Number(additionalDays),
-      note: note || undefined,
-    });
-    return result.data;
+    try {
+      const result = await callable({
+        productId,
+        durationDays: Number(durationDays),
+        planSlug: planSlug || undefined,
+        note: note || undefined,
+      });
+      return result.data;
+    } catch (error) {
+      throw new Error(formatCallableError(error, 'Unable to grant boost.'));
+    }
   },
 
   async revokeBoost({ productId, note }) {
     const callable = httpsCallable(ensureFunctions(), 'adminRevokeBoost');
-    const result = await callable({ productId, note: note || undefined });
-    return result.data;
+    try {
+      const result = await callable({ productId, note: note || undefined });
+      return result.data;
+    } catch (error) {
+      throw new Error(formatCallableError(error, 'Unable to revoke boost.'));
+    }
   },
 
   async setEditorialFeatured({ productId, isFeatured, note }) {
@@ -163,11 +184,17 @@ export const adminBoostService = {
       ensureFunctions(),
       'adminSetEditorialFeatured',
     );
-    const result = await callable({
-      productId,
-      isFeatured: Boolean(isFeatured),
-      note: note || undefined,
-    });
-    return result.data;
+    try {
+      const result = await callable({
+        productId,
+        isFeatured: Boolean(isFeatured),
+        note: note || undefined,
+      });
+      return result.data;
+    } catch (error) {
+      throw new Error(
+        formatCallableError(error, 'Unable to update featured listing.'),
+      );
+    }
   },
 };

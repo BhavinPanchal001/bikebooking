@@ -1,13 +1,13 @@
 import { useDeferredValue, useMemo, useState } from 'react';
+import { ActionMenu } from '../components/ActionMenu';
 import { FeedbackBanner } from '../components/FeedbackBanner';
 import { PanelCard } from '../components/PanelCard';
-import { StatCard } from '../components/StatCard';
 import { formatCompactNumber, formatDateTime } from '../utils/format';
 
 const filters = [
-  { key: 'all', label: 'all' },
-  { key: 'attention', label: 'needs review' },
-  { key: 'resolved', label: 'resolved' },
+  { key: 'all', label: 'All reported' },
+  { key: 'attention', label: 'Needs review' },
+  { key: 'resolved', label: 'Resolved' },
 ];
 
 function matchesFilter(person, filter) {
@@ -46,11 +46,11 @@ function getFeedMessage(data) {
   }
 
   if (data.source === 'firebase') {
-    return 'Showing live Firestore reports grouped by reported seller or user.';
+    return 'Showing live Firestore reports grouped by account.';
   }
 
   if (data.source === 'firebase-partial') {
-    return 'Showing Firestore data with partial collection access.';
+    return 'Showing Firestore data with partial access.';
   }
 
   return 'Showing demo report data.';
@@ -59,14 +59,19 @@ function getFeedMessage(data) {
 function summarizeDetails(text) {
   const trimmed = String(text || '').trim();
   if (!trimmed) {
-    return 'No additional details were added with the latest report.';
+    return 'No additional details provided.';
   }
 
-  if (trimmed.length <= 110) {
+  if (trimmed.length <= 80) {
     return trimmed;
   }
 
-  return `${trimmed.slice(0, 107)}...`;
+  return `${trimmed.slice(0, 77)}...`;
+}
+
+function formatStatusLabel(value) {
+  if (!value) return 'Unknown';
+  return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
 export function ReportedPersonsPage({ data }) {
@@ -98,74 +103,11 @@ export function ReportedPersonsPage({ data }) {
     [data.reportedUsers, deferredSearch, filter],
   );
 
-  const totalReports = data.reportedUsers.reduce(
-    (sum, person) => sum + person.reportCount,
-    0,
-  );
-  const openReports = data.reportedUsers.reduce(
-    (sum, person) => sum + person.openReportCount,
-    0,
-  );
-  const attentionCases = data.reportedUsers.filter(
-    (person) => person.openReportCount > 0,
-  ).length;
-  const resolvedCases = data.reportedUsers.filter(
-    (person) => person.reportCount > 0 && person.openReportCount === 0,
-  ).length;
-  const escalatedCases = data.reportedUsers.filter(
-    (person) => person.openReportCount > 1 || person.highestPriority === 'high',
-  ).length;
-
   return (
     <div className="page-stack">
-      <section className="stats-grid">
-        <StatCard
-          label="Reported persons"
-          value={formatCompactNumber(data.metrics.reportedUsers)}
-          trend={`${formatCompactNumber(attentionCases)} needing review`}
-          tone="primary"
-          helper={`${formatCompactNumber(resolvedCases)} resolved`}
-        />
-        <StatCard
-          label="Total reports"
-          value={formatCompactNumber(totalReports)}
-          trend={`${formatCompactNumber(openReports)} open reports`}
-          tone="warning"
-          helper="Grouped by reported account"
-        />
-        <StatCard
-          label="Escalated cases"
-          value={formatCompactNumber(escalatedCases)}
-          trend="Multiple reports or high-risk reasons"
-          tone="accent"
-          helper="Fraud, abuse, or repeat complaints"
-        />
-        <StatCard
-          label="Latest queue size"
-          value={formatCompactNumber(filteredPersons.length)}
-          trend={`${formatCompactNumber(data.reportedUsers.length)} total visible accounts`}
-          tone="success"
-          helper="Search and filters update this list"
-        />
-      </section>
-
       <PanelCard
         title="Reported persons"
-        subtitle="A moderation queue grouped by person, with counts and latest report context."
-        actions={
-          <div className="filter-row">
-            {filters.map((item) => (
-              <button
-                key={item.key}
-                type="button"
-                className={`filter-chip ${filter === item.key ? 'filter-chip-active' : ''}`}
-                onClick={() => setFilter(item.key)}
-              >
-                {item.label}
-              </button>
-            ))}
-          </div>
-        }
+        subtitle="Review and manage accounts flagged by the community for moderation review."
       >
         <div className="live-note">
           <span className={`dot dot-${data.source}`} />
@@ -174,36 +116,51 @@ export function ReportedPersonsPage({ data }) {
 
         <FeedbackBanner tone="error">{data.error}</FeedbackBanner>
 
-        <div className="toolbar">
-          <input
-            className="search-input"
-            type="search"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search by person, contact, reason, details, or reporter"
-          />
-          <div className="toolbar-note">
-            {filteredPersons.length} reported persons visible
+        <div className="toolbar listing-toolbar">
+          <label className="listing-search-field">
+            <span>Search queue</span>
+            <input
+              className="search-input"
+              type="search"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Name, reason, details, or reporter"
+            />
+          </label>
+          <label className="listing-status-filter">
+            <span>Filter</span>
+            <select
+              value={filter}
+              onChange={(event) => setFilter(event.target.value)}
+            >
+              {filters.map((item) => (
+                <option key={item.key} value={item.key}>
+                  {item.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <div className="listing-toolbar-note">
+            <strong>{filteredPersons.length}</strong>
+            <span>{filteredPersons.length === 1 ? 'account visible' : 'accounts visible'}</span>
           </div>
         </div>
 
-        <div className="table-wrap">
-          <table className="data-table report-queue-table">
+        <div className="table-wrap listing-table-wrap">
+          <table className="data-table listing-table">
             <thead>
               <tr>
-                <th>Person</th>
-                <th>Reports</th>
-                <th>Latest reason</th>
-                <th>Reporter activity</th>
-                <th>Contact</th>
-                <th>Last report</th>
-                <th>Status</th>
+                <th>Reported Person</th>
+                <th>Status & Priority</th>
+                <th>Latest Issue</th>
+                <th>Reporters</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
               {data.loading ? (
                 <tr>
-                  <td colSpan="7">
+                  <td colSpan="5">
                     <div className="empty-state">Loading reported persons...</div>
                   </td>
                 </tr>
@@ -211,86 +168,80 @@ export function ReportedPersonsPage({ data }) {
                 filteredPersons.map((person) => (
                   <tr key={person.id}>
                     <td>
-                      <div className="primary-cell">
-                        <strong>{person.fullName}</strong>
-                        <span>{person.location?.address || 'Location not shared'}</span>
-                        <div className="status-cluster">
-                          <span className={`status-pill status-${person.verificationStatus}`}>
-                            {person.verificationStatus}
-                          </span>
+                      <div className="listing-identity">
+                        <div>
+                          <strong>{person.fullName || 'Unnamed user'}</strong>
+                          <span>{person.location?.address || 'Location not shared'}</span>
+                        </div>
+                        <div className="listing-meta-row">
                           <span
                             className={`status-pill status-${
                               person.accountStatus === 'blocked' ? 'blocked' : 'approved'
                             }`}
                           >
-                            {person.accountStatus}
+                            {formatStatusLabel(person.accountStatus)}
                           </span>
                         </div>
                       </div>
                     </td>
                     <td>
-                      <div className="primary-cell">
-                        <strong>{person.reportCount} total</strong>
-                        <span>{person.openReportCount} open reports</span>
-                      </div>
-                    </td>
-                    <td>
-                      <div className="primary-cell">
-                        <strong>{person.latestReason || 'Seller report'}</strong>
-                        <span>{summarizeDetails(person.latestDetails)}</span>
-                        <div className="report-reason-row">
-                          {person.reportReasons?.slice(0, 2).map((reason) => (
-                            <span key={`${person.id}-${reason}`} className="report-reason-chip">
-                              {reason}
-                            </span>
-                          ))}
+                      <div className="listing-review-cell" style={{ display: 'flex', gap: '4px', flexDirection: 'column' }}>
+                        <span className={`status-pill ${getAttentionBadgeClass(person)}`}>
+                          {getAttentionLabel(person)}
+                        </span>
+                        <div className="listing-meta-row">
+                          <strong>{person.reportCount} reports</strong>
+                          <span>{person.highestPriority || 'low'} priority</span>
                         </div>
                       </div>
                     </td>
                     <td>
-                      <div className="primary-cell">
+                      <div className="listing-identity">
+                        <strong>{person.latestReason || 'User report'}</strong>
+                        <p style={{ margin: '4px 0', fontSize: '0.85rem', color: 'var(--muted)', maxWidth: '280px' }}>
+                          {summarizeDetails(person.latestDetails)}
+                        </p>
+                        <div className="listing-meta-row">
+                          <span>{formatDateTime(person.latestReportAt)}</span>
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <div className="listing-seller-cell">
                         <strong>
                           {person.reporterCount || person.reporterNames?.length || 0} reporter
                           {(person.reporterCount || person.reporterNames?.length || 0) === 1
                             ? ''
                             : 's'}
                         </strong>
-                        <span>
+                        <span style={{ maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {person.reporterNames?.length > 0
                             ? person.reporterNames.join(', ')
-                            : 'Reporter names not available'}
+                            : 'Details not available'}
                         </span>
                       </div>
                     </td>
-                    <td>
-                      <div className="primary-cell">
-                        <strong>{person.phoneNumber || 'Phone not added'}</strong>
-                        <span>{person.email || 'Email not added'}</span>
-                      </div>
-                    </td>
-                    <td>
-                      <div className="primary-cell">
-                        <strong>{formatDateTime(person.latestReportAt)}</strong>
-                        <span>{person.highestPriority || 'low'} priority</span>
-                      </div>
-                    </td>
-                    <td>
-                      <div className="status-cluster">
-                        <span className={`status-pill ${getAttentionBadgeClass(person)}`}>
-                          {getAttentionLabel(person)}
-                        </span>
-                        <span className="report-count-pill">
-                          {person.reportCount} report{person.reportCount === 1 ? '' : 's'}
-                        </span>
-                      </div>
+                    <td className="table-actions-cell">
+                      <ActionMenu
+                        label={`Manage ${person.fullName || 'account'}`}
+                        iconOnly
+                        items={[
+                          {
+                            key: 'view-user',
+                            label: 'View user',
+                            icon: 'details',
+                            to: `/users?search=${encodeURIComponent(person.fullName || person.id)}`,
+                          },
+                        ]}
+                      />
                     </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan="7">
+                  <td colSpan="5">
                     <div className="empty-state">
-                      No reported persons matched the current search and filters.
+                      No reported persons matched the current filters.
                     </div>
                   </td>
                 </tr>
@@ -302,3 +253,4 @@ export function ReportedPersonsPage({ data }) {
     </div>
   );
 }
+

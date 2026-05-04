@@ -21,15 +21,6 @@ function copyFor(action) {
         confirmButtonClassName: 'primary-button',
         field: 'duration',
       };
-    case 'extend':
-      return {
-        heading: 'Extend boost',
-        description: `Extend the boost on "${title}". Expiry is pushed forward from whichever is later — now, or the current expiry.`,
-        confirmLabel: 'Extend boost',
-        busyLabel: 'Extending...',
-        confirmButtonClassName: 'primary-button',
-        field: 'additionalDays',
-      };
     case 'revoke':
       return {
         heading: 'Revoke boost',
@@ -134,9 +125,7 @@ export function BoostActionDialog({ action, onClose, onConfirm }) {
           {copy.field !== 'noteOnly' ? (
             <label className="field">
               <span>
-                {copy.field === 'additionalDays'
-                  ? 'Additional days'
-                  : 'Duration (days)'}
+                Duration (days)
               </span>
               <div className="filter-row">
                 {DURATION_PRESETS.map((preset) => (

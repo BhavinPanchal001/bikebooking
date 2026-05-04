@@ -17,23 +17,6 @@ export function Topbar({
       </div>
 
       <div className="topbar-meta">
-        <div className="mini-stat">
-          <span>Open issues</span>
-          <strong>{issueCount}</strong>
-        </div>
-        <div className="mini-stat">
-          <span>Last sync</span>
-          <strong>{formatDateTime(lastUpdated)}</strong>
-        </div>
-        {onRefresh ? (
-          <button
-            type="button"
-            className="secondary-button topbar-refresh"
-            onClick={onRefresh}
-          >
-            Refresh
-          </button>
-        ) : null}
         {userEmail ? (
           <button
             type="button"

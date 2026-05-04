@@ -4,7 +4,9 @@ import { MasterRecordFormDialog } from './MasterRecordFormDialog';
 import { ConfirmDialog } from './ConfirmDialog';
 import { PanelCard } from './PanelCard';
 import { useMasterCrud } from '../hooks/useMasterCrud';
+import { ActionMenu } from './ActionMenu';
 import { formatDateTime } from '../utils/format';
+
 
 export function MasterCrudPage({ config, model, service }) {
   const [search, setSearch] = useState('');
@@ -29,18 +31,20 @@ export function MasterCrudPage({ config, model, service }) {
     service,
     singularLabel: config.singularLabel,
   });
+  
+  const [filter, setFilter] = useState('all');
+
 
   const filteredRecords = useMemo(() => {
     const normalizedSearch = deferredSearch.toLowerCase().trim();
 
     return records.filter((record) => {
-      if (!normalizedSearch) {
-        return true;
-      }
-
-      return model.getSearchText(record).includes(normalizedSearch);
+      const matchesSearch = !normalizedSearch || model.getSearchText(record).includes(normalizedSearch);
+      const matchesFilter = !config.filterField || filter === 'all' || record[config.filterField] === filter;
+      return matchesSearch && matchesFilter;
     });
-  }, [deferredSearch, model, records]);
+  }, [deferredSearch, model, records, filter, config.filterField]);
+
 
   const formInitialValues = editingRecord
     ? { ...model.getEmptyValues(), ...editingRecord }
@@ -129,28 +133,51 @@ export function MasterCrudPage({ config, model, service }) {
         <FeedbackBanner tone="error">{actionError}</FeedbackBanner>
         <FeedbackBanner tone="success">{successMessage}</FeedbackBanner>
 
-        <div className="toolbar">
-          <input
-            className="search-input"
-            type="search"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder={config.searchPlaceholder}
-          />
-          <div className="toolbar-note">
-            {filteredRecords.length} {config.pluralLabel} visible
+        <div className="toolbar listing-toolbar">
+          <label className="listing-search-field">
+            <span>Search {config.pluralLabel}</span>
+            <input
+              className="search-input"
+              type="search"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder={config.searchPlaceholder}
+            />
+          </label>
+          {config.filterOptions && (
+            <label className="listing-status-filter">
+              <span>{config.filterLabel || 'Filter'}</span>
+              <select
+                value={filter}
+                onChange={(event) => setFilter(event.target.value)}
+              >
+                <option value="all">All {config.pluralLabel}</option>
+                {config.filterOptions.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+          <div className="listing-toolbar-note">
+            <strong>{filteredRecords.length}</strong>
+            <span>{filteredRecords.length === 1 ? `${config.singularLabel} visible` : `${config.pluralLabel} visible`}</span>
           </div>
         </div>
 
-        <div className="table-wrap">
-          <table className="data-table">
+
+        <div className={`table-wrap ${config.tableWrapClassName || ''}`}>
+          <table className={`data-table ${config.tableClassName || ''}`}>
+
             <thead>
               <tr>
                 {config.columns.map((column) => (
                   <th key={column.header}>{column.header}</th>
                 ))}
-                <th>Updated</th>
+                {!config.hideUpdatedColumn && <th>Updated</th>}
                 <th>Actions</th>
+
               </tr>
             </thead>
             <tbody>
@@ -168,28 +195,37 @@ export function MasterCrudPage({ config, model, service }) {
                         {column.renderCell(record)}
                       </td>
                     ))}
-                    <td>{formatDateTime(record.updatedAt ?? record.createdAt)}</td>
+                    {!config.hideUpdatedColumn && (
+                      <td className="users-activity-cell">
+                        <small>{formatDateTime(record.updatedAt ?? record.createdAt)}</small>
+                      </td>
+                    )}
                     <td className="table-actions-cell">
-                      <div className="row-actions">
-                        <button
-                          type="button"
-                          className="secondary-button"
-                          onClick={() => openEditDialog(record)}
-                        >
-                          Edit
-                        </button>
-                        <button
-                          type="button"
-                          className="danger-button danger-button-soft"
-                          onClick={() => {
-                            clearFeedback();
-                            setRecordPendingDelete(record);
-                          }}
-                        >
-                          Delete
-                        </button>
-                      </div>
+
+                      <ActionMenu
+                        label={`Manage ${model.getRecordLabel(record)}`}
+                        iconOnly
+                        items={[
+                          {
+                            key: 'edit',
+                            label: 'Edit',
+                            icon: 'edit',
+                            onSelect: () => openEditDialog(record),
+                          },
+                          {
+                            key: 'delete',
+                            label: 'Delete',
+                            icon: 'delete',
+                            tone: 'danger',
+                            onSelect: () => {
+                              clearFeedback();
+                              setRecordPendingDelete(record);
+                            },
+                          },
+                        ]}
+                      />
                     </td>
+
                   </tr>
                 ))
               ) : (

@@ -46,7 +46,15 @@ const feeConfigPageConfig = {
   liveMessage: 'Fee records sync live with the Firestore fee_config collection.',
   loadingMessage: 'Loading fees from Firestore...',
   emptyStateMessage: 'No fees configured yet.',
+  hideUpdatedColumn: true,
+  filterField: 'kind',
+  filterLabel: 'Kind',
+  filterOptions: [
+    { value: 'boost', label: 'Boost' },
+    { value: 'listing_fee', label: 'Listing fee' },
+  ],
   fields: [
+
     {
       name: 'slug',
       label: 'Slug (immutable id)',
@@ -117,31 +125,51 @@ const feeConfigPageConfig = {
       helperText: 'Uncheck to hide the fee from checkout without deleting it.',
     },
   ],
+  tableClassName: 'listing-table',
+  tableWrapClassName: 'listing-table-wrap',
   columns: [
     {
-      header: 'Fee',
+      header: 'Fee configuration',
       renderCell: (record) => (
-        <div className="primary-cell">
-          <strong>{record.displayName}</strong>
-          <span>{record.slug}</span>
+        <div className="listing-identity">
+          <div>
+            <strong>{record.displayName}</strong>
+            <span>{record.slug}</span>
+          </div>
+          {record.subtitle && (
+            <div className="listing-meta-row">
+              <span>{record.subtitle}</span>
+            </div>
+          )}
         </div>
       ),
     },
     {
       header: 'Kind',
-      renderCell: (record) => formatKind(record.kind),
+      renderCell: (record) => (
+        <span className={`status-pill status-${record.kind === 'boost' ? 'pending' : 'active'}`}>
+          {formatKind(record.kind)}
+        </span>
+      ),
     },
     {
       header: 'Amount',
-      renderCell: (record) => formatAmount(record.amountPaise),
+      renderCell: (record) => (
+        <strong className="listing-price">{formatAmount(record.amountPaise)}</strong>
+      ),
     },
     {
-      header: 'Duration',
-      renderCell: (record) => formatDuration(record.durationDays),
-    },
-    {
-      header: 'Active',
-      renderCell: (record) => (record.isActive ? 'Yes' : 'No'),
+      header: 'Status & Duration',
+      renderCell: (record) => (
+        <div className="listing-review-cell">
+          <span className={`status-pill status-${record.isActive ? 'approved' : 'closed'}`}>
+            {record.isActive ? 'Active' : 'Hidden'}
+          </span>
+          {record.durationDays > 0 && (
+            <small>{formatDuration(record.durationDays)}</small>
+          )}
+        </div>
+      ),
     },
   ],
 };

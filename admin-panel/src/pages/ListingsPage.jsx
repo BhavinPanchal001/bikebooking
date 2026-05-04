@@ -1,4 +1,4 @@
-import { useDeferredValue, useMemo, useState } from 'react';
+import { useDeferredValue, useEffect, useMemo, useState } from 'react';
 import { ActionMenu } from '../components/ActionMenu';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { FeedbackBanner } from '../components/FeedbackBanner';
@@ -22,14 +22,7 @@ function getDialogConfig(action) {
         busyLabel: 'Approving...',
         confirmButtonClassName: 'secondary-button',
       };
-    case 'flag':
-      return {
-        title: 'Flag listing',
-        message: `Flag "${listingTitle}" for moderation follow-up?`,
-        confirmLabel: 'Flag listing',
-        busyLabel: 'Flagging...',
-        confirmButtonClassName: 'danger-button',
-      };
+
     case 'close':
       return {
         title: 'Close listing',
@@ -79,6 +72,11 @@ export function ListingsPage({ data, adminEmail }) {
   const [actionError, setActionError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const deferredSearch = useDeferredValue(search);
+  const [displayLimit, setDisplayLimit] = useState(20);
+
+  useEffect(() => {
+    setDisplayLimit(20);
+  }, [search, filter]);
 
   const filteredListings = useMemo(
     () =>
@@ -89,7 +87,7 @@ export function ListingsPage({ data, adminEmail }) {
             .toLowerCase()
             .includes(deferredSearch.toLowerCase());
 
-        const matchesFilter = filter === 'all' || listing.moderationStatus === filter;
+        const matchesFilter = filter === 'all' || listing.status === filter;
         return matchesSearch && matchesFilter;
       }),
     [data.listings, deferredSearch, filter],
@@ -98,21 +96,23 @@ export function ListingsPage({ data, adminEmail }) {
   const listingSummary = useMemo(() => {
     const counts = data.listings.reduce(
       (summary, listing) => {
-        const moderationStatus = listing.moderationStatus || 'pending';
-        summary[moderationStatus] = (summary[moderationStatus] ?? 0) + 1;
+        const status = listing.status || 'active';
+        summary[status] = (summary[status] ?? 0) + 1;
         summary.all += 1;
         return summary;
       },
       { all: 0 },
     );
 
-    return ['all', 'approved', 'flagged', 'pending', 'closed'].map((status) => ({
+    return ['all', 'active', 'sold'].map((status) => ({
       status,
       count: counts[status] ?? 0,
     }));
   }, [data.listings]);
 
   const dialogConfig = getDialogConfig(pendingAction);
+
+  const displayedListings = filteredListings.slice(0, displayLimit);
 
   function clearFeedback() {
     setActionError('');
@@ -138,13 +138,6 @@ export function ListingsPage({ data, adminEmail }) {
         setSuccessMessage(`${listing.title} was approved successfully.`);
       }
 
-      if (type === 'flag') {
-        await adminListingsService.flagListing({
-          listingId: listing.id,
-          adminEmail,
-        });
-        setSuccessMessage(`${listing.title} was flagged successfully.`);
-      }
 
       if (type === 'close') {
         await adminListingsService.closeListing({
@@ -181,21 +174,6 @@ export function ListingsPage({ data, adminEmail }) {
       <PanelCard
         title="Listing moderation"
         subtitle="Review live inventory, seller context, and moderation state from one focused queue."
-        actions={
-          <label className="listing-status-filter">
-            <span>Status</span>
-            <select
-              value={filter}
-              onChange={(event) => setFilter(event.target.value)}
-            >
-              {listingSummary.map(({ status, count }) => (
-                <option key={status} value={status}>
-                  {formatStatusLabel(status)} ({count})
-                </option>
-              ))}
-            </select>
-          </label>
-        }
       >
         <FeedbackBanner tone="error">{actionError}</FeedbackBanner>
         <FeedbackBanner tone="success">{successMessage}</FeedbackBanner>
@@ -210,6 +188,19 @@ export function ListingsPage({ data, adminEmail }) {
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Title, seller, brand, or city"
             />
+          </label>
+          <label className="listing-status-filter">
+            <span>Status</span>
+            <select
+              value={filter}
+              onChange={(event) => setFilter(event.target.value)}
+            >
+              {listingSummary.map(({ status, count }) => (
+                <option key={status} value={status}>
+                  {formatStatusLabel(status)} ({count})
+                </option>
+              ))}
+            </select>
           </label>
           <div className="listing-toolbar-note">
             <strong>{filteredListings.length}</strong>
@@ -235,9 +226,10 @@ export function ListingsPage({ data, adminEmail }) {
                     <div className="empty-state">Loading live listings...</div>
                   </td>
                 </tr>
-              ) : filteredListings.length > 0 ? (
-                filteredListings.map((listing) => (
-                  <tr key={listing.id}>
+              ) : displayedListings.length > 0 ? (
+                <>
+                  {displayedListings.map((listing) => (
+                    <tr key={listing.id}>
                     <td>
                       <div className="listing-identity">
                         <div>
@@ -260,8 +252,8 @@ export function ListingsPage({ data, adminEmail }) {
                     </td>
                     <td>
                       <div className="listing-review-cell">
-                        <span className={`status-pill status-${listing.moderationStatus}`}>
-                          {formatStatusLabel(listing.moderationStatus)}
+                        <span className={`status-pill status-${listing.status}`}>
+                          {formatStatusLabel(listing.status)}
                         </span>
                       </div>
                     </td>
@@ -288,19 +280,7 @@ export function ListingsPage({ data, adminEmail }) {
                               },
                             }
                             : null,
-                          listing.moderationStatus !== 'flagged'
-                            ? {
-                              key: 'flag',
-                              label: 'Flag listing',
-                              icon: 'flag',
-                              tone: 'danger',
-                              disabled: busyActionKey === `flag:${listing.id}`,
-                              onSelect() {
-                                clearFeedback();
-                                setPendingAction({ type: 'flag', listing });
-                              },
-                            }
-                            : null,
+
                           {
                             key: listing.status === 'sold' ? 'reopen' : 'close',
                             label: listing.status === 'sold' ? 'Reopen listing' : 'Close listing',
@@ -331,7 +311,21 @@ export function ListingsPage({ data, adminEmail }) {
                       />
                     </td>
                   </tr>
-                ))
+                ))}
+                {displayLimit < filteredListings.length && (
+                  <tr>
+                    <td colSpan="5" style={{ textAlign: 'center', padding: '2rem' }}>
+                      <button 
+                        type="button" 
+                        className="secondary-button"
+                        onClick={() => setDisplayLimit((prev) => prev + 50)}
+                      >
+                        Load more listings
+                      </button>
+                    </td>
+                  </tr>
+                )}
+                </>
               ) : (
                 <tr>
                   <td colSpan="5">

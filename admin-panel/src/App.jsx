@@ -28,13 +28,13 @@ const navItems = [
   { to: '/reported-persons', label: 'Reported Persons', eyebrow: 'Safety' },
   { to: '/cms', label: 'CMS Pages', eyebrow: 'Publishing' },
   { to: '/masters/fees', label: 'Fee Config', eyebrow: 'Master data' },
-  { to: '/masters/brands', label: 'Brand Master', eyebrow: 'Master data' },
-  {
-    to: '/masters/popular-bike-age',
-    label: 'Popular Bike Age',
-    eyebrow: 'Trends',
-  },
-  { to: '/masters/bike-owner', label: 'Bike Owner', eyebrow: 'Entity' },
+// { to: '/masters/brands', label: 'Brand Master', eyebrow: 'Master data' },
+// {
+//   to: '/masters/popular-bike-age',
+//   label: 'Popular Bike Age',
+//   eyebrow: 'Trends',
+// },
+// { to: '/masters/bike-owner', label: 'Bike Owner', eyebrow: 'Entity' },
 ];
 
 function AdminShell() {

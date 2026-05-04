@@ -1,22 +1,69 @@
+import {
+  deleteDoc,
+  doc,
+  serverTimestamp,
+  updateDoc,
+} from 'firebase/firestore';
+import { db } from '../lib/firebase';
+
+const COLLECTION_NAME = 'products';
+
 export const adminListingsService = {
   async approveListing({ listingId, adminEmail }) {
-    console.log(`Mock: Approve listing ${listingId} by ${adminEmail}`);
+    if (!listingId) throw new Error('Listing ID is required');
+
+    const listingRef = doc(db, COLLECTION_NAME, listingId);
+    await updateDoc(listingRef, {
+      adminReviewStatus: 'approved',
+      moderatedAt: serverTimestamp(),
+      moderatedBy: adminEmail || 'admin',
+      updatedAt: serverTimestamp(),
+    });
   },
 
   async flagListing({ listingId, adminEmail }) {
-    console.log(`Mock: Flag listing ${listingId} by ${adminEmail}`);
+    if (!listingId) throw new Error('Listing ID is required');
+
+    const listingRef = doc(db, COLLECTION_NAME, listingId);
+    await updateDoc(listingRef, {
+      adminReviewStatus: 'flagged',
+      moderatedAt: serverTimestamp(),
+      moderatedBy: adminEmail || 'admin',
+      updatedAt: serverTimestamp(),
+    });
   },
 
   async closeListing({ listingId, adminEmail }) {
-    console.log(`Mock: Close listing ${listingId} by ${adminEmail}`);
+    if (!listingId) throw new Error('Listing ID is required');
+
+    const listingRef = doc(db, COLLECTION_NAME, listingId);
+    await updateDoc(listingRef, {
+      status: 'sold',
+      adminReviewStatus: 'closed',
+      moderatedAt: serverTimestamp(),
+      moderatedBy: adminEmail || 'admin',
+      updatedAt: serverTimestamp(),
+    });
   },
 
   async reopenListing({ listingId, adminEmail }) {
-    console.log(`Mock: Reopen listing ${listingId} by ${adminEmail}`);
+    if (!listingId) throw new Error('Listing ID is required');
+
+    const listingRef = doc(db, COLLECTION_NAME, listingId);
+    await updateDoc(listingRef, {
+      status: 'active',
+      adminReviewStatus: 'approved',
+      moderatedAt: serverTimestamp(),
+      moderatedBy: adminEmail || 'admin',
+      updatedAt: serverTimestamp(),
+    });
   },
 
   async deleteListing({ listingId }) {
-    console.log(`Mock: Delete listing ${listingId}`);
+    if (!listingId) throw new Error('Listing ID is required');
+
+    const listingRef = doc(db, COLLECTION_NAME, listingId);
+    await deleteDoc(listingRef);
   },
 };
 

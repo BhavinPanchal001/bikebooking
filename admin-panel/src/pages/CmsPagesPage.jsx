@@ -1,4 +1,5 @@
 import { useDeferredValue, useEffect, useMemo, useState } from 'react';
+import { ActionMenu } from '../components/ActionMenu';
 import { CmsPageEditorDialog } from '../components/CmsPageEditorDialog';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { FeedbackBanner } from '../components/FeedbackBanner';
@@ -190,45 +191,51 @@ export function CmsPagesPage() {
         <FeedbackBanner tone="error">{actionError}</FeedbackBanner>
         <FeedbackBanner tone="success">{successMessage}</FeedbackBanner>
 
-        <div className="toolbar">
-          <input
-            className="search-input"
-            type="search"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search pages by title, slug, or copy"
-          />
-          <div className="filter-row">
-            {statusFilters.map((filter) => (
-              <button
-                key={filter.value}
-                type="button"
-                className={`filter-chip ${statusFilter === filter.value ? 'filter-chip-active' : ''}`.trim()}
-                onClick={() => setStatusFilter(filter.value)}
-              >
-                {filter.label}
-              </button>
-            ))}
+        <div className="toolbar cms-pages-toolbar">
+          <label className="cms-pages-search-field">
+            <span>Search pages</span>
+            <input
+              className="search-input"
+              type="search"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Title, slug, or copy"
+            />
+          </label>
+          <label className="cms-pages-filter-row">
+            <span>Status</span>
+            <select
+              value={statusFilter}
+              onChange={(event) => setStatusFilter(event.target.value)}
+            >
+              {statusFilters.map((filter) => (
+                <option key={filter.value} value={filter.value}>
+                  {filter.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <div className="cms-pages-toolbar-note">
+            <strong>{filteredPages.length}</strong>
+            <span>{filteredPages.length === 1 ? 'page visible' : 'pages visible'}</span>
           </div>
-          <div className="toolbar-note">{filteredPages.length} pages visible</div>
         </div>
 
-        <div className="table-wrap">
-          <table className="data-table">
+        <div className="table-wrap cms-pages-table-wrap">
+          <table className="data-table cms-pages-table">
             <thead>
               <tr>
                 <th>Page</th>
                 <th>Status</th>
-                <th>Draft Version</th>
-                <th>Last Published</th>
-                <th>Published By</th>
+                <th>Version</th>
+                <th>Publishing</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={6}>
+                  <td colSpan={5}>
                     <div className="empty-state">Loading CMS pages from Firestore...</div>
                   </td>
                 </tr>
@@ -248,95 +255,94 @@ export function CmsPagesPage() {
                   return (
                     <tr key={record.slug}>
                       <td>
-                        <div className="primary-cell">
+                        <div className="cms-page-identity">
                           <strong>{record.title}</strong>
                           <span>{record.slug}</span>
-                          <span>{record.previewText || 'No preview text yet.'}</span>
+                          <span className="cms-page-preview">{record.previewText || 'No preview text yet.'}</span>
                         </div>
                       </td>
                       <td>
-                        <div className="status-cluster">
+                        <div className="cms-status-cell">
                           <span className={getStatusClassName(record)}>{getStatusLabel(record)}</span>
                           {record.hasDraftChanges && record.publishedVersion > 0 ? (
-                            <span className="cms-inline-note">
-                              Draft changes are waiting to be published.
-                            </span>
+                            <small style={{ color: 'var(--muted)', fontSize: '0.72rem' }}>
+                              Draft changes pending
+                            </small>
                           ) : null}
                         </div>
                       </td>
                       <td>
-                        <div className="primary-cell">
-                          <strong>v{record.version}</strong>
-                          <span>
-                            {record.publishedVersion > 0
-                              ? `Live version v${record.publishedVersion}`
-                              : 'Not published yet'}
-                          </span>
+                        <div className="cms-page-identity">
+                          <span className="cms-version-badge">Draft v{record.version}</span>
+                          {record.publishedVersion > 0 && (
+                            <span style={{ fontSize: '0.78rem' }}>Live v{record.publishedVersion}</span>
+                          )}
                         </div>
                       </td>
-                      <td>{formatDateTime(record.publishedAt)}</td>
-                      <td>{record.publishedByEmail || '-'}</td>
+                      <td>
+                        <div className="cms-publish-info">
+                          <strong>{record.publishedByEmail || '-'}</strong>
+                          <span>{record.publishedAt ? formatDateTime(record.publishedAt) : 'Never published'}</span>
+                        </div>
+                      </td>
                       <td className="table-actions-cell">
-                        <div className="row-actions">
-                          <button
-                            type="button"
-                            className="secondary-button"
-                            onClick={() => openEditDialog(record)}
-                          >
-                            Edit
-                          </button>
-                          <button
-                            type="button"
-                            className="primary-button"
-                            disabled={isPublishing || isSaving}
-                            onClick={() =>
-                              setPendingAction({
-                                type: 'publish',
-                                slug: record.slug,
-                                title: record.title,
-                              })
-                            }
-                          >
-                            {isPublishing ? 'Publishing...' : publishLabel}
-                          </button>
-                          {record.isPublished ? (
-                            <button
-                              type="button"
-                              className="secondary-button"
-                              disabled={isUnpublishing || isSaving}
-                              onClick={() =>
+                        <ActionMenu
+                          label={`Manage ${record.title}`}
+                          iconOnly
+                          items={[
+                            {
+                              key: 'edit',
+                              label: 'Edit draft',
+                              icon: 'edit',
+                              onSelect: () => openEditDialog(record),
+                            },
+                            {
+                              key: 'publish',
+                              label: publishLabel,
+                              icon: 'publish',
+                              disabled: isPublishing || isSaving,
+                              onSelect: () =>
+                                setPendingAction({
+                                  type: 'publish',
+                                  slug: record.slug,
+                                  title: record.title,
+                                }),
+                            },
+                            record.isPublished ? {
+                              key: 'unpublish',
+                              label: 'Unpublish',
+                              icon: 'unpublish',
+                              tone: 'danger',
+                              disabled: isUnpublishing || isSaving,
+                              onSelect: () =>
                                 setPendingAction({
                                   type: 'unpublish',
                                   slug: record.slug,
                                   title: record.title,
-                                })
-                              }
-                            >
-                              {isUnpublishing ? 'Unpublishing...' : 'Unpublish'}
-                            </button>
-                          ) : null}
-                          <button
-                            type="button"
-                            className="danger-button danger-button-soft"
-                            disabled={isDeleting || isSaving}
-                            onClick={() =>
-                              setPendingAction({
-                                type: 'delete',
-                                slug: record.slug,
-                                title: record.title,
-                              })
-                            }
-                          >
-                            {isDeleting ? 'Deleting...' : 'Delete'}
-                          </button>
-                        </div>
+                                }),
+                            } : null,
+                            {
+                              key: 'delete',
+                              label: 'Delete',
+                              icon: 'delete',
+                              tone: 'danger',
+                              disabled: isDeleting || isSaving,
+                              onSelect: () =>
+                                setPendingAction({
+                                  type: 'delete',
+                                  slug: record.slug,
+                                  title: record.title,
+                                }),
+                            },
+                          ]}
+                        />
                       </td>
                     </tr>
                   );
                 })
               ) : (
                 <tr>
-                  <td colSpan={6}>
+                  <td colSpan={5}>
                     <div className="empty-state">
                       {search || statusFilter !== 'all'
                         ? 'No CMS pages matched the current filters.'

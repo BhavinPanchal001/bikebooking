@@ -106,9 +106,9 @@ export function DashboardPage({ data }) {
         <StatCard
           label="Registered users"
           value={formatCompactNumber(data.metrics.totalUsers)}
-          trend={`${formatCompactNumber(data.metrics.verifiedUsers)} verified`}
+          trend={`${formatCompactNumber(data.metrics.blockedUsers)} blocked`}
           tone="primary"
-          helper={`${formatCompactNumber(data.metrics.incompleteUsers)} incomplete profiles`}
+          helper="Total user accounts"
         />
         <StatCard
           label="Active listings"

@@ -50,14 +50,7 @@ function getDialogConfig(action) {
         busyLabel: 'Approving...',
         confirmButtonClassName: 'secondary-button',
       };
-    case 'flag':
-      return {
-        title: 'Flag listing',
-        message: `Flag "${listingTitle}" for moderation follow-up?`,
-        confirmLabel: 'Flag listing',
-        busyLabel: 'Flagging...',
-        confirmButtonClassName: 'danger-button',
-      };
+
     case 'close':
       return {
         title: 'Close listing',
@@ -96,9 +89,7 @@ export function ProductDetailPage({ data, adminEmail }) {
   const [boostAction, setBoostAction] = useState(null);
   const listing = data.listings.find((item) => item.id === listingId);
   const seller = listing ? data.users.find((user) => user.id === listing.sellerId) : null;
-  const relatedReports = listing
-    ? data.reports.filter((report) => report.sellerId === listing.sellerId)
-    : [];
+
   const dialogConfig = getDialogConfig(pendingAction);
 
   function clearFeedback() {
@@ -125,13 +116,6 @@ export function ProductDetailPage({ data, adminEmail }) {
         setSuccessMessage(`${actionListing.title} was approved successfully.`);
       }
 
-      if (type === 'flag') {
-        await adminListingsService.flagListing({
-          listingId: actionListing.id,
-          adminEmail,
-        });
-        setSuccessMessage(`${actionListing.title} was flagged successfully.`);
-      }
 
       if (type === 'close') {
         await adminListingsService.closeListing({
@@ -301,18 +285,7 @@ export function ProductDetailPage({ data, adminEmail }) {
                       },
                     }
                   : null,
-                listing.moderationStatus !== 'flagged'
-                  ? {
-                      key: 'flag',
-                      label: 'Flag listing',
-                      tone: 'danger',
-                      disabled: busyActionKey === `flag:${listing.id}`,
-                      onSelect() {
-                        clearFeedback();
-                        setPendingAction({ type: 'flag', listing });
-                      },
-                    }
-                  : null,
+
                 {
                   key: listing.status === 'sold' ? 'reopen' : 'close',
                   label: listing.status === 'sold' ? 'Reopen listing' : 'Close listing',
@@ -369,11 +342,8 @@ export function ProductDetailPage({ data, adminEmail }) {
             className="detail-panel"
           >
             <div className="detail-grid">
-              <DetailItem label="Listing ID" value={listing.id} />
               <DetailItem label="Stored status" value={listing.status} />
               <DetailItem label="Location" value={listing.location} />
-              <DetailItem label="Views" value={listing.views?.toString()} />
-              <DetailItem label="Inquiries" value={listing.inquiries?.toString()} />
               <DetailItem label="Review status" value={listing.adminReviewStatus || listing.moderationStatus} />
               <DetailItem label="Moderated by" value={listing.moderatedBy} />
               <DetailItem label="Moderated at" value={formatDateTime(listing.moderatedAt)} />
@@ -388,14 +358,10 @@ export function ProductDetailPage({ data, adminEmail }) {
           >
             <div className="detail-grid">
               <DetailItem label="Seller name" value={listing.sellerName} />
-              <DetailItem label="Seller ID" value={listing.sellerId} />
               <DetailItem label="Email" value={seller?.email ?? ''} />
               <DetailItem label="Phone" value={seller?.phoneNumber ?? ''} />
               <DetailItem label="Location" value={seller?.location?.address ?? ''} />
-              <DetailItem
-                label="Verification"
-                value={seller?.verificationStatus ?? 'Unknown'}
-              />
+
             </div>
           </PanelCard>
         </div>
@@ -441,21 +407,6 @@ export function ProductDetailPage({ data, adminEmail }) {
                   Grant boost
                 </button>
               )}
-              <button
-                type="button"
-                className={
-                  listing.isEditorialFeatured ? 'danger-button' : 'secondary-button'
-                }
-                onClick={() => {
-                  clearFeedback();
-                  setBoostAction({
-                    type: listing.isEditorialFeatured ? 'unfeature' : 'feature',
-                    listing,
-                  });
-                }}
-              >
-                {listing.isEditorialFeatured ? 'Unfeature' : 'Feature'}
-              </button>
             </div>
           }
         >
@@ -490,22 +441,6 @@ export function ProductDetailPage({ data, adminEmail }) {
             <DetailItem
               label="Granted by"
               value={listing.boostGrantedByEmail}
-            />
-            <DetailItem
-              label="Editorial featured"
-              value={listing.isEditorialFeatured ? 'Yes' : 'No'}
-            />
-            <DetailItem
-              label="Featured since"
-              value={formatDateTime(listing.editorialFeaturedAt)}
-            />
-            <DetailItem
-              label="Featured by"
-              value={listing.editorialFeaturedByEmail}
-            />
-            <DetailItem
-              label="Editorial note"
-              value={listing.editorialFeaturedNote}
             />
           </div>
         </PanelCard>
@@ -552,32 +487,6 @@ export function ProductDetailPage({ data, adminEmail }) {
           )}
         </PanelCard>
 
-        <PanelCard
-          title="Safety context"
-          subtitle="Open or historical seller reports related to this listing’s seller."
-          className="detail-panel"
-        >
-          {relatedReports.length > 0 ? (
-            <div className="list-stack">
-              {relatedReports.map((report) => (
-                <div key={report.id} className="list-row">
-                  <div>
-                    <strong>{report.reason}</strong>
-                    <p>{report.sellerName}</p>
-                  </div>
-                  <div className="list-row-meta">
-                    <span className={`status-pill status-${report.status}`}>
-                      {report.status}
-                    </span>
-                    <small>{formatDateTime(report.createdAt)}</small>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="empty-state">No seller reports are connected to this listing.</div>
-          )}
-        </PanelCard>
       </PanelCard>
 
       <ConfirmDialog

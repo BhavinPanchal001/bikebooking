@@ -5,6 +5,8 @@ import { PanelCard } from '../components/PanelCard';
 import { BoostActionDialog } from '../components/BoostActionDialog';
 import { adminBoostService } from '../services/adminBoostService';
 import { formatCurrency, formatDateTime } from '../utils/format';
+import { ActionMenu } from '../components/ActionMenu';
+
 
 const TABS = [
   { id: 'active-boosts', label: 'Active boosts' },
@@ -128,23 +130,11 @@ export function BoostedListingsPage() {
     setPendingAction({ type, record, ...extras });
   }
 
-  async function handleConfirm({ additionalDays, durationDays, note }) {
+  async function handleConfirm({ durationDays, note }) {
     if (!pendingAction?.record) return { ok: false };
     const { type, record } = pendingAction;
     try {
-      if (type === 'extend') {
-        await adminBoostService.extendBoost({
-          productId: record.id,
-          additionalDays,
-          note,
-        });
-        setFeedback({
-          error: '',
-          success: `${record.title} extended by ${additionalDays} day${
-            additionalDays === 1 ? '' : 's'
-          }.`,
-        });
-      } else if (type === 'revoke') {
+      if (type === 'revoke') {
         await adminBoostService.revokeBoost({ productId: record.id, note });
         setFeedback({
           error: '',
@@ -173,6 +163,7 @@ export function BoostedListingsPage() {
           error: '',
           success: `${record.title} removed from editorial featured.`,
         });
+        setTab('editorial');
       } else if (type === 'feature') {
         await adminBoostService.setEditorialFeatured({
           productId: record.id,
@@ -183,6 +174,7 @@ export function BoostedListingsPage() {
           error: '',
           success: `${record.title} added to editorial featured.`,
         });
+        setTab('editorial');
       }
       setPendingAction(null);
       return { ok: true };
@@ -202,53 +194,62 @@ export function BoostedListingsPage() {
         <FeedbackBanner tone="error">{feedback.error}</FeedbackBanner>
         <FeedbackBanner tone="success">{feedback.success}</FeedbackBanner>
 
-        <div className="summary-grid">
-          <div className="summary-card">
-            <span className="summary-label">Active boosts</span>
-            <span className="summary-value">{activeBoosts.length}</span>
+        <div className="chip-grid">
+          <div className="metric-chip">
+            <span>Active boosts</span>
+            <strong>{activeBoosts.length}</strong>
           </div>
-          <div className="summary-card">
-            <span className="summary-label">Admin-granted (free)</span>
-            <span className="summary-value">
+          <div className="metric-chip">
+            <span>Admin-granted (free)</span>
+            <strong>
               {activeBoosts.filter((r) => r.boostGrantSource === 'admin').length}
-            </span>
+            </strong>
           </div>
-          <div className="summary-card">
-            <span className="summary-label">Editorial featured</span>
-            <span className="summary-value">{featured.length}</span>
+          <div className="metric-chip">
+            <span>Editorial featured</span>
+            <strong>{featured.length}</strong>
           </div>
         </div>
 
-        <div className="toolbar">
-          <div className="filter-row">
-            {TABS.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                className={`filter-chip ${
-                  tab === item.id ? 'filter-chip-active' : ''
-                }`}
-                onClick={() => setTab(item.id)}
-              >
-                {item.label}
-              </button>
-            ))}
+
+        <div className="toolbar listing-toolbar">
+          <div className="listing-status-filter">
+            <span>View</span>
+            <select
+              value={tab}
+              onChange={(event) => setTab(event.target.value)}
+            >
+              {TABS.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.label}
+                </option>
+              ))}
+            </select>
           </div>
-          <input
-            className="search-input"
-            type="search"
-            placeholder="Search id, title, seller, plan..."
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-          />
+          <label className="listing-search-field">
+            <span>Search promoted</span>
+            <input
+              className="search-input"
+              type="search"
+              placeholder="Title, seller, or plan slug"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+            />
+          </label>
+          <div className="listing-toolbar-note">
+            <strong>
+              {tab === 'active-boosts' ? visibleBoosts.length : visibleFeatured.length}
+            </strong>
+            <span>listings visible</span>
+          </div>
         </div>
+
 
         {tab === 'active-boosts' ? (
           <ActiveBoostsTable
             records={visibleBoosts}
             loading={loadingBoosts}
             error={boostError}
-            onExtend={(record) => openAction('extend', record)}
             onRevoke={(record) => openAction('revoke', record)}
             onFeatureToggle={(record) =>
               openAction(
@@ -289,35 +290,37 @@ function StateRow({ colSpan, message }) {
 
 function ListingLink({ record }) {
   return (
-    <Link to={`/listings/${record.id}`} className="primary-cell">
-      <strong>{record.title}</strong>
-      <span>
-        {record.brand || 'Unknown brand'}
-        {record.category ? ` · ${record.category}` : ''}
-      </span>
+    <Link to={`/listings/${record.id}`} className="listing-identity">
+      <div>
+        <strong>{record.title}</strong>
+        <span>
+          {record.brand || 'Unknown brand'}
+          {record.category ? ` · ${record.category}` : ''}
+        </span>
+      </div>
     </Link>
   );
 }
+
 
 function ActiveBoostsTable({
   records,
   loading,
   error,
-  onExtend,
   onRevoke,
   onFeatureToggle,
 }) {
   return (
-    <div className="table-wrap">
-      <table className="data-table">
+    <div className="table-wrap listing-table-wrap">
+      <table className="data-table listing-table">
         <thead>
           <tr>
             <th>Listing</th>
             <th>Seller</th>
             <th>Plan</th>
-            <th>Expires</th>
-            <th>Editorial</th>
-            <th>Actions</th>
+            <th>Expiry</th>
+            <th>Status</th>
+            <th />
           </tr>
         </thead>
         <tbody>
@@ -328,7 +331,7 @@ function ActiveBoostsTable({
           ) : records.length === 0 ? (
             <StateRow
               colSpan={6}
-              message="No active boosts. When a seller completes a boost purchase or an admin grants a boost, it will show up here."
+              message="No active boosts found."
             />
           ) : (
             records.map((record) => (
@@ -337,59 +340,54 @@ function ActiveBoostsTable({
                   <ListingLink record={record} />
                 </td>
                 <td>
-                  <div className="primary-cell">
+                  <div className="listing-seller-cell">
                     <strong>{record.sellerName}</strong>
                     <span>{formatCurrency(record.price)}</span>
                   </div>
                 </td>
                 <td>
-                  <div className="primary-cell">
-                    <strong>{planSourceBadge(record)}</strong>
-                    <span>
-                      {record.boostPlanId || '—'}
-                      {record.boostGrantedByEmail
-                        ? ` · by ${record.boostGrantedByEmail}`
-                        : ''}
-                    </span>
+                  <div className="listing-review-cell">
+                    {record.boostGrantSource === 'admin' ? (
+                      <span className="status-pill status-flagged">Admin grant</span>
+                    ) : (
+                      <span className="status-pill status-approved">Paid boost</span>
+                    )}
+                    <small>{record.boostPlanId || '—'}</small>
                   </div>
                 </td>
                 <td>
-                  <div className="primary-cell">
+                  <div className="listing-review-cell">
                     <strong>{remainingLabel(record.boostExpiresAt)}</strong>
-                    <span>{formatDateTime(record.boostExpiresAt)}</span>
+                    <small>{formatDateTime(record.boostExpiresAt)}</small>
                   </div>
                 </td>
                 <td>
-                  {record.isEditorialFeatured ? (
-                    <span className="status-badge status-ok">Featured</span>
-                  ) : (
-                    <span className="muted">—</span>
-                  )}
-                </td>
-                <td>
-                  <div className="boost-action-group">
-                    <button
-                      type="button"
-                      className="secondary-button"
-                      onClick={() => onExtend(record)}
-                    >
-                      Extend
-                    </button>
-                    <button
-                      type="button"
-                      className="secondary-button"
-                      onClick={() => onFeatureToggle(record)}
-                    >
-                      {record.isEditorialFeatured ? 'Unfeature' : 'Feature'}
-                    </button>
-                    <button
-                      type="button"
-                      className="danger-button"
-                      onClick={() => onRevoke(record)}
-                    >
-                      Revoke
-                    </button>
+                  <div className="listing-review-cell">
+                    {record.isEditorialFeatured && (
+                      <span className="status-pill status-verified">Featured</span>
+                    )}
                   </div>
+                </td>
+                <td className="table-actions-cell">
+                  <ActionMenu
+                    label={`Manage ${record.title}`}
+                    iconOnly
+                    items={[
+                      {
+                        key: 'feature',
+                        label: record.isEditorialFeatured ? 'Unfeature listing' : 'Feature listing',
+                        icon: 'feature',
+                        onSelect: () => onFeatureToggle(record),
+                      },
+                      {
+                        key: 'revoke',
+                        label: 'Revoke boost',
+                        icon: 'close',
+                        tone: 'danger',
+                        onSelect: () => onRevoke(record),
+                      },
+                    ]}
+                  />
                 </td>
               </tr>
             ))
@@ -400,6 +398,7 @@ function ActiveBoostsTable({
   );
 }
 
+
 function EditorialFeaturedTable({
   records,
   loading,
@@ -408,27 +407,26 @@ function EditorialFeaturedTable({
   onGrantBoost,
 }) {
   return (
-    <div className="table-wrap">
-      <table className="data-table">
+    <div className="table-wrap listing-table-wrap">
+      <table className="data-table listing-table">
         <thead>
           <tr>
             <th>Listing</th>
             <th>Seller</th>
             <th>Featured since</th>
-            <th>Note</th>
-            <th>Boost</th>
-            <th>Actions</th>
+            <th>Promotion</th>
+            <th />
           </tr>
         </thead>
         <tbody>
           {error ? (
-            <StateRow colSpan={6} message={error} />
+            <StateRow colSpan={5} message={error} />
           ) : loading ? (
-            <StateRow colSpan={6} message="Loading featured listings..." />
+            <StateRow colSpan={5} message="Loading featured listings..." />
           ) : records.length === 0 ? (
             <StateRow
-              colSpan={6}
-              message="No editorially featured listings yet. Open any listing's detail page to feature it."
+              colSpan={5}
+              message="No editorial featured listings found."
             />
           ) : (
             records.map((record) => (
@@ -437,53 +435,49 @@ function EditorialFeaturedTable({
                   <ListingLink record={record} />
                 </td>
                 <td>
-                  <div className="primary-cell">
+                  <div className="listing-seller-cell">
                     <strong>{record.sellerName}</strong>
                     <span>{formatCurrency(record.price)}</span>
                   </div>
                 </td>
                 <td>
-                  <div className="primary-cell">
+                  <div className="listing-review-cell">
                     <strong>{formatDateTime(record.editorialFeaturedAt)}</strong>
-                    {record.editorialFeaturedByEmail ? (
-                      <span>by {record.editorialFeaturedByEmail}</span>
-                    ) : null}
+                    <small>{record.editorialFeaturedByEmail || 'Admin'}</small>
                   </div>
                 </td>
                 <td>
-                  <span className="muted">
-                    {record.editorialFeaturedNote || '—'}
-                  </span>
-                </td>
-                <td>
-                  {record.isBoosted ? (
-                    <div className="primary-cell">
-                      <strong>{planSourceBadge(record)}</strong>
-                      <span>{remainingLabel(record.boostExpiresAt)}</span>
-                    </div>
-                  ) : (
-                    <span className="muted">Not boosted</span>
-                  )}
-                </td>
-                <td>
-                  <div className="boost-action-group">
-                    {!record.isBoosted ? (
-                      <button
-                        type="button"
-                        className="secondary-button"
-                        onClick={() => onGrantBoost(record)}
-                      >
-                        Grant boost
-                      </button>
-                    ) : null}
-                    <button
-                      type="button"
-                      className="danger-button"
-                      onClick={() => onUnfeature(record)}
-                    >
-                      Unfeature
-                    </button>
+                  <div className="listing-review-cell">
+                    {record.isBoosted ? (
+                      <>
+                        <span className="status-pill status-approved">Boosted</span>
+                        <small>{remainingLabel(record.boostExpiresAt)}</small>
+                      </>
+                    ) : (
+                      <span className="status-pill status-closed">Organic</span>
+                    )}
                   </div>
+                </td>
+                <td className="table-actions-cell">
+                  <ActionMenu
+                    label={`Manage ${record.title}`}
+                    iconOnly
+                    items={[
+                      !record.isBoosted && {
+                        key: 'grant',
+                        label: 'Grant boost',
+                        icon: 'grant',
+                        onSelect: () => onGrantBoost(record),
+                      },
+                      {
+                        key: 'unfeature',
+                        label: 'Remove from featured',
+                        icon: 'close',
+                        tone: 'danger',
+                        onSelect: () => onUnfeature(record),
+                      },
+                    ]}
+                  />
                 </td>
               </tr>
             ))
@@ -493,3 +487,4 @@ function EditorialFeaturedTable({
     </div>
   );
 }
+

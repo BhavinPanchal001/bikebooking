@@ -49,6 +49,22 @@ function extractExistingExpiry(data) {
   return null;
 }
 
+function rethrowCallableError(error, context) {
+  if (error instanceof HttpsError) {
+    throw error;
+  }
+
+  const message = error instanceof Error ? error.message : String(error);
+  console.error(`${context} failed`, {
+    error: message,
+    stack: error instanceof Error ? error.stack : undefined,
+  });
+  throw new HttpsError(
+    "internal",
+    `${context} failed: ${message}`,
+  );
+}
+
 /**
  * Callable: adminGrantBoost
  *
@@ -228,48 +244,52 @@ async function adminRevokeBoostHandler(request) {
  * Output: { productId, isEditorialFeatured }
  */
 async function adminSetEditorialFeaturedHandler(request) {
-  const auth = requireAdmin(request);
-  const {productId, isFeatured, note} = request.data || {};
+  try {
+    const auth = requireAdmin(request);
+    const {productId, isFeatured, note} = request.data || {};
 
-  const {ref, data} = await loadProduct(productId);
-  const shouldFeature = isFeatured === true;
+    const {ref, data} = await loadProduct(productId);
+    const shouldFeature = isFeatured === true;
 
-  const update = shouldFeature
-    ? {
-      isEditorialFeatured: true,
-      editorialFeaturedAt: FieldValue.serverTimestamp(),
-      editorialFeaturedBy: auth.uid,
-      editorialFeaturedByEmail: (auth.token && auth.token.email) || null,
-      editorialFeaturedNote: toTrimmedString(note) || null,
-      updatedAt: FieldValue.serverTimestamp(),
-    }
-    : {
-      isEditorialFeatured: false,
-      editorialFeaturedAt: FieldValue.delete(),
-      editorialFeaturedBy: FieldValue.delete(),
-      editorialFeaturedByEmail: FieldValue.delete(),
-      editorialFeaturedNote: FieldValue.delete(),
-      editorialUnfeaturedAt: FieldValue.serverTimestamp(),
-      editorialUnfeaturedBy: auth.uid,
-      editorialUnfeaturedByEmail: (auth.token && auth.token.email) || null,
-      editorialUnfeaturedNote: toTrimmedString(note) || null,
-      updatedAt: FieldValue.serverTimestamp(),
-    };
+    const update = shouldFeature
+      ? {
+        isEditorialFeatured: true,
+        editorialFeaturedAt: FieldValue.serverTimestamp(),
+        editorialFeaturedBy: auth.uid,
+        editorialFeaturedByEmail: (auth.token && auth.token.email) || null,
+        editorialFeaturedNote: toTrimmedString(note) || null,
+        updatedAt: FieldValue.serverTimestamp(),
+      }
+      : {
+        isEditorialFeatured: false,
+        editorialFeaturedAt: FieldValue.delete(),
+        editorialFeaturedBy: FieldValue.delete(),
+        editorialFeaturedByEmail: FieldValue.delete(),
+        editorialFeaturedNote: FieldValue.delete(),
+        editorialUnfeaturedAt: FieldValue.serverTimestamp(),
+        editorialUnfeaturedBy: auth.uid,
+        editorialUnfeaturedByEmail: (auth.token && auth.token.email) || null,
+        editorialUnfeaturedNote: toTrimmedString(note) || null,
+        updatedAt: FieldValue.serverTimestamp(),
+      };
 
-  await ref.set(update, {merge: true});
+    await ref.set(update, {merge: true});
 
-  await writeAuditLog({
-    action: shouldFeature ? "feature.add" : "feature.remove",
-    actorUid: auth.uid,
-    actorEmail: (auth.token && auth.token.email) || null,
-    entityType: "product",
-    entityId: ref.id,
-    before: {isEditorialFeatured: data.isEditorialFeatured === true},
-    after: {isEditorialFeatured: shouldFeature},
-    metadata: {note: toTrimmedString(note)},
-  });
+    await writeAuditLog({
+      action: shouldFeature ? "feature.add" : "feature.remove",
+      actorUid: auth.uid,
+      actorEmail: (auth.token && auth.token.email) || null,
+      entityType: "product",
+      entityId: ref.id,
+      before: {isEditorialFeatured: data.isEditorialFeatured === true},
+      after: {isEditorialFeatured: shouldFeature},
+      metadata: {note: toTrimmedString(note)},
+    });
 
-  return {productId: ref.id, isEditorialFeatured: shouldFeature};
+    return {productId: ref.id, isEditorialFeatured: shouldFeature};
+  } catch (error) {
+    rethrowCallableError(error, "Editorial featured update");
+  }
 }
 
 module.exports = {

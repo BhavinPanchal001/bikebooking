@@ -298,8 +298,19 @@ exports.adminDeleteUser = onCall(async (request) => {
   const userId = readRequiredString(request.data?.userId, "userId");
   const result = await deleteUserCascade({userId, actor});
 
+  let authDeleted = false;
+  try {
+    await getAuth().deleteUser(userId);
+    authDeleted = true;
+  } catch (error) {
+    if (error.code !== "auth/user-not-found" && error.code !== "user-not-found") {
+      console.error(`Failed to delete Firebase Auth user for ${userId}:`, error);
+    }
+  }
+
   return {
     ok: true,
+    authDeleted,
     ...result,
   };
 });
