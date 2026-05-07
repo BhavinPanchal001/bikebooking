@@ -30,6 +30,12 @@ function remainingLabel(isoString) {
   return `${days} day${days === 1 ? '' : 's'} left`;
 }
 
+function isActiveBoost(record) {
+  if (!record.isBoosted) return false;
+  if (!record.boostExpiresAt) return false;
+  return new Date(record.boostExpiresAt).getTime() > Date.now();
+}
+
 function planSourceBadge(record) {
   if (!record.isBoosted) return null;
   const source = record.boostGrantSource === 'admin' ? 'Admin grant' : 'Paid';
@@ -130,7 +136,7 @@ export function BoostedListingsPage() {
     setPendingAction({ type, record, ...extras });
   }
 
-  async function handleConfirm({ durationDays, note }) {
+  async function handleConfirm({ durationDays, additionalDays, note }) {
     if (!pendingAction?.record) return { ok: false };
     const { type, record } = pendingAction;
     try {
@@ -151,6 +157,18 @@ export function BoostedListingsPage() {
           error: '',
           success: `${record.title} boosted for ${durationDays} day${
             durationDays === 1 ? '' : 's'
+          }.`,
+        });
+      } else if (type === 'extend') {
+        await adminBoostService.extendBoost({
+          productId: record.id,
+          additionalDays,
+          note,
+        });
+        setFeedback({
+          error: '',
+          success: `${record.title} boost extended by ${additionalDays} day${
+            additionalDays === 1 ? '' : 's'
           }.`,
         });
       } else if (type === 'unfeature') {
@@ -250,6 +268,7 @@ export function BoostedListingsPage() {
             records={visibleBoosts}
             loading={loadingBoosts}
             error={boostError}
+            onExtend={(record) => openAction('extend', record)}
             onRevoke={(record) => openAction('revoke', record)}
             onFeatureToggle={(record) =>
               openAction(
@@ -307,6 +326,7 @@ function ActiveBoostsTable({
   records,
   loading,
   error,
+  onExtend,
   onRevoke,
   onFeatureToggle,
 }) {
@@ -373,6 +393,18 @@ function ActiveBoostsTable({
                     label={`Manage ${record.title}`}
                     iconOnly
                     items={[
+                      {
+                        key: 'details',
+                        label: 'Open details',
+                        icon: 'details',
+                        to: `/listings/${record.id}`,
+                      },
+                      {
+                        key: 'extend',
+                        label: 'Extend boost',
+                        icon: 'extend',
+                        onSelect: () => onExtend(record),
+                      },
                       {
                         key: 'feature',
                         label: record.isEditorialFeatured ? 'Unfeature listing' : 'Feature listing',
@@ -448,7 +480,7 @@ function EditorialFeaturedTable({
                 </td>
                 <td>
                   <div className="listing-review-cell">
-                    {record.isBoosted ? (
+                    {isActiveBoost(record) ? (
                       <>
                         <span className="status-pill status-approved">Boosted</span>
                         <small>{remainingLabel(record.boostExpiresAt)}</small>
@@ -463,7 +495,13 @@ function EditorialFeaturedTable({
                     label={`Manage ${record.title}`}
                     iconOnly
                     items={[
-                      !record.isBoosted && {
+                      {
+                        key: 'details',
+                        label: 'Open details',
+                        icon: 'details',
+                        to: `/listings/${record.id}`,
+                      },
+                      !isActiveBoost(record) && {
                         key: 'grant',
                         label: 'Grant boost',
                         icon: 'grant',

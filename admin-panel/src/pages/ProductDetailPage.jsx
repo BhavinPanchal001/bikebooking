@@ -42,15 +42,6 @@ function getDialogConfig(action) {
   const listingTitle = action.listing.title || action.listing.id;
 
   switch (action.type) {
-    case 'approve':
-      return {
-        title: 'Approve listing',
-        message: `Approve "${listingTitle}" and restore it to active marketplace status?`,
-        confirmLabel: 'Approve listing',
-        busyLabel: 'Approving...',
-        confirmButtonClassName: 'secondary-button',
-      };
-
     case 'close':
       return {
         title: 'Close listing',
@@ -108,15 +99,6 @@ export function ProductDetailPage({ data, adminEmail }) {
     clearFeedback();
 
     try {
-      if (type === 'approve') {
-        await adminListingsService.approveListing({
-          listingId: actionListing.id,
-          adminEmail,
-        });
-        setSuccessMessage(`${actionListing.title} was approved successfully.`);
-      }
-
-
       if (type === 'close') {
         await adminListingsService.closeListing({
           listingId: actionListing.id,
@@ -274,18 +256,6 @@ export function ProductDetailPage({ data, adminEmail }) {
             <ActionMenu
               label="Listing actions"
               items={[
-                listing.moderationStatus !== 'approved' || listing.status !== 'active'
-                  ? {
-                      key: 'approve',
-                      label: 'Approve listing',
-                      disabled: busyActionKey === `approve:${listing.id}`,
-                      onSelect() {
-                        clearFeedback();
-                        setPendingAction({ type: 'approve', listing });
-                      },
-                    }
-                  : null,
-
                 {
                   key: listing.status === 'sold' ? 'reopen' : 'close',
                   label: listing.status === 'sold' ? 'Reopen listing' : 'Close listing',

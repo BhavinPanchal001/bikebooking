@@ -296,7 +296,18 @@ exports.adminUnblockUser = onCall(async (request) => {
 exports.adminDeleteUser = onCall(async (request) => {
   const actor = await requireAdmin(request);
   const userId = readRequiredString(request.data?.userId, "userId");
-  const result = await deleteUserCascade({userId, actor});
+
+  let result;
+  try {
+    result = await deleteUserCascade({userId, actor});
+  } catch (error) {
+    console.error(`adminDeleteUser cascade failed for ${userId}:`, error);
+    if (error instanceof HttpsError) throw error;
+    throw new HttpsError(
+      "internal",
+      `Delete failed: ${error?.message || "Unknown error during cascade delete."}`,
+    );
+  }
 
   let authDeleted = false;
   try {

@@ -18,16 +18,6 @@ function formatDuration(days) {
   return `${normalized} day${normalized === 1 ? '' : 's'}`;
 }
 
-function formatKind(value) {
-  switch (value) {
-    case 'boost':
-      return 'Boost';
-    case 'listing_fee':
-      return 'Listing fee';
-    default:
-      return value || '-';
-  }
-}
 
 const feeConfigPageConfig = {
   title: 'Fee Config',
@@ -41,18 +31,12 @@ const feeConfigPageConfig = {
   editDialogTitle: 'Edit fee',
   deleteDialogTitle: 'Delete fee',
   formSubtitle:
-    'Slug is the immutable key used by the mobile app and server. Enter the amount in rupees; the server converts it to paise automatically before talking to Razorpay. Set the kind to wire up the correct side-effect on payment.',
-  searchPlaceholder: 'Search fees by slug, name, or kind',
+    'Slug is the immutable key used by the mobile app and server. Enter the amount in rupees; the server converts it to paise automatically before talking to Razorpay.',
+  searchPlaceholder: 'Search fees by slug or name',
   liveMessage: 'Fee records sync live with the Firestore fee_config collection.',
   loadingMessage: 'Loading fees from Firestore...',
   emptyStateMessage: 'No fees configured yet.',
   hideUpdatedColumn: true,
-  filterField: 'kind',
-  filterLabel: 'Kind',
-  filterOptions: [
-    { value: 'boost', label: 'Boost' },
-    { value: 'listing_fee', label: 'Listing fee' },
-  ],
   fields: [
 
     {
@@ -74,18 +58,6 @@ const feeConfigPageConfig = {
       name: 'subtitle',
       label: 'Subtitle / tagline',
       placeholder: 'One-time fee to publish a listing',
-    },
-    {
-      name: 'kind',
-      label: 'Kind',
-      type: 'select',
-      options: [
-        { value: 'boost', label: 'Boost' },
-        { value: 'listing_fee', label: 'Listing fee' },
-      ],
-      required: true,
-      helperText:
-        'Boost: activates isBoosted + boostExpiresAt on the target product. Listing fee: sets listingFeePaid=true on the target product.',
     },
     {
       name: 'amountRupees',
@@ -142,14 +114,6 @@ const feeConfigPageConfig = {
             </div>
           )}
         </div>
-      ),
-    },
-    {
-      header: 'Kind',
-      renderCell: (record) => (
-        <span className={`status-pill status-${record.kind === 'boost' ? 'pending' : 'active'}`}>
-          {formatKind(record.kind)}
-        </span>
       ),
     },
     {

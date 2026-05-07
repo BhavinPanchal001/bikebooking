@@ -18,7 +18,6 @@ const STATUS_OPTIONS = [
 const KIND_OPTIONS = [
   { value: 'all', label: 'All kinds' },
   { value: 'boost', label: 'Boost' },
-  { value: 'listing_fee', label: 'Listing fee' },
 ];
 
 function formatAmount(paise, currency = 'INR') {

@@ -43,6 +43,8 @@ function resolveAdminUserError(error, actionLabel) {
       return 'Cloud Functions is temporarily unavailable. Please try again.';
     case 'deadline-exceeded':
       return `${actionLabel} is taking too long. Please try again in a moment.`;
+    case 'internal':
+      return error?.message || `An internal error occurred during ${actionLabel.toLowerCase()}.`;
     default:
       return error?.message || `Unable to ${actionLabel.toLowerCase()}.`;
   }
@@ -57,7 +59,12 @@ async function callAdminUserAction(functionName, payload, actionLabel) {
     );
     return response?.data ?? null;
   } catch (error) {
-    console.error(`Unable to ${actionLabel.toLowerCase()}.`, error);
+    console.error(`Unable to ${actionLabel.toLowerCase()}.`, {
+      code: error?.code,
+      message: error?.message,
+      details: error?.details,
+      raw: error,
+    });
     throw new Error(resolveAdminUserError(error, actionLabel));
   }
 }

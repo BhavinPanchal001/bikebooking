@@ -169,6 +169,20 @@ export const adminBoostService = {
     }
   },
 
+  async extendBoost({ productId, additionalDays, note }) {
+    const callable = httpsCallable(ensureFunctions(), 'adminExtendBoost');
+    try {
+      const result = await callable({
+        productId,
+        additionalDays: Number(additionalDays),
+        note: note || undefined,
+      });
+      return result.data;
+    } catch (error) {
+      throw new Error(formatCallableError(error, 'Unable to extend boost.'));
+    }
+  },
+
   async revokeBoost({ productId, note }) {
     const callable = httpsCallable(ensureFunctions(), 'adminRevokeBoost');
     try {

@@ -72,9 +72,20 @@ export function CmsPageEditorDialog({
     setSlugTouched(true);
     setValues((current) => ({
       ...current,
-      slug: normalizeCmsPageSlug(nextSlug),
+      slug: nextSlug
+        .toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-'),
     }));
     clearFieldError('slug');
+  }
+
+  function handleSlugBlur() {
+    setValues((current) => ({
+      ...current,
+      slug: normalizeCmsPageSlug(current.slug),
+    }));
   }
 
   function handleBodyChange(nextBodyMarkdown) {

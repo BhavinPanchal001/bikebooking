@@ -4,8 +4,6 @@ import {
   validateRequiredText,
 } from './masterModelUtils';
 
-const SUPPORTED_KINDS = ['boost', 'listing_fee'];
-
 // The admin UI shows rupees for humans but Firestore / Razorpay / Cloud
 // Functions still operate in paise (integer smallest currency unit). These
 // helpers convert between the two on the boundary between form state and
@@ -58,7 +56,7 @@ export function createFeeConfigDraft(values = {}) {
   return {
     slug: normalizeString(values.slug).toLowerCase().replace(/\s+/g, '_'),
     displayName: normalizeString(values.displayName),
-    kind: normalizeString(values.kind),
+    kind: 'boost',
     amountPaise: rupeesInputToPaise(values.amountRupees),
     durationDays: normalizeOptionalPositiveInteger(values.durationDays),
     currency: normalizeString(values.currency) || 'INR',
@@ -82,10 +80,6 @@ export function validateFeeConfigDraft(values = {}) {
   const displayError = validateRequiredText(values.displayName, 'Display name');
   if (displayError) errors.displayName = displayError;
 
-  if (!SUPPORTED_KINDS.includes(values.kind)) {
-    errors.kind = `Kind must be one of: ${SUPPORTED_KINDS.join(', ')}`;
-  }
-
   const rupees = Number.parseFloat(values.amountRupees);
   if (!Number.isFinite(rupees) || rupees <= 0) {
     errors.amountRupees = 'Amount must be a positive number in rupees.';
@@ -98,11 +92,9 @@ export function validateFeeConfigDraft(values = {}) {
     }
   }
 
-  if (values.kind === 'boost') {
-    const duration = Number.parseInt(values.durationDays, 10);
-    if (!Number.isFinite(duration) || duration <= 0) {
-      errors.durationDays = 'Boost plans require a duration in days.';
-    }
+  const duration = Number.parseInt(values.durationDays, 10);
+  if (!Number.isFinite(duration) || duration <= 0) {
+    errors.durationDays = 'Boost plans require a duration in days.';
   }
 
   return errors;
@@ -147,7 +139,7 @@ export const feeConfigMasterModel = {
   createDraft: createFeeConfigDraft,
   validate: validateFeeConfigDraft,
   getSearchText(record) {
-    return `${record.slug} ${record.displayName} ${record.kind}`.toLowerCase();
+    return `${record.slug} ${record.displayName}`.toLowerCase();
   },
   getRecordLabel(record) {
     return record.displayName || record.slug || 'fee';

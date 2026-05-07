@@ -1,4 +1,5 @@
 import { useDeferredValue, useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { ActionMenu } from '../components/ActionMenu';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { FeedbackBanner } from '../components/FeedbackBanner';
@@ -56,7 +57,8 @@ function getDialogConfig(action) {
 }
 
 export function UsersPage({ data, adminEmail }) {
-  const [search, setSearch] = useState('');
+  const [searchParams] = useSearchParams();
+  const [search, setSearch] = useState(() => searchParams.get('search') ?? '');
   const [filter, setFilter] = useState('all');
   const [pendingAction, setPendingAction] = useState(null);
   const [busyActionKey, setBusyActionKey] = useState('');

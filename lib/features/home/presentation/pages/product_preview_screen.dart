@@ -2,10 +2,7 @@ import 'package:bikebooking/core/constants/product_categories.dart';
 import 'package:bikebooking/core/widgets/custom_button.dart';
 import 'package:bikebooking/core/constants/global.dart';
 import 'package:bikebooking/core/widgets/product_cached_image.dart';
-import 'package:bikebooking/features/auth/presentation/controllers/login_controller.dart';
-import 'package:bikebooking/features/home/data/services/fee_config_service.dart';
 import 'package:bikebooking/features/home/presentation/controllers/list_product_controller.dart';
-import 'package:bikebooking/features/home/presentation/controllers/listing_fee_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -365,19 +362,6 @@ class ProductPreviewScreen extends StatelessWidget {
                             final wasEditing = controller.isEditing;
                             final success = await controller.submitProduct();
                             if (success && context.mounted) {
-                              final pendingFee = controller.pendingListingFee;
-                              final pendingProductId =
-                                  controller.pendingListingFeeProductId;
-                              if (pendingFee != null &&
-                                  pendingProductId != null) {
-                                await _presentListingFeePaywall(
-                                  context: context,
-                                  controller: controller,
-                                  fee: pendingFee,
-                                  productId: pendingProductId,
-                                );
-                                return;
-                              }
                               Get.snackbar(
                                 'Success',
                                 controller.submissionSuccessMessage ??
@@ -415,121 +399,6 @@ class ProductPreviewScreen extends StatelessWidget {
           ),
         );
       },
-    );
-  }
-
-  Future<void> _presentListingFeePaywall({
-    required BuildContext context,
-    required ListProductController controller,
-    required FeeConfigEntry fee,
-    required String productId,
-  }) async {
-    final tag = 'listing_fee_$productId';
-    final feeController = Get.put(ListingFeeController(), tag: tag);
-    feeController.onPaid = () {
-      if (!Get.isDialogOpen!) return;
-      Get.back();
-    };
-    feeController.onFailed = (message) {
-      Get.snackbar(
-        'Payment failed',
-        message,
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.red.shade600,
-      );
-    };
-
-    await feeController.loadFeeConfig();
-
-    final loginController = Get.isRegistered<LoginController>()
-        ? Get.find<LoginController>()
-        : null;
-    final userProfile = loginController?.currentUserProfile;
-
-    final rupees = (fee.amountPaise / 100.0).toStringAsFixed(2);
-
-    await Get.dialog<void>(
-      AlertDialog(
-        title: const Text('Pay listing fee to publish'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Your listing is saved, but it will not appear in public '
-              'search until the one-time listing fee is paid.',
-              style: TextStyle(color: Colors.grey.shade700),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text('Amount', style: TextStyle(fontSize: 14)),
-                Text(
-                  '${fee.currency} $rupees',
-                  style: const TextStyle(
-                      fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-              ],
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Get.back();
-            },
-            child: const Text('Pay later'),
-          ),
-          GetBuilder<ListingFeeController>(
-            tag: tag,
-            builder: (ctrl) {
-              return ElevatedButton(
-                onPressed: ctrl.isProcessing
-                    ? null
-                    : () {
-                        ctrl.payListingFee(
-                          productId: productId,
-                          userPhone: userProfile?.phoneNumber,
-                          userEmail: userProfile?.email,
-                        );
-                      },
-                child: Text(ctrl.isProcessing ? 'Processing…' : 'Pay now'),
-              );
-            },
-          ),
-        ],
-      ),
-      barrierDismissible: false,
-    );
-
-    final paid = feeController.paid;
-    Get.delete<ListingFeeController>(tag: tag);
-    controller.clearPendingListingFee();
-    controller.resetForm();
-
-    if (!context.mounted) return;
-
-    if (paid) {
-      Get.snackbar(
-        'Payment successful',
-        'Your listing is now live!',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.green.shade600,
-      );
-    } else {
-      Get.snackbar(
-        'Listing saved',
-        'You can complete the payment from My Listings later.',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.orange.shade600,
-      );
-    }
-
-    Navigator.pushNamedAndRemoveUntil(
-      context,
-      '/my_listing',
-      (route) => route.settings.name == '/home',
     );
   }
 

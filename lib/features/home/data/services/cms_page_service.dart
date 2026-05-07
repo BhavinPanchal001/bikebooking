@@ -9,6 +9,24 @@ class CmsPageService {
   CollectionReference<Map<String, dynamic>> get _pagesRef =>
       (_firestore ?? FirebaseFirestore.instance).collection('cms_pages');
 
+  Stream<List<CmsPageModel>> watchAllPublishedPages() {
+    return _pagesRef
+        .where('isPublished', isEqualTo: true)
+        .snapshots()
+        .map((snapshot) {
+      final pages = snapshot.docs
+          .map((doc) => CmsPageModel.fromMap(doc.data(), doc.id))
+          .where((page) => page.effectiveTitle.isNotEmpty)
+          .toList();
+      pages.sort((a, b) {
+        final aTime = a.publishedAt?.millisecondsSinceEpoch ?? 0;
+        final bTime = b.publishedAt?.millisecondsSinceEpoch ?? 0;
+        return bTime.compareTo(aTime);
+      });
+      return pages;
+    });
+  }
+
   Stream<CmsPageModel?> watchPublishedPage(String slug) {
     final normalizedSlug = slug.trim();
     if (normalizedSlug.isEmpty) {

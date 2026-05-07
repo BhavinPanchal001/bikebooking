@@ -14,15 +14,6 @@ function getDialogConfig(action) {
   const listingTitle = action.listing.title || action.listing.id;
 
   switch (action.type) {
-    case 'approve':
-      return {
-        title: 'Approve listing',
-        message: `Approve "${listingTitle}" and restore it to active marketplace status?`,
-        confirmLabel: 'Approve listing',
-        busyLabel: 'Approving...',
-        confirmButtonClassName: 'secondary-button',
-      };
-
     case 'close':
       return {
         title: 'Close listing',
@@ -130,15 +121,6 @@ export function ListingsPage({ data, adminEmail }) {
     clearFeedback();
 
     try {
-      if (type === 'approve') {
-        await adminListingsService.approveListing({
-          listingId: listing.id,
-          adminEmail,
-        });
-        setSuccessMessage(`${listing.title} was approved successfully.`);
-      }
-
-
       if (type === 'close') {
         await adminListingsService.closeListing({
           listingId: listing.id,
@@ -268,19 +250,6 @@ export function ListingsPage({ data, adminEmail }) {
                             icon: 'details',
                             to: `/listings/${listing.id}`,
                           },
-                          listing.moderationStatus !== 'approved' || listing.status !== 'active'
-                            ? {
-                              key: 'approve',
-                              label: 'Approve listing',
-                              icon: 'approve',
-                              disabled: busyActionKey === `approve:${listing.id}`,
-                              onSelect() {
-                                clearFeedback();
-                                setPendingAction({ type: 'approve', listing });
-                              },
-                            }
-                            : null,
-
                           {
                             key: listing.status === 'sold' ? 'reopen' : 'close',
                             label: listing.status === 'sold' ? 'Reopen listing' : 'Close listing',

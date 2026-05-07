@@ -40,6 +40,7 @@ import 'features/home/presentation/pages/spare_parts_detail_form_screen.dart';
 import 'features/home/presentation/pages/accessories_detail_form_screen.dart';
 import 'features/home/presentation/pages/subscription_status_screen.dart';
 import 'features/home/presentation/pages/blocked_users_screen.dart';
+import 'features/home/presentation/pages/cms_browser_screen.dart';
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -210,6 +211,9 @@ class MyApp extends StatelessWidget {
         }
         if (settings.name == '/blocked_users') {
           return buildRoute(const BlockedUsersScreen());
+        }
+        if (settings.name == '/cms_browser') {
+          return buildRoute(const CmsBrowserScreen());
         }
         return null;
       },

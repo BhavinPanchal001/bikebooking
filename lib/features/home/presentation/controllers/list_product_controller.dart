@@ -13,7 +13,6 @@ import 'package:image_picker/image_picker.dart';
 import 'package:bikebooking/features/auth/presentation/controllers/login_controller.dart';
 import 'package:bikebooking/features/home/data/models/product_model.dart';
 import 'package:bikebooking/features/home/data/models/product_status.dart';
-import 'package:bikebooking/features/home/data/services/fee_config_service.dart';
 import 'package:bikebooking/features/home/data/services/product_firestore_service.dart';
 import 'package:bikebooking/features/home/data/services/product_storage_service.dart';
 
@@ -31,43 +30,23 @@ class ListProductController extends GetxController {
   ListProductController({
     ProductFirestoreService? firestoreService,
     ProductStorageService? storageService,
-    FeeConfigService? feeConfigService,
     ImagePicker? imagePicker,
     String Function()? sellerIdProvider,
     String Function()? sellerNameProvider,
   })  : _firestoreService = firestoreService ?? ProductFirestoreService(),
         _storageService = storageService ?? ProductStorageService(),
-        _feeConfigService = feeConfigService ?? FeeConfigService(),
         _imagePicker = imagePicker ?? ImagePicker(),
         _sellerIdProvider = sellerIdProvider,
         _sellerNameProvider = sellerNameProvider;
 
   final ProductFirestoreService _firestoreService;
   final ProductStorageService _storageService;
-  final FeeConfigService _feeConfigService;
   final ImagePicker _imagePicker;
   final String Function()? _sellerIdProvider;
   final String Function()? _sellerNameProvider;
   static const int _maxProductImages = 6;
   static const Duration _currentLocationTimeout = Duration(seconds: 15);
 
-  /// Non-null when the just-submitted product needs a listing-fee payment
-  /// before it will appear in public listings. Consumed by the UI to open
-  /// a paywall after [submitProduct] returns `true`.
-  FeeConfigEntry? _pendingListingFee;
-  FeeConfigEntry? get pendingListingFee => _pendingListingFee;
-
-  String? _pendingListingFeeProductId;
-  String? get pendingListingFeeProductId => _pendingListingFeeProductId;
-
-  bool get hasPendingListingFee =>
-      _pendingListingFee != null && _pendingListingFeeProductId != null;
-
-  void clearPendingListingFee() {
-    _pendingListingFee = null;
-    _pendingListingFeeProductId = null;
-    update();
-  }
 
   // ── Step 1: Category ──
   String _category = '';
@@ -497,19 +476,7 @@ class ListProductController extends GetxController {
       );
       final uploadedImageUrls = await _resolveProductImageUrls(sellerId);
 
-      // If the admin has configured a non-zero listing fee, the product is
-      // created in `awaiting_payment` status and the UI opens a paywall
-      // after this method returns. A Cloud Function flips it to `active`
-      // once `verifyPaymentSignature` succeeds.
-      FeeConfigEntry? listingFee;
-      if (!isEditing) {
-        listingFee = await _feeConfigService.getActiveFee('listing_fee');
-      }
-      final requiresListingFee =
-          listingFee != null && listingFee.amountPaise > 0;
-
-      final effectiveStatus =
-          requiresListingFee ? ProductStatus.awaitingPayment : _status;
+      final effectiveStatus = _status;
 
       final product = ProductModel(
         id: _editingProductId,
@@ -547,18 +514,9 @@ class ListProductController extends GetxController {
 
       _isLoading = false;
       _submissionErrorMessage = null;
-      if (requiresListingFee && savedProductId != null) {
-        _pendingListingFee = listingFee;
-        _pendingListingFeeProductId = savedProductId;
-        _submissionSuccessMessage ??=
-            'Your listing is saved. Pay the listing fee to publish it.';
-      } else {
-        _pendingListingFee = null;
-        _pendingListingFeeProductId = null;
-        _submissionSuccessMessage ??= isEditing
-            ? 'Your product has been updated!'
-            : 'Your product has been posted!';
-      }
+      _submissionSuccessMessage ??= isEditing
+          ? 'Your product has been updated!'
+          : 'Your product has been posted!';
       update();
       return true;
     } on FirebaseAuthException catch (error, stackTrace) {

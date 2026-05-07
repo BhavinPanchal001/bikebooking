@@ -42,9 +42,6 @@ service cloud.firestore {
       // Anyone (even unauthenticated) can read products
       allow read: if true;
 
-      // Only authenticated users can create their own products.
-      // Payment-gated fields must not be preset to their paid state —
-      // the server (Cloud Functions) is the only writer that may flip them.
       allow create: if isSignedIn()
                     && request.resource.data.sellerId == request.auth.uid
                     && request.resource.data.get('listingFeePaid', false) == false
@@ -52,18 +49,13 @@ service cloud.firestore {
                     && request.resource.data.get('boostPaymentId', null) == null
                     && request.resource.data.get('boostExpiresAt', null) == null
                     && request.resource.data.get('boostStartedAt', null) == null
-                    && request.resource.data.get('boostPlanId', null) == null
-                    && request.resource.data.get('isEditorialFeatured', false)
-                         == false;
+                    && request.resource.data.get('boostPlanId', null) == null;
 
-      // Only the seller can update or delete their own product.
-      // Sellers MUST NOT be able to flip payment-gated fields themselves.
-      // Those are owned by the server (Cloud Functions using the admin SDK).
-      // Sellers also cannot leave `awaiting_payment` on their own — that
-      // transition must go through `verifyPaymentSignature` after the
-      // listing fee is paid. They may still mark a product as `sold` from
-      // any status via the regular app UI.
-      allow update: if isOwner(resource.data.sellerId)
+      // Admins can update any product (reopen, close, moderation actions).
+      // Sellers can only update their own listing with payment-gated field
+      // restrictions enforced below.
+      allow update: if isAdmin()
+                    || isOwner(resource.data.sellerId)
                     && request.resource.data.get('listingFeePaid', false) ==
                          resource.data.get('listingFeePaid', false)
                     && request.resource.data.get('isBoosted', false) ==
@@ -76,54 +68,12 @@ service cloud.firestore {
                          resource.data.get('boostStartedAt', null)
                     && request.resource.data.get('boostPlanId', null) ==
                          resource.data.get('boostPlanId', null)
-                    // Admin-grant boost metadata (see adminGrantBoost
-                    // callable). Sellers cannot fabricate or rewrite these.
-                    && request.resource.data.get('boostGrantSource', null) ==
-                         resource.data.get('boostGrantSource', null)
-                    && request.resource.data.get('boostGrantedBy', null) ==
-                         resource.data.get('boostGrantedBy', null)
-                    && request.resource.data.get('boostGrantedByEmail', null) ==
-                         resource.data.get('boostGrantedByEmail', null)
-                    && request.resource.data.get('boostGrantNote', null) ==
-                         resource.data.get('boostGrantNote', null)
-                    // Editorial "featured" is owned by the server (admin
-                    // panel → adminSetEditorialFeatured callable). Sellers
-                    // cannot promote their own listings onto the editorial
-                    // rail or rewrite the admin attribution / timestamp
-                    // (which the admin UI orders by).
-                    && request.resource.data.get('isEditorialFeatured', false) ==
-                         resource.data.get('isEditorialFeatured', false)
-                    && request.resource.data.get('editorialFeaturedAt', null) ==
-                         resource.data.get('editorialFeaturedAt', null)
-                    && request.resource.data.get('editorialFeaturedBy', null) ==
-                         resource.data.get('editorialFeaturedBy', null)
-                    && request.resource.data.get('editorialFeaturedByEmail', null) ==
-                         resource.data.get('editorialFeaturedByEmail', null)
-                    && request.resource.data.get('editorialFeaturedNote', null) ==
-                         resource.data.get('editorialFeaturedNote', null)
-                    // From `awaiting_payment` the seller may stay put or mark
-                    // the listing as `sold`. Only the server (via the
-                    // verifyPaymentSignature Cloud Function) is allowed to flip
-                    // the status to `active`.
                     && (
                       resource.data.get('status', 'active') != 'awaiting_payment'
                       || request.resource.data.get('status', 'active') ==
                            'awaiting_payment'
                       || request.resource.data.get('status', 'active') == 'sold'
                     )
-                    // A seller can reach `active` only if the listing was
-                    // already `active` OR the listing fee has been paid. This
-                    // closes the awaiting_payment → sold → active two-step
-                    // bypass that would otherwise let a listing go live
-                    // without paying the fee.
-                    //
-                    // The `!('listingFeePaid' in resource.data)` branch is an
-                    // explicit escape hatch for products that pre-date the
-                    // listing-fee feature: they were created before the field
-                    // existed, are already live / sold / reactivatable, and
-                    // were never subject to the paywall. Without this branch
-                    // every pre-existing sold product would become
-                    // unreactivatable after the rule rolls out.
                     && (
                       request.resource.data.get('status', 'active') != 'active'
                       || resource.data.get('status', 'active') == 'active'
@@ -138,22 +88,10 @@ service cloud.firestore {
       allow read: if true;
       allow write: if isSignedIn() && request.auth.uid == userId;
 
-      match /reviews/{reviewerId} {
-        allow read: if true;
-        allow create: if isSignedIn() && request.auth.uid == reviewerId;
-        allow update, delete: if isSignedIn() && request.auth.uid == reviewerId;
+      match /favorites/{favoriteId} {
+        allow read: if isSignedIn() && request.auth.uid == userId;
+        allow write: if isSignedIn() && request.auth.uid == userId;
       }
-    }
-
-    // ── user favorites ────────────────────────────────────────────────────────
-    // Parent document rules do not cascade into subcollections, so favorites
-    // need their own owner-only permissions.
-    match /users/{userId}/favorites/{productId} {
-      allow read: if isSignedIn() && request.auth.uid == userId;
-      allow create, update: if isSignedIn()
-                            && request.auth.uid == userId
-                            && request.resource.data.productId == productId;
-      allow delete: if isSignedIn() && request.auth.uid == userId;
     }
 
     // ── admin_users (admin panel authorization allowlist) ─────────────────────
@@ -184,8 +122,6 @@ service cloud.firestore {
     }
 
     // ── payments ─────────────────────────────────────────────────────────────
-    // Written exclusively by Cloud Functions (admin SDK bypasses these rules).
-    // Clients can read their own payments (for receipts); admins see all.
     match /payments/{paymentId} {
       allow read: if isAdmin()
                   || (isSignedIn() && request.auth.uid == resource.data.userId);
@@ -193,9 +129,6 @@ service cloud.firestore {
     }
 
     // ── fee_config (public read; admin write) ────────────────────────────────
-    // Mobile client reads these to render checkout; only admins can change
-    // prices. The server-side `createPaymentOrder` re-reads the doc to
-    // validate amount so a malicious client cannot inject prices.
     match /fee_config/{feeSlug} {
       allow read: if true;
       allow write: if isAdmin();
@@ -211,6 +144,70 @@ service cloud.firestore {
     match /audit_logs/{logId} {
       allow read: if isAdmin();
       allow write: if false;
+    }
+
+    // ── chats ───────────────────────────────────────────────────────────────
+    match /chats/{chatId} {
+      allow read: if isAdmin()
+                  || (isSignedIn()
+                  && request.auth.uid in resource.data.participants);
+      allow create: if isSignedIn()
+                    && request.auth.uid in request.resource.data.participants;
+      allow update: if isSignedIn()
+                    && request.auth.uid in resource.data.participants;
+      allow delete: if false;
+
+      match /messages/{messageId} {
+        allow read: if isSignedIn()
+                    && request.auth.uid in
+                         get(/databases/$(database)/documents/chats/$(chatId))
+                           .data.participants;
+        allow create: if isSignedIn()
+                      && request.auth.uid in
+                           get(/databases/$(database)/documents/chats/$(chatId))
+                             .data.participants;
+        allow update, delete: if false;
+      }
+    }
+
+    // ── user_blocks ─────────────────────────────────────────────────────────
+    match /user_blocks/{blockId} {
+      allow read: if isAdmin()
+                  || (isSignedIn()
+                  && (request.auth.uid == resource.data.blockerId
+                      || request.auth.uid == resource.data.blockedUserId));
+      allow create: if isSignedIn()
+                    && request.auth.uid == request.resource.data.blockerId;
+      allow update: if isSignedIn()
+                    && request.auth.uid == resource.data.blockerId;
+      allow delete: if isSignedIn()
+                    && request.auth.uid == resource.data.blockerId;
+    }
+
+    // ── notifications ────────────────────────────────────────────────────────
+    match /users/{userId}/notifications/{notificationId} {
+      allow read: if isSignedIn() && request.auth.uid == userId;
+      allow create: if isSignedIn();
+      allow update, delete: if isSignedIn() && request.auth.uid == userId;
+    }
+
+    // ── cms_pages (admin read/write; published pages publicly readable) ──────
+    match /cms_pages/{pageId} {
+      allow read: if isAdmin() || resource.data.get('isPublished', false) == true;
+      allow write: if isAdmin();
+
+      match /versions/{versionId} {
+        allow read: if isAdmin();
+        allow write: if isAdmin();
+      }
+    }
+
+    // ── seller_reports (append-only, admin-readable) ────────────────────────
+    match /seller_reports/{reportId} {
+      allow read: if isAdmin();
+      allow create: if isSignedIn()
+                    && request.resource.data.reporterId == request.auth.uid;
+      allow update, delete: if false;
     }
   }
 }

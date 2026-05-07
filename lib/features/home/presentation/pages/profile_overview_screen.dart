@@ -273,6 +273,16 @@ class ProfileOverviewScreen extends StatelessWidget {
                       ),
                       _buildMenuItem(
                         context,
+                        Icons.article_outlined,
+                        'Pages',
+                        'Terms, policies & more',
+                        onTap: () => Navigator.pushNamed(
+                          context,
+                          '/cms_browser',
+                        ),
+                      ),
+                      _buildMenuItem(
+                        context,
                         Icons.headset_mic_outlined,
                         'Help & Support',
                         'Help center and legal team',
