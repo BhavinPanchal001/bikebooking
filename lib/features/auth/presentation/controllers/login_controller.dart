@@ -105,7 +105,8 @@ class LoginController extends GetxController with WidgetsBindingObserver {
   static const Duration _currentLocationTimeout = Duration(seconds: 15);
   static const String _blockedAccountMessage =
       'Your account has been blocked by the admin. Please contact support.';
-  bool get _bypassPhoneAuth => GetPlatform.isIOS;
+  static const Duration _manualOtpAutoRetrievalTimeout = Duration(seconds: 30);
+  bool get _bypassPhoneAuth => !GetPlatform.isAndroid;
 
   final TextEditingController phoneController = TextEditingController();
   final TextEditingController fullNameController = TextEditingController();
@@ -392,7 +393,7 @@ class LoginController extends GetxController with WidgetsBindingObserver {
       await _authService.verifyPhoneNumber(
         phoneNumber: authPhoneNumber,
         forceResendingToken: resendToken,
-        // timeout: _manualOtpAutoRetrievalTimeout,
+        timeout: _manualOtpAutoRetrievalTimeout,
         verificationCompleted: (credential) async {
           try {
             final userCredential =

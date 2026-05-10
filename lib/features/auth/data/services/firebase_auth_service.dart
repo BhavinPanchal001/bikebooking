@@ -64,7 +64,7 @@ class FirebaseAuthService {
   User? get currentUser => _authOrNull?.currentUser;
 
   Future<User?> currentUserAfterRestore({
-    Duration timeout = const Duration(seconds: 2),
+    Duration timeout = const Duration(seconds: 15),
   }) async {
     final auth = _authOrNull;
     if (auth == null) {
