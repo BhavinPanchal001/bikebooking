@@ -136,6 +136,7 @@ class MyApp extends StatelessWidget {
           return buildRoute(const ChangeLocationScreen());
         }
         if (settings.name == '/select_state') {
+          print('DEBUG: Route /select_state matched, returning SelectStateScreen');
           return buildRoute(const SelectStateScreen());
         }
         if (settings.name == '/select_city') {
@@ -231,7 +232,25 @@ class MyApp extends StatelessWidget {
         if (settings.name == '/cms_browser') {
           return buildRoute(const CmsBrowserScreen());
         }
-        return null;
+        
+        print('DEBUG: Route not found: ${settings.name}');
+        return buildRoute(
+          Scaffold(
+            body: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text('Route not found: ${settings.name}'),
+                  const SizedBox(height: 20),
+                  ElevatedButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: Text('Go Back'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
       },
     );
   }

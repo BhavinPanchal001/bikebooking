@@ -112,13 +112,26 @@ class _SelectLocationScreenState extends State<SelectLocationScreen> {
                       subtitle: 'Select state, city and area',
                       onTap: () async {
                         print('DEBUG: Tapped Choose Location Manually');
+                        print('DEBUG: Context is valid: ${context.mounted}');
+                        print('DEBUG: Navigator state: ${Navigator.of(context).canPop}');
                         print('DEBUG: Navigating to /select_state');
-                        final result = await Navigator.pushNamed(context, '/select_state');
-                        if (result != null) {
-                          // Handle the selected location
-                          final locationData = result as Map<String, dynamic>;
-                          // You can save this location or use it as needed
-                          print('Selected location: ${locationData['displayAddress']}');
+                        try {
+                          final result = await Navigator.pushNamed(context, '/select_state');
+                          print('DEBUG: Navigation completed, result: $result');
+                          if (result != null) {
+                            // Handle the selected location
+                            final locationData = result as Map<String, dynamic>;
+                            // You can save this location or use it as needed
+                            print('Selected location: ${locationData['displayAddress']}');
+                          }
+                        } catch (e) {
+                          print('DEBUG: Navigation error: $e');
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Navigation error: $e'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
                         }
                       },
                       leading: Icon(

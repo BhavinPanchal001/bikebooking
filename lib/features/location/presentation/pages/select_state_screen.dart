@@ -19,8 +19,14 @@ class _SelectStateScreenState extends State<SelectStateScreen> {
   @override
   void initState() {
     super.initState();
-    _loadStates();
+    _clearCacheAndLoadStates();
     searchController.addListener(_filterStates);
+  }
+
+  Future<void> _clearCacheAndLoadStates() async {
+    // Clear cache to force fresh data with fixed parsing
+    await GeoNamesService.clearCache();
+    _loadStates();
   }
 
   @override

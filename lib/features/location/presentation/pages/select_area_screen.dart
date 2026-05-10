@@ -14,18 +14,25 @@ class _SelectAreaScreenState extends State<SelectAreaScreen> {
   List<Place> areas = [];
   List<Place> filteredAreas = [];
   bool isLoading = true;
-  late Place selectedState;
-  late Place selectedCity;
+  Place selectedState = Place(geonameId: '', name: '');
+  Place selectedCity = Place(geonameId: '', name: '');
   TextEditingController searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    final arguments = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
-    selectedState = arguments['state'] as Place;
-    selectedCity = arguments['city'] as Place;
-    _loadAreas();
     searchController.addListener(_filterAreas);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (selectedState.geonameId.isEmpty) {
+      final arguments = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+      selectedState = arguments['state'] as Place;
+      selectedCity = arguments['city'] as Place;
+      _loadAreas();
+    }
   }
 
   @override

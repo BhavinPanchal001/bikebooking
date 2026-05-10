@@ -168,9 +168,9 @@ class Place {
       name: json['name'] ?? '',
       adminCode1: json['adminCode1'],
       adminCode2: json['adminCode2'],
-      lat: json['lat']?.toDouble(),
-      lng: json['lng']?.toDouble(),
-      population: json['population']?.toInt(),
+      lat: json['lat'] != null ? double.tryParse(json['lat'].toString()) : null,
+      lng: json['lng'] != null ? double.tryParse(json['lng'].toString()) : null,
+      population: json['population'] != null ? int.tryParse(json['population'].toString()) : null,
       countryCode: json['countryCode'],
     );
   }

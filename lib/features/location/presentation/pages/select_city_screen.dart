@@ -14,15 +14,22 @@ class _SelectCityScreenState extends State<SelectCityScreen> {
   List<Place> cities = [];
   List<Place> filteredCities = [];
   bool isLoading = true;
-  late Place selectedState;
+  Place selectedState = Place(geonameId: '', name: '');
   TextEditingController searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    selectedState = ModalRoute.of(context)!.settings.arguments as Place;
-    _loadCities();
     searchController.addListener(_filterCities);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (selectedState.geonameId.isEmpty) {
+      selectedState = ModalRoute.of(context)!.settings.arguments as Place;
+      _loadCities();
+    }
   }
 
   @override
