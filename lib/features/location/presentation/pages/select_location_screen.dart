@@ -106,12 +106,67 @@ class _SelectLocationScreenState extends State<SelectLocationScreen> {
                         width: 25,
                       ),
                     ),
+                    const SizedBox(height: 16),
+                    _buildLocationOption(
+                      title: 'Choose Location Manually',
+                      subtitle: 'Select state, city and area',
+                      onTap: () async {
+                        print('DEBUG: Tapped Choose Location Manually');
+                        print('DEBUG: Navigating to /select_state');
+                        final result = await Navigator.pushNamed(context, '/select_state');
+                        if (result != null) {
+                          // Handle the selected location
+                          final locationData = result as Map<String, dynamic>;
+                          // You can save this location or use it as needed
+                          print('Selected location: ${locationData['displayAddress']}');
+                        }
+                      },
+                      leading: Icon(
+                        Icons.location_city,
+                        color: AppColors.primary,
+                        size: 30,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    // Simple test button
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.red,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: InkWell(
+                        onTap: () {
+                          print('DEBUG: RED BUTTON TAPPED - going to /select_state');
+                          Navigator.pushNamed(context, '/select_state');
+                        },
+                        child: Text(
+                          'TEST: Go to State Selection',
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.poppins(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
             ],
           );
         },
+      ),
+      floatingActionButton: FloatingActionButton(
+        mini: true,
+        backgroundColor: AppColors.primary,
+        onPressed: () {
+          print('DEBUG: Direct navigation test - going to /select_state');
+          Navigator.pushNamed(context, '/select_state');
+        },
+        child: const Icon(Icons.location_city, color: Colors.white),
       ),
     );
   }

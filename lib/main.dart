@@ -12,6 +12,10 @@ import 'features/auth/presentation/pages/enter_name_screen.dart';
 import 'features/location/presentation/pages/select_location_screen.dart';
 import 'features/location/presentation/pages/location_search_screen.dart';
 import 'features/location/presentation/pages/change_location_screen.dart';
+import 'features/location/presentation/pages/select_state_screen.dart';
+import 'features/location/presentation/pages/select_city_screen.dart';
+import 'features/location/presentation/pages/select_area_screen.dart';
+import 'features/location/presentation/pages/test_location_screen.dart';
 import 'features/home/presentation/pages/home_page.dart';
 import 'features/home/presentation/pages/select_category_screen.dart';
 import 'features/home/presentation/pages/search_screen.dart';
@@ -130,6 +134,18 @@ class MyApp extends StatelessWidget {
         }
         if (settings.name == '/change_location') {
           return buildRoute(const ChangeLocationScreen());
+        }
+        if (settings.name == '/select_state') {
+          return buildRoute(const SelectStateScreen());
+        }
+        if (settings.name == '/select_city') {
+          return buildRoute(const SelectCityScreen());
+        }
+        if (settings.name == '/select_area') {
+          return buildRoute(const SelectAreaScreen());
+        }
+        if (settings.name == '/test_location') {
+          return buildRoute(const TestLocationScreen());
         }
         if (settings.name == '/home') {
           return buildRoute(const HomePage());
