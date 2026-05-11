@@ -1,5 +1,5 @@
 import 'package:bikebooking/core/constants/global.dart';
-import 'package:bikebooking/features/location/data/services/geonames_service.dart';
+import 'package:bikebooking/features/location/data/services/openstreetmap_service.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -27,7 +27,7 @@ class _SelectAreaScreenState extends State<SelectAreaScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (selectedState.geonameId.isEmpty) {
+    if (selectedCity.geonameId.isEmpty) {
       final arguments = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
       selectedState = arguments['state'] as Place;
       selectedCity = arguments['city'] as Place;
@@ -43,10 +43,10 @@ class _SelectAreaScreenState extends State<SelectAreaScreen> {
 
   Future<void> _loadAreas() async {
     try {
-      if (selectedCity.lat != null && selectedCity.lng != null) {
-        final loadedAreas = await GeoNamesService.getAreasInCity(
-          selectedCity.lat!,
-          selectedCity.lng!,
+      if (selectedCity.name.isNotEmpty) {
+        final loadedAreas = await OpenStreetMapService.getLocalitiesInCity(
+          selectedCity.name,
+          selectedState.name,
         );
         setState(() {
           areas = loadedAreas;
@@ -60,7 +60,7 @@ class _SelectAreaScreenState extends State<SelectAreaScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('City coordinates not available'),
+              content: Text('City information not available'),
               backgroundColor: Colors.orange,
             ),
           );
@@ -124,14 +124,22 @@ class _SelectAreaScreenState extends State<SelectAreaScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                Text(
+                  selectedState.name,
+                  style: GoogleFonts.poppins(
+                    fontSize: 12,
+                    color: Colors.grey[600],
+                  ),
+                ),
+                const SizedBox(height: 4),
                 Row(
                   children: [
                     Icon(
                       Icons.location_on,
                       color: AppColors.primary,
-                      size: 20,
+                      size: 18,
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 6),
                     Text(
                       selectedCity.name,
                       style: GoogleFonts.poppins(
@@ -141,14 +149,6 @@ class _SelectAreaScreenState extends State<SelectAreaScreen> {
                       ),
                     ),
                   ],
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  selectedState.name,
-                  style: GoogleFonts.poppins(
-                    fontSize: 14,
-                    color: Colors.grey[600],
-                  ),
                 ),
               ],
             ),

@@ -1,5 +1,5 @@
 import 'package:bikebooking/core/constants/global.dart';
-import 'package:bikebooking/features/location/data/services/geonames_service.dart';
+import 'package:bikebooking/features/location/data/services/openstreetmap_service.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -24,8 +24,8 @@ class _SelectStateScreenState extends State<SelectStateScreen> {
   }
 
   Future<void> _clearCacheAndLoadStates() async {
-    // Clear cache to force fresh data with fixed parsing
-    await GeoNamesService.clearCache();
+    // Clear cache to force fresh data
+    await OpenStreetMapService.clearCache();
     _loadStates();
   }
 
@@ -37,7 +37,7 @@ class _SelectStateScreenState extends State<SelectStateScreen> {
 
   Future<void> _loadStates() async {
     try {
-      final loadedStates = await GeoNamesService.getIndianStates();
+      final loadedStates = await OpenStreetMapService.getIndianStates();
       setState(() {
         states = loadedStates;
         filteredStates = loadedStates;
@@ -193,12 +193,15 @@ class _SelectStateScreenState extends State<SelectStateScreen> {
           size: 16,
           color: Colors.grey[600],
         ),
-        onTap: () {
-          Navigator.pushNamed(
+        onTap: () async {
+          final result = await Navigator.pushNamed(
             context,
             '/select_city',
             arguments: state,
           );
+          if (result != null && context.mounted) {
+            Navigator.pop(context, result);
+          }
         },
       ),
     );

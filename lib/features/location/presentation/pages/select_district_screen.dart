@@ -1,18 +1,19 @@
 import 'package:bikebooking/core/constants/global.dart';
-import 'package:bikebooking/features/location/data/services/openstreetmap_service.dart';
+import 'package:bikebooking/features/location/data/services/geonames_service.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-class SelectCityScreen extends StatefulWidget {
-  const SelectCityScreen({super.key});
+class SelectDistrictScreen extends StatefulWidget {
+  const SelectDistrictScreen({super.key});
 
   @override
-  State<SelectCityScreen> createState() => _SelectCityScreenState();
+  State<SelectDistrictScreen> createState() => _SelectDistrictScreenState();
 }
 
-class _SelectCityScreenState extends State<SelectCityScreen> {
-  List<Place> cities = [];
-  List<Place> filteredCities = [];
+class _SelectDistrictScreenState extends State<SelectDistrictScreen> {
+  List<Place> districts = [];
+  List<Place> filteredDistricts = [];
   bool isLoading = true;
   Place selectedState = Place(geonameId: '', name: '');
   TextEditingController searchController = TextEditingController();
@@ -20,7 +21,7 @@ class _SelectCityScreenState extends State<SelectCityScreen> {
   @override
   void initState() {
     super.initState();
-    searchController.addListener(_filterCities);
+    searchController.addListener(_filterDistricts);
   }
 
   @override
@@ -28,7 +29,7 @@ class _SelectCityScreenState extends State<SelectCityScreen> {
     super.didChangeDependencies();
     if (selectedState.geonameId.isEmpty) {
       selectedState = ModalRoute.of(context)!.settings.arguments as Place;
-      _loadCities();
+      _clearCacheAndLoadDistricts();
     }
   }
 
@@ -38,12 +39,25 @@ class _SelectCityScreenState extends State<SelectCityScreen> {
     super.dispose();
   }
 
-  Future<void> _loadCities() async {
+  Future<void> _clearCacheAndLoadDistricts() async {
+    // Clear ALL cache to force fresh data
+    final prefs = await SharedPreferences.getInstance();
+    final keys = prefs.getKeys();
+    for (String key in keys) {
+      if (key.startsWith('cached_') || key.startsWith('cached_cities_') || key.startsWith('cached_areas_')) {
+        await prefs.remove(key);
+      }
+    }
+    print('DEBUG: All caches cleared');
+    _loadDistricts();
+  }
+
+  Future<void> _loadDistricts() async {
     try {
-      final loadedCities = await OpenStreetMapService.getCitiesInState(selectedState.name);
+      final loadedDistricts = await GeoNamesService.getDistrictsInState(selectedState.geonameId);
       setState(() {
-        cities = loadedCities;
-        filteredCities = loadedCities;
+        districts = loadedDistricts;
+        filteredDistricts = loadedDistricts;
         isLoading = false;
       });
     } catch (e) {
@@ -53,7 +67,7 @@ class _SelectCityScreenState extends State<SelectCityScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error loading cities: $e'),
+            content: Text('Error loading districts: $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -61,14 +75,14 @@ class _SelectCityScreenState extends State<SelectCityScreen> {
     }
   }
 
-  void _filterCities() {
+  void _filterDistricts() {
     final query = searchController.text.toLowerCase();
     setState(() {
       if (query.isEmpty) {
-        filteredCities = cities;
+        filteredDistricts = districts;
       } else {
-        filteredCities = cities.where((city) =>
-          city.name.toLowerCase().contains(query)
+        filteredDistricts = districts.where((district) =>
+          district.name.toLowerCase().contains(query)
         ).toList();
       }
     });
@@ -86,7 +100,7 @@ class _SelectCityScreenState extends State<SelectCityScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          'CHOOSE CITY',
+          'CHOOSE DISTRICT',
           style: GoogleFonts.poppins(
             color: Colors.black,
             fontSize: 18,
@@ -96,7 +110,7 @@ class _SelectCityScreenState extends State<SelectCityScreen> {
       ),
       body: Column(
         children: [
-          // Current Location Display
+          // Current State Display
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(16),
@@ -139,7 +153,7 @@ class _SelectCityScreenState extends State<SelectCityScreen> {
               child: TextField(
                 controller: searchController,
                 decoration: InputDecoration(
-                  hintText: 'Search city, area or neighbourhood',
+                  hintText: 'Search district...',
                   hintStyle: GoogleFonts.poppins(
                     color: Colors.grey[600],
                     fontSize: 14,
@@ -159,7 +173,7 @@ class _SelectCityScreenState extends State<SelectCityScreen> {
             ),
           ),
           
-          // Cities List
+          // Districts List
           Expanded(
             child: isLoading
                 ? const Center(
@@ -167,10 +181,10 @@ class _SelectCityScreenState extends State<SelectCityScreen> {
                       color: AppColors.primary,
                     ),
                   )
-                : filteredCities.isEmpty
+                : filteredDistricts.isEmpty
                     ? Center(
                         child: Text(
-                          'No cities found',
+                          'No districts found',
                           style: GoogleFonts.poppins(
                             color: Colors.grey[600],
                             fontSize: 16,
@@ -179,10 +193,10 @@ class _SelectCityScreenState extends State<SelectCityScreen> {
                       )
                     : ListView.builder(
                         padding: const EdgeInsets.symmetric(horizontal: 16),
-                        itemCount: filteredCities.length,
+                        itemCount: filteredDistricts.length,
                         itemBuilder: (context, index) {
-                          final city = filteredCities[index];
-                          return _buildCityItem(city);
+                          final district = filteredDistricts[index];
+                          return _buildDistrictItem(district);
                         },
                       ),
           ),
@@ -191,7 +205,7 @@ class _SelectCityScreenState extends State<SelectCityScreen> {
     );
   }
 
-  Widget _buildCityItem(Place city) {
+  Widget _buildDistrictItem(Place district) {
     return Container(
       margin: const EdgeInsets.only(bottom: 1),
       decoration: BoxDecoration(
@@ -209,7 +223,7 @@ class _SelectCityScreenState extends State<SelectCityScreen> {
           vertical: 8,
         ),
         title: Text(
-          city.name,
+          district.name,
           style: GoogleFonts.poppins(
             fontSize: 16,
             fontWeight: FontWeight.w500,
@@ -224,10 +238,10 @@ class _SelectCityScreenState extends State<SelectCityScreen> {
         onTap: () async {
           final result = await Navigator.pushNamed(
             context,
-            '/select_area',
+            '/select_city',
             arguments: {
               'state': selectedState,
-              'city': city,
+              'district': district,
             },
           );
           if (result != null && context.mounted) {

@@ -149,6 +149,19 @@ class ChangeLocationScreen extends StatelessWidget {
                     width: 25,
                   ),
                 ),
+                const SizedBox(height: 16),
+                LocationOptionCard(
+                  title: 'Choose Location Manually',
+                  subtitle: 'Select state, city and area',
+                  onTap: controller.isSavingLocation
+                      ? null
+                      : () => _handleChooseLocationManually(context),
+                  leading: const Icon(
+                    Icons.location_city,
+                    color: AppColors.primary,
+                    size: 30,
+                  ),
+                ),
               ],
             ),
           );
@@ -178,6 +191,13 @@ class ChangeLocationScreen extends StatelessWidget {
     );
 
     if (didSave == true && context.mounted) {
+      Navigator.pop(context, true);
+    }
+  }
+
+  Future<void> _handleChooseLocationManually(BuildContext context) async {
+    final result = await Navigator.pushNamed(context, '/select_state');
+    if (result != null && result is Map<String, dynamic> && context.mounted) {
       Navigator.pop(context, true);
     }
   }
