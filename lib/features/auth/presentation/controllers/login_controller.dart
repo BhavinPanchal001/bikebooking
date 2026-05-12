@@ -893,6 +893,37 @@ class LoginController extends GetxController with WidgetsBindingObserver {
     }
   }
 
+  Future<bool> saveManualLocation(String displayAddress) async {
+    isSavingLocation = true;
+    update();
+    try {
+      await _persistLocationForCurrentUser(
+        UserLocationModel(
+          address: displayAddress,
+          latitude: 0,
+          longitude: 0,
+          label: displayAddress,
+        ),
+      );
+      _showSnackbar(
+        title: 'Location Saved',
+        message: displayAddress,
+        backgroundColor: const Color(0xFF2E7D32),
+      );
+      return true;
+    } catch (error) {
+      _showSnackbar(
+        title: 'Location Error',
+        message: error.toString().replaceFirst('Exception: ', ''),
+        backgroundColor: const Color(0xFFC62828),
+      );
+      return false;
+    } finally {
+      isSavingLocation = false;
+      update();
+    }
+  }
+
   Future<bool> saveProfile() async {
     final firebaseUser = _authService.currentUser;
     final shouldUseLocalSession = _bypassPhoneAuth || firebaseUser == null;

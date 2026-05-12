@@ -19,10 +19,10 @@ const DAY_WINDOW = 14;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 const CHART_COLORS = {
-  primary: '#10233f',
-  accent: '#df6f3e',
+  primary: '#1e3a5f',
+  accent: '#3d6fa3',
   success: '#2f7a5c',
-  warning: '#ad5b2f',
+  warning: '#c17a3a',
   muted: '#8a97ab',
 };
 
@@ -144,12 +144,12 @@ export function DashboardPage({ data }) {
                 data={registrationSeries}
                 margin={{ top: 8, right: 8, left: -16, bottom: 0 }}
               >
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(16,35,63,0.08)" vertical={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(30,58,95,0.08)" vertical={false} />
                 <XAxis
                   dataKey="label"
                   tick={{ fill: CHART_COLORS.muted, fontSize: 11 }}
                   tickLine={false}
-                  axisLine={{ stroke: 'rgba(16,35,63,0.15)' }}
+                  axisLine={{ stroke: 'rgba(30,58,95,0.15)' }}
                   interval={1}
                 />
                 <YAxis
@@ -159,10 +159,10 @@ export function DashboardPage({ data }) {
                   allowDecimals={false}
                 />
                 <Tooltip
-                  cursor={{ fill: 'rgba(223, 111, 62, 0.08)' }}
+                  cursor={{ fill: 'rgba(30, 58, 95, 0.08)' }}
                   contentStyle={{
-                    background: '#fffaf4',
-                    border: '1px solid rgba(16,35,63,0.1)',
+                    background: '#ffffff',
+                    border: '1px solid rgba(30,58,95,0.1)',
                     borderRadius: 12,
                     fontSize: 12,
                   }}
@@ -185,12 +185,12 @@ export function DashboardPage({ data }) {
                 data={listingSeries}
                 margin={{ top: 8, right: 8, left: -16, bottom: 0 }}
               >
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(16,35,63,0.08)" vertical={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(30,58,95,0.08)" vertical={false} />
                 <XAxis
                   dataKey="label"
                   tick={{ fill: CHART_COLORS.muted, fontSize: 11 }}
                   tickLine={false}
-                  axisLine={{ stroke: 'rgba(16,35,63,0.15)' }}
+                  axisLine={{ stroke: 'rgba(30,58,95,0.15)' }}
                   interval={1}
                 />
                 <YAxis
@@ -202,8 +202,8 @@ export function DashboardPage({ data }) {
                 <Tooltip
                   cursor={{ fill: 'rgba(47, 122, 92, 0.08)' }}
                   contentStyle={{
-                    background: '#fffaf4',
-                    border: '1px solid rgba(16,35,63,0.1)',
+                    background: '#ffffff',
+                    border: '1px solid rgba(30,58,95,0.1)',
                     borderRadius: 12,
                     fontSize: 12,
                   }}
@@ -242,8 +242,8 @@ export function DashboardPage({ data }) {
                     </Pie>
                     <Tooltip
                       contentStyle={{
-                        background: '#fffaf4',
-                        border: '1px solid rgba(16,35,63,0.1)',
+                        background: '#ffffff',
+                        border: '1px solid rgba(30,58,95,0.1)',
                         borderRadius: 12,
                         fontSize: 12,
                       }}
@@ -284,12 +284,12 @@ export function DashboardPage({ data }) {
                 ]}
                 margin={{ top: 8, right: 8, left: -16, bottom: 0 }}
               >
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(16,35,63,0.08)" vertical={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(30,58,95,0.08)" vertical={false} />
                 <XAxis
                   dataKey="label"
                   tick={{ fill: CHART_COLORS.muted, fontSize: 11 }}
                   tickLine={false}
-                  axisLine={{ stroke: 'rgba(16,35,63,0.15)' }}
+                  axisLine={{ stroke: 'rgba(30,58,95,0.15)' }}
                 />
                 <YAxis
                   tick={{ fill: CHART_COLORS.muted, fontSize: 11 }}
@@ -298,10 +298,10 @@ export function DashboardPage({ data }) {
                   allowDecimals={false}
                 />
                 <Tooltip
-                  cursor={{ fill: 'rgba(16, 35, 63, 0.06)' }}
+                  cursor={{ fill: 'rgba(30, 58, 95, 0.06)' }}
                   contentStyle={{
-                    background: '#fffaf4',
-                    border: '1px solid rgba(16,35,63,0.1)',
+                    background: '#ffffff',
+                    border: '1px solid rgba(30,58,95,0.1)',
                     borderRadius: 12,
                     fontSize: 12,
                   }}

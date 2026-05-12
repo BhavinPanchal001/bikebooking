@@ -198,7 +198,16 @@ class ChangeLocationScreen extends StatelessWidget {
   Future<void> _handleChooseLocationManually(BuildContext context) async {
     final result = await Navigator.pushNamed(context, '/select_state');
     if (result != null && result is Map<String, dynamic> && context.mounted) {
-      Navigator.pop(context, true);
+      final displayAddress = result['displayAddress'] as String? ?? '';
+      if (displayAddress.isNotEmpty) {
+        final controller = Get.find<LoginController>();
+        final saved = await controller.saveManualLocation(displayAddress);
+        if (saved && context.mounted) {
+          Navigator.pop(context, true);
+        }
+      } else {
+        Navigator.pop(context, true);
+      }
     }
   }
 }
