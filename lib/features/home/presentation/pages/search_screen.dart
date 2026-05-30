@@ -360,6 +360,40 @@ class _SearchScreenState extends State<SearchScreen> {
                 ),
               ],
             ),
+            const SizedBox(height: 12),
+            _buildLocationButton(
+              icon: Icons.location_city,
+              label: loginController.isSavingLocation
+                  ? 'Saving...'
+                  : 'Choose manually (State/City/Area)',
+              onTap: loginController.isSavingLocation
+                  ? null
+                  : () async {
+                      final result = await Navigator.pushNamed(
+                        context,
+                        '/select_state',
+                      );
+                      if (result != null && result is Map<String, dynamic>) {
+                        final displayAddress =
+                            result['displayAddress'] as String? ?? '';
+                        final latitude =
+                            (result['latitude'] as num?)?.toDouble();
+                        final longitude =
+                            (result['longitude'] as num?)?.toDouble();
+                        if (displayAddress.isNotEmpty) {
+                          final saved =
+                              await loginController.saveManualLocation(
+                            displayAddress,
+                            latitude: latitude,
+                            longitude: longitude,
+                          );
+                          if (saved) {
+                            controller.refreshRecommendations();
+                          }
+                        }
+                      }
+                    },
+            ),
             if (selectedLocation.isNotEmpty) ...[
               const SizedBox(height: 10),
               Text(
