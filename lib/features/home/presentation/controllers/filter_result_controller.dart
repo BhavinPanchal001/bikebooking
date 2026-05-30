@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:bikebooking/core/constants/bike_brand_catalog.dart';
 import 'package:bikebooking/core/constants/product_categories.dart';
+import 'package:bikebooking/core/utils/geo_utils.dart';
 import 'package:bikebooking/features/auth/presentation/controllers/login_controller.dart';
 import 'package:bikebooking/features/home/data/models/product_filter_state.dart';
 import 'package:bikebooking/features/home/data/models/product_model.dart';
@@ -186,21 +187,51 @@ class FilterResultController extends GetxController {
       if (!_matchesSubCategory(product, filterState)) return false;
       if (!_matchesCondition(product, filterState)) return false;
       if (!_matchesSellerType(product, filterState)) return false;
+      if (!_matchesDistance(product, filterState)) return false;
       return true;
     }).toList();
 
-    if (!filterState.hasActiveFilters) {
-      final selectedAddress =
-          _loginController.currentUserProfile?.location?.address ?? '';
+    final hasExplicitSort =
+        filterState.selectedSort != null &&
+            filterState.selectedSort!.trim().isNotEmpty;
+
+    if (!hasExplicitSort) {
+      final location = _loginController.currentUserProfile?.location;
+      final selectedAddress = location?.address ?? '';
+      final hasCoords = location != null && location.isComplete;
       return rankJustAddedProductsByLocation(
         products: filtered,
         selectedLocationAddress: selectedAddress,
+        userLatitude: hasCoords ? location.latitude : null,
+        userLongitude: hasCoords ? location.longitude : null,
         limit: filtered.length,
       );
     }
 
     _sortProducts(filtered, filterState.selectedSort);
     return filtered;
+  }
+
+  bool _matchesDistance(ProductModel product, ProductFilterState filterState) {
+    final maxKm = filterState.maxDistanceKm;
+    if (maxKm == null) {
+      return true;
+    }
+    final location = _loginController.currentUserProfile?.location;
+    if (location == null || !location.isComplete) {
+      return true;
+    }
+    // Keep listings without coordinates — we can't verify their distance.
+    if (product.latitude == null || product.longitude == null) {
+      return true;
+    }
+    final distance = GeoUtils.distanceKm(
+      location.latitude,
+      location.longitude,
+      product.latitude!,
+      product.longitude!,
+    );
+    return distance <= maxKm;
   }
 
   bool _matchesBrand(ProductModel product, ProductFilterState filterState) {
@@ -485,6 +516,7 @@ class FilterResultController extends GetxController {
     Object? selectedSubCategory = _noChange,
     Object? selectedCondition = _noChange,
     Object? selectedSellerType = _noChange,
+    Object? maxDistanceKm = _noChange,
   }) {
     return ProductFilterState(
       category: identical(category, _noChange)
@@ -532,6 +564,9 @@ class FilterResultController extends GetxController {
       selectedSellerType: identical(selectedSellerType, _noChange)
           ? _filterState.selectedSellerType
           : selectedSellerType as String?,
+      maxDistanceKm: identical(maxDistanceKm, _noChange)
+          ? _filterState.maxDistanceKm
+          : maxDistanceKm as double?,
     );
   }
 

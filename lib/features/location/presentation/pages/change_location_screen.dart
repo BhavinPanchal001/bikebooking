@@ -199,9 +199,15 @@ class ChangeLocationScreen extends StatelessWidget {
     final result = await Navigator.pushNamed(context, '/select_state');
     if (result != null && result is Map<String, dynamic> && context.mounted) {
       final displayAddress = result['displayAddress'] as String? ?? '';
+      final latitude = (result['latitude'] as num?)?.toDouble();
+      final longitude = (result['longitude'] as num?)?.toDouble();
       if (displayAddress.isNotEmpty) {
         final controller = Get.find<LoginController>();
-        final saved = await controller.saveManualLocation(displayAddress);
+        final saved = await controller.saveManualLocation(
+          displayAddress,
+          latitude: latitude,
+          longitude: longitude,
+        );
         if (saved && context.mounted) {
           Navigator.pop(context, true);
         }

@@ -179,6 +179,30 @@ class BikePriceLocationScreen extends StatelessWidget {
                             ],
                           ),
                         ),
+                        const SizedBox(height: 16),
+                        GestureDetector(
+                          onTap: () => _chooseLocationManually(
+                            context,
+                            controller,
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.location_city,
+                                  color:
+                                      const Color(0xFF4A6495).withOpacity(0.8),
+                                  size: 18),
+                              const SizedBox(width: 8),
+                              const Text(
+                                'Choose manually (State / City / Area)',
+                                style: TextStyle(
+                                  color: Color(0xFF2E4475),
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                         const SizedBox(height: 24),
                       ],
                     ),
@@ -229,6 +253,25 @@ class BikePriceLocationScreen extends StatelessWidget {
         );
       },
     );
+  }
+
+  Future<void> _chooseLocationManually(
+    BuildContext context,
+    ListProductController controller,
+  ) async {
+    final result = await Navigator.pushNamed(context, '/select_state');
+    if (result is Map<String, dynamic>) {
+      final displayAddress = result['displayAddress'] as String? ?? '';
+      final latitude = (result['latitude'] as num?)?.toDouble();
+      final longitude = (result['longitude'] as num?)?.toDouble();
+      if (displayAddress.isNotEmpty) {
+        controller.setManualLocation(
+          displayAddress,
+          latitude: latitude,
+          longitude: longitude,
+        );
+      }
+    }
   }
 
   Widget _buildLabel(String text) {

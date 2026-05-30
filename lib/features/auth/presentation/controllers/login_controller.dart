@@ -893,15 +893,19 @@ class LoginController extends GetxController with WidgetsBindingObserver {
     }
   }
 
-  Future<bool> saveManualLocation(String displayAddress) async {
+  Future<bool> saveManualLocation(
+    String displayAddress, {
+    double? latitude,
+    double? longitude,
+  }) async {
     isSavingLocation = true;
     update();
     try {
       await _persistLocationForCurrentUser(
         UserLocationModel(
           address: displayAddress,
-          latitude: 0,
-          longitude: 0,
+          latitude: latitude ?? 0,
+          longitude: longitude ?? 0,
           label: displayAddress,
         ),
       );

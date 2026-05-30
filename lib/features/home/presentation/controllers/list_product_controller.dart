@@ -312,6 +312,15 @@ class ListProductController extends GetxController {
   bool _isSearchingLocation = false;
   bool get isSearchingLocation => _isSearchingLocation;
 
+  // Coordinates captured for the selected listing location. These mirror the
+  // way the user's own location is stored (lat/lng), so listings can be
+  // distance-filtered on the listing pages.
+  double? _latitude;
+  double? _longitude;
+  double? get latitude => _latitude;
+  double? get longitude => _longitude;
+  bool get hasLocationCoordinates => _latitude != null && _longitude != null;
+
   final ScrollController locationFormScrollController = ScrollController();
 
   void _scrollToLocationSuggestions() {
@@ -330,6 +339,11 @@ class ListProductController extends GetxController {
   void onLocationQueryChanged(String value) {
     _locationSearchDebounce?.cancel();
     _locationSearchRequestId++;
+
+    // The user is editing the address text manually, so any previously
+    // captured coordinates no longer match what is shown.
+    _latitude = null;
+    _longitude = null;
 
     final trimmed = value.trim();
     if (trimmed.length < _minLocationSearchLength) {
@@ -397,15 +411,112 @@ class ListProductController extends GetxController {
     }
   }
 
-  void selectLocationSuggestion(PlaceSuggestion suggestion) {
+  Future<void> selectLocationSuggestion(PlaceSuggestion suggestion) async {
     _locationSearchDebounce?.cancel();
-    _locationSearchRequestId++;
+    final requestId = ++_locationSearchRequestId;
     locationController.text = suggestion.description;
     _locationSuggestions = [];
     _isSearchingLocation = false;
-    _locationSearchSessionToken =
-        DateTime.now().microsecondsSinceEpoch.toString();
+    _latitude = null;
+    _longitude = null;
     update();
+
+    // Resolve the coordinates for the chosen place so the listing can be
+    // distance-filtered later, mirroring how the user's own location is saved.
+    try {
+      final resolved = await _resolvePlaceCoordinates(suggestion);
+      // Ignore stale responses if the user picked/edited another location.
+      if (requestId != _locationSearchRequestId) {
+        return;
+      }
+      if (resolved != null) {
+        _latitude = resolved.latitude;
+        _longitude = resolved.longitude;
+      }
+    } catch (error) {
+      debugPrint('Unable to resolve listing location coordinates: $error');
+    } finally {
+      if (requestId == _locationSearchRequestId) {
+        _locationSearchSessionToken =
+            DateTime.now().microsecondsSinceEpoch.toString();
+        update();
+      }
+    }
+  }
+
+  /// Captures a manually-selected location (state/city/area) along with its
+  /// coordinates, mirroring the user-location manual selection flow.
+  void setManualLocation(
+    String displayAddress, {
+    double? latitude,
+    double? longitude,
+  }) {
+    _locationSearchDebounce?.cancel();
+    _locationSearchRequestId++;
+    locationController.text = displayAddress;
+    _locationSuggestions = [];
+    _isSearchingLocation = false;
+    _latitude = latitude;
+    _longitude = longitude;
+    update();
+  }
+
+  /// Fetches latitude/longitude for [suggestion] via Google Place Details.
+  /// Returns null when coordinates can't be resolved.
+  Future<({double latitude, double longitude})?> _resolvePlaceCoordinates(
+    PlaceSuggestion suggestion,
+  ) async {
+    if (suggestion.latitude != null && suggestion.longitude != null) {
+      return (
+        latitude: suggestion.latitude!,
+        longitude: suggestion.longitude!,
+      );
+    }
+
+    if (suggestion.placeId.trim().isEmpty) {
+      return null;
+    }
+
+    final uri = Uri.https(
+      'maps.googleapis.com',
+      '/maps/api/place/details/json',
+      {
+        'place_id': suggestion.placeId,
+        'fields': 'geometry/location',
+        'key': AppConfig.googlePlacesApiKey,
+        'language': 'en',
+        'sessiontoken': _locationSearchSessionToken,
+      },
+    );
+
+    final response = await _placeConnect.get(uri.toString());
+    final body = response.body;
+    if (!response.isOk || body is! Map) {
+      return null;
+    }
+
+    final responseMap = Map<String, dynamic>.from(body);
+    if ((responseMap['status']?.toString() ?? '') != 'OK') {
+      return null;
+    }
+
+    final result = responseMap['result'];
+    if (result is! Map) {
+      return null;
+    }
+
+    final geometry = result['geometry'];
+    final locationMap = geometry is Map
+        ? Map<String, dynamic>.from(geometry['location'] as Map? ?? {})
+        : <String, dynamic>{};
+
+    final latitude = (locationMap['lat'] as num?)?.toDouble();
+    final longitude = (locationMap['lng'] as num?)?.toDouble();
+    if (latitude == null || longitude == null) {
+      return null;
+    }
+
+    return (latitude: latitude, longitude: longitude);
   }
 
   void clearLocationSuggestions() {
@@ -487,6 +598,8 @@ class ListProductController extends GetxController {
         description: descriptionController.text.trim(),
         price: double.tryParse(priceController.text.trim()),
         location: locationController.text.trim(),
+        latitude: _latitude,
+        longitude: _longitude,
         imageUrls: uploadedImageUrls,
         sellerId: sellerId,
         sellerName: sellerName,
@@ -564,6 +677,8 @@ class ListProductController extends GetxController {
     _locationSuggestions = [];
     _isSearchingLocation = false;
     _locationSearchDebounce?.cancel();
+    _latitude = null;
+    _longitude = null;
     _category = '';
     _brand = '';
     _year = null;
@@ -623,6 +738,8 @@ class ListProductController extends GetxController {
             : product.price!.toString())
         : '';
     locationController.text = product.location ?? '';
+    _latitude = product.latitude;
+    _longitude = product.longitude;
     _brand = product.brand;
     _year = product.year;
     _fuelType = product.fuelType;
@@ -724,6 +841,8 @@ class ListProductController extends GetxController {
       }
 
       locationController.text = resolvedAddress;
+      _latitude = position.latitude;
+      _longitude = position.longitude;
       Get.snackbar(
         'Location added',
         'Current location has been added to your listing.',

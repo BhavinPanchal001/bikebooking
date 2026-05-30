@@ -1,6 +1,10 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:bikebooking/core/database/database_helper.dart';
+import 'package:bikebooking/features/location/data/models/state_model.dart';
+import 'package:bikebooking/features/location/data/models/city_model.dart';
+import 'package:bikebooking/features/location/data/models/area_model.dart';
 
 /// OpenStreetMap Nominatim + Overpass API Service - Completely FREE
 /// Provides: State → City → Locality flow for India
@@ -725,6 +729,89 @@ out center 200;
     // Sort alphabetically for consistent display
     localities.sort((a, b) => a.name.compareTo(b.name));
     return localities;
+  }
+
+  /// =========================================================================
+  /// SQLite-first query methods.
+  /// These try the local SQLite database first and fall back to the existing
+  /// API-based methods when the DB returns no results.
+  /// =========================================================================
+
+  /// Get states from SQLite, falling back to API.
+  static Future<List<StateModel>> getStatesFromDb() async {
+    try {
+      final states = await DatabaseHelper.instance.getStates();
+      if (states.isNotEmpty) return states;
+    } catch (e) {
+      print('DEBUG: SQLite getStates failed, falling back to API: $e');
+    }
+
+    // Fallback: convert API Place objects to StateModel
+    final places = await getIndianStates();
+    return places
+        .asMap()
+        .entries
+        .map((e) => StateModel(id: e.key + 1, name: e.value.name))
+        .toList();
+  }
+
+  /// Get cities for a state from SQLite, falling back to API.
+  ///
+  /// [stateId] is the SQLite row id from [StateModel.id].
+  /// [stateName] is used as the API fallback key.
+  static Future<List<CityModel>> getCitiesFromDb(
+    int stateId,
+    String stateName,
+  ) async {
+    try {
+      final cities = await DatabaseHelper.instance.getCitiesByState(stateId);
+      if (cities.isNotEmpty) return cities;
+    } catch (e) {
+      print('DEBUG: SQLite getCities failed, falling back to API: $e');
+    }
+
+    // Fallback: convert API Place objects to CityModel
+    final places = await getCitiesInState(stateName);
+    return places
+        .asMap()
+        .entries
+        .map((e) => CityModel(
+              id: e.key + 1,
+              name: e.value.name,
+              stateId: stateId,
+            ))
+        .toList();
+  }
+
+  /// Get areas for a city from SQLite, falling back to API.
+  ///
+  /// [cityId] is the SQLite row id from [CityModel.id].
+  /// [cityName] and [stateName] are used as API fallback keys.
+  static Future<List<AreaModel>> getAreasFromDb(
+    int cityId,
+    String cityName,
+    String stateName,
+  ) async {
+    try {
+      final areas = await DatabaseHelper.instance.getAreasByCity(cityId);
+      if (areas.isNotEmpty) return areas;
+    } catch (e) {
+      print('DEBUG: SQLite getAreas failed, falling back to API: $e');
+    }
+
+    // Fallback: convert API Place objects to AreaModel
+    final places = await getLocalitiesInCity(cityName, stateName);
+    return places
+        .asMap()
+        .entries
+        .map((e) => AreaModel(
+              id: e.key + 1,
+              name: e.value.name,
+              cityId: cityId,
+              latitude: e.value.lat,
+              longitude: e.value.lng,
+            ))
+        .toList();
   }
 
   /// Clear all cached data

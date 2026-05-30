@@ -1,4 +1,6 @@
 import 'package:bikebooking/core/constants/global.dart';
+import 'package:bikebooking/features/location/data/models/state_model.dart';
+import 'package:bikebooking/features/location/data/models/city_model.dart';
 import 'package:bikebooking/features/location/data/services/openstreetmap_service.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -11,10 +13,10 @@ class SelectCityScreen extends StatefulWidget {
 }
 
 class _SelectCityScreenState extends State<SelectCityScreen> {
-  List<Place> cities = [];
-  List<Place> filteredCities = [];
+  List<CityModel> cities = [];
+  List<CityModel> filteredCities = [];
   bool isLoading = true;
-  Place selectedState = Place(geonameId: '', name: '');
+  StateModel? selectedState;
   TextEditingController searchController = TextEditingController();
 
   @override
@@ -26,8 +28,8 @@ class _SelectCityScreenState extends State<SelectCityScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (selectedState.geonameId.isEmpty) {
-      selectedState = ModalRoute.of(context)!.settings.arguments as Place;
+    if (selectedState == null) {
+      selectedState = ModalRoute.of(context)!.settings.arguments as StateModel;
       _loadCities();
     }
   }
@@ -40,7 +42,10 @@ class _SelectCityScreenState extends State<SelectCityScreen> {
 
   Future<void> _loadCities() async {
     try {
-      final loadedCities = await OpenStreetMapService.getCitiesInState(selectedState.name);
+      final loadedCities = await OpenStreetMapService.getCitiesFromDb(
+        selectedState!.id,
+        selectedState!.name,
+      );
       setState(() {
         cities = loadedCities;
         filteredCities = loadedCities;
@@ -110,7 +115,7 @@ class _SelectCityScreenState extends State<SelectCityScreen> {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  selectedState.name,
+                  selectedState?.name ?? '',
                   style: GoogleFonts.poppins(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
@@ -191,7 +196,7 @@ class _SelectCityScreenState extends State<SelectCityScreen> {
     );
   }
 
-  Widget _buildCityItem(Place city) {
+  Widget _buildCityItem(CityModel city) {
     return Container(
       margin: const EdgeInsets.only(bottom: 1),
       decoration: BoxDecoration(

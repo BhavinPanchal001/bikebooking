@@ -1,11 +1,41 @@
+import 'package:bikebooking/core/utils/geo_utils.dart';
 import 'package:bikebooking/features/home/data/models/product_model.dart';
 
+/// Ranks (and optionally radius-filters) products for the listing pages.
+///
+/// When [userLatitude]/[userLongitude] are provided, products are ranked by
+/// distance from the user (nearest first), falling back to the legacy
+/// address-string matching when coordinates are unavailable on either side.
+///
+/// When [maxDistanceKm] is provided alongside user coordinates, products that
+/// have coordinates and lie beyond that radius are excluded. Products without
+/// coordinates are kept (we can't verify their distance) so older listings
+/// remain visible.
 List<ProductModel> rankJustAddedProductsByLocation({
   required List<ProductModel> products,
   required String selectedLocationAddress,
+  double? userLatitude,
+  double? userLongitude,
+  double? maxDistanceKm,
   int limit = 10,
   void Function(String productId)? onExpiredBoost,
 }) {
+  final hasUserCoords = userLatitude != null && userLongitude != null;
+
+  double? distanceFor(ProductModel product) {
+    if (!hasUserCoords ||
+        product.latitude == null ||
+        product.longitude == null) {
+      return null;
+    }
+    return GeoUtils.distanceKm(
+      userLatitude,
+      userLongitude,
+      product.latitude!,
+      product.longitude!,
+    );
+  }
+
   final editorial = <ProductModel>[];
   final matchingBoosted = <ProductModel>[];
   final exactMatchingRegular = <ProductModel>[];
@@ -13,6 +43,13 @@ List<ProductModel> rankJustAddedProductsByLocation({
   final otherProducts = <ProductModel>[];
 
   for (final product in products) {
+    final distance = distanceFor(product);
+
+    // Hard radius filter: drop products with coordinates beyond the radius.
+    if (maxDistanceKm != null && distance != null && distance > maxDistanceKm) {
+      continue;
+    }
+
     final matchScore = _getLocationMatchScore(
       product.location,
       selectedLocationAddress,
@@ -21,8 +58,10 @@ List<ProductModel> rankJustAddedProductsByLocation({
     if (product.isCurrentlyEditorialFeatured) {
       editorial.add(product);
     } else if (product.isCurrentlyBoosted) {
-      if (matchScore > 0) {
+      if (distance != null || matchScore > 0) {
         matchingBoosted.add(product);
+      } else {
+        otherProducts.add(product);
       }
     } else {
       if (product.isBoosted && !product.isCurrentlyBoosted) {
@@ -40,6 +79,24 @@ List<ProductModel> rankJustAddedProductsByLocation({
         otherProducts.add(product);
       }
     }
+  }
+
+  // When user coordinates are available, sort each non-editorial tier by
+  // distance (nearest first). Products without a known distance sort last.
+  if (hasUserCoords) {
+    int byDistance(ProductModel a, ProductModel b) {
+      final da = distanceFor(a);
+      final db = distanceFor(b);
+      if (da == null && db == null) return 0;
+      if (da == null) return 1;
+      if (db == null) return -1;
+      return da.compareTo(db);
+    }
+
+    matchingBoosted.sort(byDistance);
+    exactMatchingRegular.sort(byDistance);
+    partialMatchingRegular.sort(byDistance);
+    otherProducts.sort(byDistance);
   }
 
   return [

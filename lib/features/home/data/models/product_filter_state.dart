@@ -17,6 +17,7 @@ class ProductFilterState {
     this.selectedSubCategory,
     this.selectedCondition,
     this.selectedSellerType,
+    this.maxDistanceKm,
   });
 
   final String category;
@@ -34,6 +35,7 @@ class ProductFilterState {
   final String? selectedSubCategory;
   final String? selectedCondition;
   final String? selectedSellerType;
+  final double? maxDistanceKm;
 
   static const List<String> bikeCategories = <String>[
     ProductCategoryCatalog.bikes,
@@ -73,6 +75,7 @@ class ProductFilterState {
         selectedSubCategory: _readString(arguments['selectedSubCategory']),
         selectedCondition: _readString(arguments['selectedCondition']),
         selectedSellerType: _readString(arguments['selectedSellerType']),
+        maxDistanceKm: _readDouble(arguments['maxDistanceKm']),
       );
     }
 
@@ -182,8 +185,11 @@ class ProductFilterState {
     if (_hasValue(selectedSubCategory)) count++;
     if (_hasValue(selectedCondition)) count++;
     if (_hasValue(selectedSellerType)) count++;
+    if (maxDistanceKm != null) count++;
     return count;
   }
+
+  bool get hasDistanceFilter => maxDistanceKm != null;
 
   bool get hasActiveFilters => activeFilterCount > 0;
 
@@ -224,6 +230,9 @@ class ProductFilterState {
     if (_hasValue(selectedSellerType)) {
       chips.add(selectedSellerType!);
     }
+    if (maxDistanceKm != null) {
+      chips.add('Within ${maxDistanceKm!.round()} km');
+    }
     if (_hasValue(selectedSort)) {
       chips.add(selectedSort!);
     }
@@ -246,6 +255,7 @@ class ProductFilterState {
     String? selectedSubCategory,
     String? selectedCondition,
     String? selectedSellerType,
+    double? maxDistanceKm,
   }) {
     return ProductFilterState(
       category: category ?? this.category,
@@ -263,6 +273,7 @@ class ProductFilterState {
       selectedSubCategory: selectedSubCategory ?? this.selectedSubCategory,
       selectedCondition: selectedCondition ?? this.selectedCondition,
       selectedSellerType: selectedSellerType ?? this.selectedSellerType,
+      maxDistanceKm: maxDistanceKm ?? this.maxDistanceKm,
     );
   }
 

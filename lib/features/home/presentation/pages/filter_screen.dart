@@ -116,6 +116,9 @@ class _FilterScreenState extends State<FilterScreen> {
   String? _selectedSubCategory;
   String? _selectedCondition;
   String? _selectedSellerType;
+  double? _selectedDistanceKm;
+
+  static const List<double> _distanceOptions = [5, 10, 25, 50];
 
   @override
   void initState() {
@@ -147,6 +150,7 @@ class _FilterScreenState extends State<FilterScreen> {
     _selectedSubCategory = initialFilters.selectedSubCategory;
     _selectedCondition = initialFilters.selectedCondition;
     _selectedSellerType = initialFilters.selectedSellerType;
+    _selectedDistanceKm = initialFilters.maxDistanceKm;
     _priceValue = initialFilters.maxPrice ??
         _priceSliderMaxFor(initialFilters.baseCategory);
     _kmValue = initialFilters.maxKilometers ?? _kmSliderMax;
@@ -371,6 +375,7 @@ class _FilterScreenState extends State<FilterScreen> {
                 ],
               ),
             ),
+            _buildDistanceSelector(),
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -1147,6 +1152,86 @@ class _FilterScreenState extends State<FilterScreen> {
     );
   }
 
+  Widget _buildDistanceSelector() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(
+          top: BorderSide(color: Color(0xFFE6EAF0)),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.near_me_outlined,
+                  size: 18, color: Color(0xFF2E4475)),
+              const SizedBox(width: 8),
+              const Text(
+                'Distance',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF2E3E5C),
+                ),
+              ),
+              const Spacer(),
+              Text(
+                _selectedDistanceKm == null
+                    ? 'Any'
+                    : 'Within ${_selectedDistanceKm!.round()} km',
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: Color(0xFF5E6E8C),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            children: [
+              _buildDistanceChip(label: 'Any', value: null),
+              for (final km in _distanceOptions)
+                _buildDistanceChip(label: '${km.round()} km', value: km),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDistanceChip({required String label, required double? value}) {
+    final isSelected = _selectedDistanceKm == value;
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _selectedDistanceKm = value;
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.primary : Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: isSelected ? Colors.transparent : Colors.grey.shade300,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+            color: isSelected ? Colors.white : const Color(0xFF262A36),
+          ),
+        ),
+      ),
+    );
+  }
+
   ProductFilterState _buildFilterState() {
     final minYear = int.tryParse(_minYearController.text.trim());
     final maxYear = int.tryParse(_maxYearController.text.trim());
@@ -1167,6 +1252,7 @@ class _FilterScreenState extends State<FilterScreen> {
       selectedSubCategory: _selectedSubCategory,
       selectedCondition: _selectedCondition,
       selectedSellerType: _selectedSellerType,
+      maxDistanceKm: _selectedDistanceKm,
     );
   }
 
@@ -1182,6 +1268,7 @@ class _FilterScreenState extends State<FilterScreen> {
       _selectedSubCategory = null;
       _selectedCondition = null;
       _selectedSellerType = null;
+      _selectedDistanceKm = null;
       _hasCustomPrice = false;
       _hasCustomKm = false;
       _priceValue = _priceSliderMaxFor(_baseCategory);

@@ -144,11 +144,14 @@ class HomeProductsController extends GetxController {
       final allProducts = await _firestoreService.getProducts();
       final visibleProducts = _filterHiddenProducts(allProducts);
 
-      final selectedAddress =
-          _loginController.currentUserProfile?.location?.address ?? '';
+      final location = _loginController.currentUserProfile?.location;
+      final selectedAddress = location?.address ?? '';
+      final hasCoords = location != null && location.isComplete;
       _justAdded = rankJustAddedProductsByLocation(
         products: visibleProducts,
         selectedLocationAddress: selectedAddress,
+        userLatitude: hasCoords ? location.latitude : null,
+        userLongitude: hasCoords ? location.longitude : null,
         limit: 10,
         onExpiredBoost: _cleanupExpiredBoost,
       );

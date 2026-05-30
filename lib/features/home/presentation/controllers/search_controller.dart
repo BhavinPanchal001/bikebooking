@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:bikebooking/core/constants/bike_brand_catalog.dart';
+import 'package:bikebooking/core/utils/geo_utils.dart';
 import 'package:bikebooking/features/home/data/models/product_filter_state.dart';
 import 'package:bikebooking/features/auth/presentation/controllers/login_controller.dart';
 import 'package:bikebooking/features/home/data/models/product_model.dart';
@@ -277,6 +278,7 @@ class SearchController extends GetxController {
   List<ProductModel> _buildSearchResults(String query) {
     final filtered = _filterProducts(query).where((product) {
       if (!_matchesLocation(product)) return false;
+      if (!_matchesDistance(product, _filterState)) return false;
       if (!_matchesBrand(product, _filterState)) return false;
       if (!_matchesPrice(product, _filterState)) return false;
       if (!_matchesYear(product, _filterState)) return false;
@@ -301,6 +303,28 @@ class SearchController extends GetxController {
     }
     return productLocation.contains(userLocation) ||
         userLocation.contains(productLocation);
+  }
+
+  bool _matchesDistance(ProductModel product, ProductFilterState filterState) {
+    final maxKm = filterState.maxDistanceKm;
+    if (maxKm == null) {
+      return true;
+    }
+    final location = _loginController.currentUserProfile?.location;
+    if (location == null || !location.isComplete) {
+      return true;
+    }
+    // Keep listings without coordinates — we can't verify their distance.
+    if (product.latitude == null || product.longitude == null) {
+      return true;
+    }
+    final distance = GeoUtils.distanceKm(
+      location.latitude,
+      location.longitude,
+      product.latitude!,
+      product.longitude!,
+    );
+    return distance <= maxKm;
   }
 
   int _searchScore(ProductModel product, List<String> tokens) {

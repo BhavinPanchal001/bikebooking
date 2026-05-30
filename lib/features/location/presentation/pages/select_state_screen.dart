@@ -1,4 +1,5 @@
 import 'package:bikebooking/core/constants/global.dart';
+import 'package:bikebooking/features/location/data/models/state_model.dart';
 import 'package:bikebooking/features/location/data/services/openstreetmap_service.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -11,22 +12,16 @@ class SelectStateScreen extends StatefulWidget {
 }
 
 class _SelectStateScreenState extends State<SelectStateScreen> {
-  List<Place> states = [];
-  List<Place> filteredStates = [];
+  List<StateModel> states = [];
+  List<StateModel> filteredStates = [];
   bool isLoading = true;
   TextEditingController searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    _clearCacheAndLoadStates();
-    searchController.addListener(_filterStates);
-  }
-
-  Future<void> _clearCacheAndLoadStates() async {
-    // Clear cache to force fresh data
-    await OpenStreetMapService.clearCache();
     _loadStates();
+    searchController.addListener(_filterStates);
   }
 
   @override
@@ -37,7 +32,7 @@ class _SelectStateScreenState extends State<SelectStateScreen> {
 
   Future<void> _loadStates() async {
     try {
-      final loadedStates = await OpenStreetMapService.getIndianStates();
+      final loadedStates = await OpenStreetMapService.getStatesFromDb();
       setState(() {
         states = loadedStates;
         filteredStates = loadedStates;
@@ -163,7 +158,7 @@ class _SelectStateScreenState extends State<SelectStateScreen> {
     );
   }
 
-  Widget _buildStateItem(Place state) {
+  Widget _buildStateItem(StateModel state) {
     return Container(
       margin: const EdgeInsets.only(bottom: 1),
       decoration: BoxDecoration(

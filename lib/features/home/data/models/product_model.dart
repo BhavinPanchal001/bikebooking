@@ -11,6 +11,8 @@ class ProductModel {
   final String description;
   final double? price;
   final String? location;
+  final double? latitude;
+  final double? longitude;
   final List<String> imageUrls;
   final String sellerId;
   final String sellerName;
@@ -48,6 +50,8 @@ class ProductModel {
     this.description = '',
     this.price,
     this.location,
+    this.latitude,
+    this.longitude,
     this.imageUrls = const [],
     this.sellerId = '',
     this.sellerName = '',
@@ -93,6 +97,8 @@ class ProductModel {
     String? description,
     double? price,
     String? location,
+    double? latitude,
+    double? longitude,
     List<String>? imageUrls,
     String? sellerId,
     String? sellerName,
@@ -122,6 +128,8 @@ class ProductModel {
       description: description ?? this.description,
       price: price ?? this.price,
       location: location ?? this.location,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
       imageUrls: imageUrls ?? this.imageUrls,
       sellerId: sellerId ?? this.sellerId,
       sellerName: sellerName ?? this.sellerName,
@@ -153,6 +161,8 @@ class ProductModel {
       'description': description,
       'price': price,
       'location': location,
+      'latitude': latitude,
+      'longitude': longitude,
       'imageUrls': imageUrls,
       'sellerId': sellerId,
       'sellerName': sellerName,
@@ -190,6 +200,8 @@ class ProductModel {
       'description': description,
       'price': price,
       'location': location,
+      'latitude': latitude,
+      'longitude': longitude,
       'imageUrls': imageUrls,
       'updatedAt': FieldValue.serverTimestamp(),
       'status': status,
@@ -212,6 +224,8 @@ class ProductModel {
       description: map['description'] ?? '',
       price: (map['price'] as num?)?.toDouble(),
       location: map['location'],
+      latitude: (map['latitude'] as num?)?.toDouble(),
+      longitude: (map['longitude'] as num?)?.toDouble(),
       imageUrls: List<String>.from(map['imageUrls'] ?? []),
       sellerId: map['sellerId'] ?? '',
       sellerName: map['sellerName'] ?? '',

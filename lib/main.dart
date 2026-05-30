@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:bikebooking/core/theme/app_theme.dart';
+import 'package:bikebooking/core/database/database_helper.dart';
 import 'features/auth/presentation/pages/splash_screen.dart';
 import 'features/auth/presentation/pages/login_screen.dart';
 import 'features/auth/presentation/pages/otp_verification_screen.dart';
@@ -54,6 +55,7 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
+  await DatabaseHelper.instance.database; // Initialize SQLite DB
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(

@@ -44,7 +44,14 @@ function requireAuth(request) {
  * @return {object} decoded auth
  */
 function requireAdmin(request) {
-  return requireAuth(request);
+  const auth = requireAuth(request);
+  if (!(auth.token && auth.token.admin === true)) {
+    throw new HttpsError(
+      "permission-denied",
+      "Admin privileges are required for this action.",
+    );
+  }
+  return auth;
 }
 
 /**

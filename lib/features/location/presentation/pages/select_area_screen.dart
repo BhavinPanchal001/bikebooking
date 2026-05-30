@@ -1,4 +1,7 @@
 import 'package:bikebooking/core/constants/global.dart';
+import 'package:bikebooking/features/location/data/models/state_model.dart';
+import 'package:bikebooking/features/location/data/models/city_model.dart';
+import 'package:bikebooking/features/location/data/models/area_model.dart';
 import 'package:bikebooking/features/location/data/services/openstreetmap_service.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -11,11 +14,11 @@ class SelectAreaScreen extends StatefulWidget {
 }
 
 class _SelectAreaScreenState extends State<SelectAreaScreen> {
-  List<Place> areas = [];
-  List<Place> filteredAreas = [];
+  List<AreaModel> areas = [];
+  List<AreaModel> filteredAreas = [];
   bool isLoading = true;
-  Place selectedState = Place(geonameId: '', name: '');
-  Place selectedCity = Place(geonameId: '', name: '');
+  StateModel? selectedState;
+  CityModel? selectedCity;
   TextEditingController searchController = TextEditingController();
 
   @override
@@ -27,10 +30,10 @@ class _SelectAreaScreenState extends State<SelectAreaScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (selectedCity.geonameId.isEmpty) {
+    if (selectedCity == null) {
       final arguments = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
-      selectedState = arguments['state'] as Place;
-      selectedCity = arguments['city'] as Place;
+      selectedState = arguments['state'] as StateModel;
+      selectedCity = arguments['city'] as CityModel;
       _loadAreas();
     }
   }
@@ -43,10 +46,11 @@ class _SelectAreaScreenState extends State<SelectAreaScreen> {
 
   Future<void> _loadAreas() async {
     try {
-      if (selectedCity.name.isNotEmpty) {
-        final loadedAreas = await OpenStreetMapService.getLocalitiesInCity(
-          selectedCity.name,
-          selectedState.name,
+      if (selectedCity != null && selectedCity!.name.isNotEmpty) {
+        final loadedAreas = await OpenStreetMapService.getAreasFromDb(
+          selectedCity!.id,
+          selectedCity!.name,
+          selectedState!.name,
         );
         setState(() {
           areas = loadedAreas;
@@ -125,7 +129,7 @@ class _SelectAreaScreenState extends State<SelectAreaScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  selectedState.name,
+                  selectedState?.name ?? '',
                   style: GoogleFonts.poppins(
                     fontSize: 12,
                     color: Colors.grey[600],
@@ -141,7 +145,7 @@ class _SelectAreaScreenState extends State<SelectAreaScreen> {
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      selectedCity.name,
+                      selectedCity?.name ?? '',
                       style: GoogleFonts.poppins(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -225,7 +229,7 @@ class _SelectAreaScreenState extends State<SelectAreaScreen> {
                   ),
                 ),
                 title: Text(
-                  'All in ${selectedCity.name}',
+                  'All in ${selectedCity?.name ?? ''}',
                   style: GoogleFonts.poppins(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
@@ -271,7 +275,7 @@ class _SelectAreaScreenState extends State<SelectAreaScreen> {
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              'Try selecting "All in ${selectedCity.name}"',
+                              'Try selecting "All in ${selectedCity?.name ?? ''}"',
                               style: GoogleFonts.poppins(
                                 color: Colors.grey[500],
                                 fontSize: 14,
@@ -294,7 +298,7 @@ class _SelectAreaScreenState extends State<SelectAreaScreen> {
     );
   }
 
-  Widget _buildAreaItem(Place area) {
+  Widget _buildAreaItem(AreaModel area) {
     return Container(
       margin: const EdgeInsets.only(bottom: 1),
       decoration: BoxDecoration(
@@ -329,15 +333,17 @@ class _SelectAreaScreenState extends State<SelectAreaScreen> {
     );
   }
 
-  void _selectArea(Place? area) {
+  void _selectArea(AreaModel? area) {
     // Return the selected location data
     final selectedLocation = {
       'state': selectedState,
       'city': selectedCity,
       'area': area,
       'displayAddress': area != null 
-          ? '${area.name}, ${selectedCity.name}, ${selectedState.name}'
-          : '${selectedCity.name}, ${selectedState.name}',
+          ? '${area.name}, ${selectedCity?.name ?? ''}, ${selectedState?.name ?? ''}'
+          : '${selectedCity?.name ?? ''}, ${selectedState?.name ?? ''}',
+      'latitude': area?.latitude,
+      'longitude': area?.longitude,
     };
     
     Navigator.pop(context, selectedLocation);

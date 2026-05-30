@@ -34,7 +34,7 @@ service cloud.firestore {
     //     );
     //   }
     function isAdmin() {
-      return isSignedIn();
+      return isSignedIn() && request.auth.token.admin == true;
     }
 
     // ── products ─────────────────────────────────────────────────────────────
