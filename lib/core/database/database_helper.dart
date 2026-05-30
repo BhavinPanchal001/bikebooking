@@ -154,6 +154,32 @@ class DatabaseHelper {
     return result.map((map) => AreaModel.fromMap(map)).toList();
   }
 
+  /// Diagnostic: Returns all areas where latitude or longitude is null or 0.
+  Future<List<AreaModel>> getAreasWithoutCoordinates() async {
+    final db = await database;
+    final result = await db.query(
+      'areas',
+      where: 'latitude IS NULL OR longitude IS NULL OR latitude = 0 OR longitude = 0',
+      orderBy: 'name ASC',
+    );
+    return result.map((map) => AreaModel.fromMap(map)).toList();
+  }
+
+  /// Diagnostic: Prints all areas without coordinates to console.
+  /// Call this from app init to see which areas need lat/lng data.
+  static Future<void> printAreasWithoutCoordinates() async {
+    try {
+      final areas = await instance.getAreasWithoutCoordinates();
+      print('=== AREAS WITHOUT LAT/LNG (Total: ${areas.length}) ===');
+      for (final area in areas) {
+        print('  - ${area.name} (ID: ${area.id}, CityID: ${area.cityId})');
+      }
+      print('=== END ===');
+    } catch (e) {
+      print('Error querying areas without coordinates: $e');
+    }
+  }
+
   /// Closes the database. Call this during app teardown if needed.
   Future<void> close() async {
     final db = _database;

@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:bikebooking/core/constants/global.dart';
 import 'package:bikebooking/features/location/data/models/state_model.dart';
 import 'package:bikebooking/features/location/data/models/city_model.dart';
@@ -5,6 +6,7 @@ import 'package:bikebooking/features/location/data/models/area_model.dart';
 import 'package:bikebooking/features/location/data/services/openstreetmap_service.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:http/http.dart' as http;
 
 class SelectAreaScreen extends StatefulWidget {
   const SelectAreaScreen({super.key});
@@ -333,7 +335,28 @@ class _SelectAreaScreenState extends State<SelectAreaScreen> {
     );
   }
 
-  void _selectArea(AreaModel? area) {
+  Future<void> _selectArea(AreaModel? area) async {
+    double? latitude = area?.latitude;
+    double? longitude = area?.longitude;
+
+    // If area selected but missing coordinates, geocode on-the-fly
+    if (area != null && (latitude == null || longitude == null || latitude == 0 || longitude == 0)) {
+      setState(() {
+        isLoading = true;
+      });
+      
+      final coords = await _geocodeArea(area.name, selectedCity?.name ?? '', selectedState?.name ?? '');
+      
+      setState(() {
+        isLoading = false;
+      });
+      
+      if (coords != null) {
+        latitude = coords['lat'];
+        longitude = coords['lng'];
+      }
+    }
+
     // Return the selected location data
     final selectedLocation = {
       'state': selectedState,
@@ -342,10 +365,39 @@ class _SelectAreaScreenState extends State<SelectAreaScreen> {
       'displayAddress': area != null 
           ? '${area.name}, ${selectedCity?.name ?? ''}, ${selectedState?.name ?? ''}'
           : '${selectedCity?.name ?? ''}, ${selectedState?.name ?? ''}',
-      'latitude': area?.latitude,
-      'longitude': area?.longitude,
+      'latitude': latitude,
+      'longitude': longitude,
     };
     
-    Navigator.pop(context, selectedLocation);
+    if (mounted) {
+      Navigator.pop(context, selectedLocation);
+    }
+  }
+
+  /// Geocode an area using OpenStreetMap Nominatim API
+  Future<Map<String, double>?> _geocodeArea(String areaName, String cityName, String stateName) async {
+    try {
+      final query = Uri.encodeComponent('$areaName, $cityName, $stateName, India');
+      final url = Uri.parse('https://nominatim.openstreetmap.org/search?q=$query&format=json&limit=1');
+      
+      final response = await http.get(
+        url,
+        headers: {'User-Agent': 'BikeBookingApp/1.0'},
+      );
+      
+      if (response.statusCode == 200) {
+        final List<dynamic> results = json.decode(response.body);
+        if (results.isNotEmpty) {
+          final lat = double.tryParse(results[0]['lat'].toString());
+          final lon = double.tryParse(results[0]['lon'].toString());
+          if (lat != null && lon != null) {
+            return {'lat': lat, 'lng': lon};
+          }
+        }
+      }
+    } catch (e) {
+      print('Geocoding error for $areaName: $e');
+    }
+    return null;
   }
 }
