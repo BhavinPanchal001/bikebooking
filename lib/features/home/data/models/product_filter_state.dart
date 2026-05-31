@@ -53,7 +53,8 @@ class ProductFilterState {
     }
 
     if (arguments is String && arguments.trim().isNotEmpty) {
-      return ProductFilterState(category: arguments.trim());
+      final trimmed = arguments.trim();
+      return ProductFilterState(category: trimmed == 'all' ? 'all' : trimmed);
     }
 
     if (arguments is Map<String, dynamic>) {
@@ -82,7 +83,10 @@ class ProductFilterState {
     return ProductFilterState(category: 'Bikes');
   }
 
+  bool get isAll => category.trim() == 'all';
+
   String get baseCategory {
+    if (isAll) return 'all';
     return ProductCategoryCatalog.baseCategoryFor(category);
   }
 
@@ -118,6 +122,10 @@ class ProductFilterState {
       selectedVehicleSubCategory != null;
 
   List<String> get queryCategories {
+    if (isAll) {
+      return const <String>[];
+    }
+
     if (isAccessoryLike) {
       return <String>[baseCategory];
     }

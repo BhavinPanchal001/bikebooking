@@ -596,7 +596,9 @@ class BikeDetailFormScreen extends StatelessWidget {
       },
     );
 
-    searchController.dispose();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      searchController.dispose();
+    });
 
     if (selectedBrand != null && selectedBrand.trim().isNotEmpty) {
       controller.setBrand(selectedBrand.trim());

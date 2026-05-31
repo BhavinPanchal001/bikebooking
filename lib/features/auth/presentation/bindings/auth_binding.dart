@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:bikebooking/features/auth/data/services/firebase_auth_service.dart';
 import 'package:bikebooking/features/auth/data/services/user_firestore_service.dart';
 import 'package:bikebooking/features/auth/presentation/controllers/login_controller.dart';
@@ -35,10 +37,12 @@ class AuthBinding extends Bindings {
       NotificationDispatchService(),
       permanent: true,
     );
-    Get.put<NotificationPushService>(
+    // Initialize notification service non-blocking to prevent startup delay
+    final notificationService = Get.put<NotificationPushService>(
       NotificationPushService(),
       permanent: true,
-    ).initialize();
+    );
+    scheduleMicrotask(notificationService.initialize);
     Get.lazyPut<BoostController>(() => BoostController(), fenix: true);
   }
 }

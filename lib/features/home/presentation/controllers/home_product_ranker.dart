@@ -58,11 +58,7 @@ List<ProductModel> rankJustAddedProductsByLocation({
     if (product.isCurrentlyEditorialFeatured) {
       editorial.add(product);
     } else if (product.isCurrentlyBoosted) {
-      if (distance != null || matchScore > 0) {
-        matchingBoosted.add(product);
-      } else {
-        otherProducts.add(product);
-      }
+      matchingBoosted.add(product);
     } else {
       if (product.isBoosted && !product.isCurrentlyBoosted) {
         final productId = product.id?.trim() ?? '';

@@ -1,7 +1,9 @@
 import 'package:bikebooking/core/constants/global.dart';
+import 'package:bikebooking/core/utils/geo_utils.dart';
 import 'package:bikebooking/core/widgets/product_cached_image.dart';
 import 'package:bikebooking/features/home/data/models/product_filter_state.dart';
 import 'package:bikebooking/features/home/data/models/product_model.dart';
+import 'package:bikebooking/features/auth/presentation/controllers/login_controller.dart';
 import 'package:bikebooking/features/home/presentation/controllers/favorites_controller.dart';
 import 'package:bikebooking/features/home/presentation/controllers/filter_result_controller.dart';
 import 'package:bikebooking/features/home/presentation/widgets/app_bottom_nav_bar.dart';
@@ -95,7 +97,7 @@ class _FilterResultScreenState extends State<FilterResultScreen>
     return GetBuilder<FilterResultController>(
       builder: (controller) {
         final filterState = controller.filterState;
-        final showInlineFilters = filterState.isBikeLike;
+        final showInlineFilters = filterState.isBikeLike || filterState.isAll;
         final secondarySummaryChips =
             _buildSecondarySummaryChips(filterState, showInlineFilters);
 
@@ -270,21 +272,68 @@ class _FilterResultScreenState extends State<FilterResultScreen>
     return RefreshIndicator(
       color: AppColors.primary,
       onRefresh: controller.refreshProducts,
-      child: ListView.builder(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        physics: const AlwaysScrollableScrollPhysics(
-          parent: BouncingScrollPhysics(),
-        ),
-        itemCount: controller.products.length,
-        itemBuilder: (context, index) {
-          final product = controller.products[index];
-          return _buildProductCard(context, product);
+      child: GetBuilder<LoginController>(
+        builder: (loginController) {
+          final userLocation = loginController.currentUserProfile?.location;
+          final userLat = userLocation?.isComplete == true ? userLocation?.latitude : null;
+          final userLng = userLocation?.isComplete == true ? userLocation?.longitude : null;
+
+          // Separate pinned products (editorial + boosted) from normal ones.
+          final pinnedProducts = controller.products
+              .where((p) => p.isCurrentlyEditorialFeatured || p.isCurrentlyBoosted)
+              .toList(growable: false);
+          final normalProducts = controller.products
+              .where((p) => !p.isCurrentlyEditorialFeatured && !p.isCurrentlyBoosted)
+              .toList(growable: false);
+
+          // Only normal products go through distance grouping.
+          final groupedProducts = _groupProductsByDistance(
+            normalProducts,
+            userLat,
+            userLng,
+          );
+
+          final pinnedCount = pinnedProducts.length;
+          final groupedCount = _getGroupedItemCount(groupedProducts);
+
+          return ListView.builder(
+            padding: const EdgeInsets.fromLTRB(16, 48, 16, 0),
+            physics: const AlwaysScrollableScrollPhysics(
+              parent: BouncingScrollPhysics(),
+            ),
+            itemCount: pinnedCount + groupedCount,
+            itemBuilder: (context, index) {
+              if (index < pinnedCount) {
+                return _buildProductCard(
+                  context,
+                  pinnedProducts[index],
+                  userLatitude: userLat,
+                  userLongitude: userLng,
+                );
+              }
+              final item = _getGroupedItemAtIndex(groupedProducts, index - pinnedCount);
+              if (item.isHeader) {
+                return _buildDistanceHeader(item.rangeLabel!);
+              }
+              return _buildProductCard(
+                context,
+                item.product!,
+                userLatitude: userLat,
+                userLongitude: userLng,
+              );
+            },
+          );
         },
       ),
     );
   }
 
-  Widget _buildProductCard(BuildContext context, ProductModel product) {
+  Widget _buildProductCard(
+    BuildContext context,
+    ProductModel product, {
+    double? userLatitude,
+    double? userLongitude,
+  }) {
     final primaryImage = _resolvePrimaryImage(product);
     final tags = _buildTags(product);
 
@@ -481,12 +530,28 @@ class _FilterResultScreenState extends State<FilterResultScreen>
                             ),
                           ),
                         ),
-                        Text(
-                          _timeAgo(product.createdAt),
-                          style: const TextStyle(
-                            color: Color(0xFF9F9F9F),
-                            fontSize: 10,
-                          ),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (_buildDistanceText(product, userLatitude, userLongitude).isNotEmpty) ...[
+                              Text(
+                                _buildDistanceText(product, userLatitude, userLongitude),
+                                style: TextStyle(
+                                  color: Colors.grey.shade500,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                            ],
+                            Text(
+                              _timeAgo(product.createdAt),
+                              style: const TextStyle(
+                                color: Color(0xFF9F9F9F),
+                                fontSize: 10,
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
@@ -1360,6 +1425,7 @@ class _FilterResultScreenState extends State<FilterResultScreen>
   String _buildResultCountLabel(FilterResultController controller) {
     final count = controller.products.length;
     final noun = switch (controller.filterState.baseCategory) {
+      'all' => 'products',
       'Accessories' => 'accessories',
       'Spare Parts' => 'spare parts',
       'Scooter' => 'scooters',
@@ -1444,6 +1510,29 @@ class _FilterResultScreenState extends State<FilterResultScreen>
     return tags.take(4).toList(growable: false);
   }
 
+  String _buildDistanceText(
+    ProductModel product,
+    double? userLatitude,
+    double? userLongitude,
+  ) {
+    if (userLatitude == null ||
+        userLongitude == null ||
+        product.latitude == null ||
+        product.longitude == null) {
+      return '';
+    }
+    final distance = GeoUtils.distanceKm(
+      userLatitude,
+      userLongitude,
+      product.latitude!,
+      product.longitude!,
+    );
+    if (distance < 1) {
+      return '${(distance * 1000).toInt()} m away';
+    }
+    return '${distance.toStringAsFixed(1)} km away';
+  }
+
   String _timeAgo(DateTime? createdAt) {
     if (createdAt == null) {
       return 'Recently added';
@@ -1470,5 +1559,143 @@ class _FilterResultScreenState extends State<FilterResultScreen>
     }
     final years = (difference.inDays / 365).floor();
     return '$years yr ago';
+  }
+
+  // ===========================================================================
+  // Distance Range Grouping Methods
+  // ===========================================================================
+
+  /// Groups products by distance ranges: 0-20km, 20-50km, 50-100km, 100km+
+  Map<String, List<ProductModel>> _groupProductsByDistance(
+    List<ProductModel> products,
+    double? userLat,
+    double? userLng,
+  ) {
+    final Map<String, List<ProductModel>> groups = {
+      'Within 20 km': [],
+      'Within 50 km': [],
+      'Within 100 km': [],
+      '100+ km away': [],
+      'Unknown distance': [],
+    };
+
+    if (userLat == null || userLng == null) {
+      // No user location - all go to unknown
+      groups['Unknown distance'] = List.from(products);
+      return groups;
+    }
+
+    for (final product in products) {
+      if (product.latitude == null || product.longitude == null) {
+        groups['Unknown distance']!.add(product);
+        continue;
+      }
+
+      final distance = GeoUtils.distanceKm(
+        userLat,
+        userLng,
+        product.latitude!,
+        product.longitude!,
+      );
+
+      if (distance <= 20) {
+        groups['Within 20 km']!.add(product);
+      } else if (distance <= 50) {
+        groups['Within 50 km']!.add(product);
+      } else if (distance <= 100) {
+        groups['Within 100 km']!.add(product);
+      } else {
+        groups['100+ km away']!.add(product);
+      }
+    }
+
+    return groups;
+  }
+
+  /// Get total item count including headers
+  int _getGroupedItemCount(Map<String, List<ProductModel>> groups) {
+    int count = 0;
+    for (final entry in groups.entries) {
+      if (entry.value.isNotEmpty) {
+        count++; // Header
+        count += entry.value.length; // Products
+      }
+    }
+    return count;
+  }
+
+  /// Get item at index (either header or product)
+  _GroupedListItem _getGroupedItemAtIndex(
+    Map<String, List<ProductModel>> groups,
+    int index,
+  ) {
+    int currentIndex = 0;
+
+    for (final entry in groups.entries) {
+      if (entry.value.isEmpty) continue;
+
+      // Check if this index is the header
+      if (currentIndex == index) {
+        return _GroupedListItem.header(entry.key);
+      }
+      currentIndex++;
+
+      // Check if this index is within this group's products
+      if (index < currentIndex + entry.value.length) {
+        final productIndex = index - currentIndex;
+        return _GroupedListItem.product(entry.value[productIndex]);
+      }
+      currentIndex += entry.value.length;
+    }
+
+    // Should never reach here if index is valid
+    return _GroupedListItem.product(groups.values.first.first);
+  }
+
+  /// Build distance range header widget
+  Widget _buildDistanceHeader(String label) {
+    return Container(
+      margin: const EdgeInsets.only(top: 8, bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: const Color(0xFF2E4475).withOpacity(0.1),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(
+          color: Color(0xFF2E4475),
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+}
+
+/// Helper class to represent either a header or a product in the grouped list
+class _GroupedListItem {
+  final bool isHeader;
+  final String? rangeLabel;
+  final ProductModel? product;
+
+  _GroupedListItem._({
+    required this.isHeader,
+    this.rangeLabel,
+    this.product,
+  });
+
+  factory _GroupedListItem.header(String label) {
+    return _GroupedListItem._(
+      isHeader: true,
+      rangeLabel: label,
+    );
+  }
+
+  factory _GroupedListItem.product(ProductModel product) {
+    return _GroupedListItem._(
+      isHeader: false,
+      product: product,
+    );
   }
 }

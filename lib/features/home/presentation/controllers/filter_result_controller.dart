@@ -42,6 +42,18 @@ class FilterResultController extends GetxController {
   String? _errorMessage;
   String? get errorMessage => _errorMessage;
 
+  /// User's current location latitude for distance calculations.
+  double? get userLatitude {
+    final location = _loginController.currentUserProfile?.location;
+    return location?.isComplete == true ? location?.latitude : null;
+  }
+
+  /// User's current location longitude for distance calculations.
+  double? get userLongitude {
+    final location = _loginController.currentUserProfile?.location;
+    return location?.isComplete == true ? location?.longitude : null;
+  }
+
   String get categoryLabel => _filterState.selectedCategoryLabel;
   List<String> get availableBrands {
     final productBrands = _allProducts
@@ -59,6 +71,7 @@ class FilterResultController extends GetxController {
   }
 
   String get screenTitle {
+    if (_filterState.isAll) return 'All Products';
     if (_filterState.hasSpecificBikeCategory) {
       return _filterState.selectedCategoryLabel;
     }
@@ -82,9 +95,11 @@ class FilterResultController extends GetxController {
 
     try {
       _hiddenUserIds = await _loadHiddenUserIds();
-      final allProducts = await _firestoreService.getProducts(
-        categories: filterState.queryCategories,
-      );
+      final allProducts = filterState.isAll
+          ? await _firestoreService.getProducts()
+          : await _firestoreService.getProducts(
+              categories: filterState.queryCategories,
+            );
       _allProducts = _filterHiddenProducts(allProducts);
       _products = _applyFilters(_allProducts, filterState);
     } catch (error, stackTrace) {
@@ -395,23 +410,27 @@ class FilterResultController extends GetxController {
   }
 
   void _sortProducts(List<ProductModel> products, String? selectedSort) {
+    final editorial = products.where((p) => p.isCurrentlyEditorialFeatured).toList();
+    final boosted = products.where((p) => !p.isCurrentlyEditorialFeatured && p.isCurrentlyBoosted).toList();
+    final normal = products.where((p) => !p.isCurrentlyEditorialFeatured && !p.isCurrentlyBoosted).toList();
+
     switch (selectedSort) {
       case 'Low to High':
-        products.sort((first, second) {
+        normal.sort((first, second) {
           final firstPrice = first.price ?? double.infinity;
           final secondPrice = second.price ?? double.infinity;
           return firstPrice.compareTo(secondPrice);
         });
         break;
       case 'High to Low':
-        products.sort((first, second) {
+        normal.sort((first, second) {
           final firstPrice = first.price ?? 0;
           final secondPrice = second.price ?? 0;
           return secondPrice.compareTo(firstPrice);
         });
         break;
       default:
-        products.sort((first, second) {
+        normal.sort((first, second) {
           final firstCreatedAt =
               first.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
           final secondCreatedAt =
@@ -419,6 +438,12 @@ class FilterResultController extends GetxController {
           return secondCreatedAt.compareTo(firstCreatedAt);
         });
     }
+
+    products
+      ..clear()
+      ..addAll(editorial)
+      ..addAll(boosted)
+      ..addAll(normal);
   }
 
   (double?, double?) _parsePriceRange(String? selectedQuickPrice) {

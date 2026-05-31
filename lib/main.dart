@@ -1,11 +1,13 @@
+import 'dart:async';
+
 import 'package:bikebooking/features/auth/presentation/bindings/auth_binding.dart';
+import 'package:bikebooking/firebase_options.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:bikebooking/core/theme/app_theme.dart';
-import 'package:bikebooking/core/database/database_helper.dart';
 import 'features/auth/presentation/pages/splash_screen.dart';
 import 'features/auth/presentation/pages/login_screen.dart';
 import 'features/auth/presentation/pages/otp_verification_screen.dart';
@@ -53,10 +55,23 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 }
 
 Future<void> main() async {
+  final stopwatch = Stopwatch()..start();
+
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
-  await DatabaseHelper.instance.database; // Initialize SQLite DB
-  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+  print('[STARTUP] Flutter binding initialized: ${stopwatch.elapsedMilliseconds}ms');
+
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+  print('[STARTUP] Firebase initialized: ${stopwatch.elapsedMilliseconds}ms');
+
+  // Database initialization is now lazy - it will initialize on first access
+  // This prevents blocking the UI thread during app startup with 12k+ records
+  // Defer FCM background handler to prevent creating a second Flutter engine during startup
+  scheduleMicrotask(() {
+    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+    print('[STARTUP] FCM background handler set: ${stopwatch.elapsedMilliseconds}ms');
+  });
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.black,
@@ -64,6 +79,7 @@ Future<void> main() async {
       statusBarBrightness: Brightness.dark,
     ),
   );
+  print('[STARTUP] Running app: ${stopwatch.elapsedMilliseconds}ms');
   runApp(const MyApp());
 }
 
@@ -138,7 +154,6 @@ class MyApp extends StatelessWidget {
           return buildRoute(const ChangeLocationScreen());
         }
         if (settings.name == '/select_state') {
-          print('DEBUG: Route /select_state matched, returning SelectStateScreen');
           return buildRoute(const SelectStateScreen());
         }
         if (settings.name == '/select_city') {

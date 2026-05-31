@@ -272,30 +272,39 @@ class _SearchScreenState extends State<SearchScreen> {
                 ),
               )
             else
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                physics: const BouncingScrollPhysics(),
-                child: Row(
-                  children: controller.recommendedProducts
-                      .map(
-                        (product) => BikeCard(
-                          product: product,
-                          onTap: () {
-                            unawaited(controller.recordCurrentQuery());
-                            Navigator.pushNamed(
-                              context,
-                              '/bike_detail',
-                              arguments: product,
-                            );
-                          },
-                          onFavoriteTap: () {
-                            _favoritesController.toggleFavorite(product);
-                            controller.refreshRecommendations();
-                          },
-                        ),
-                      )
-                      .toList(growable: false),
-                ),
+              GetBuilder<LoginController>(
+                builder: (loginController) {
+                  final userLocation = loginController.currentUserProfile?.location;
+                  final userLat = userLocation?.isComplete == true ? userLocation?.latitude : null;
+                  final userLng = userLocation?.isComplete == true ? userLocation?.longitude : null;
+                  return SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    physics: const BouncingScrollPhysics(),
+                    child: Row(
+                      children: controller.recommendedProducts
+                          .map(
+                            (product) => BikeCard(
+                              product: product,
+                              userLatitude: userLat,
+                              userLongitude: userLng,
+                              onTap: () {
+                                unawaited(controller.recordCurrentQuery());
+                                Navigator.pushNamed(
+                                  context,
+                                  '/bike_detail',
+                                  arguments: product,
+                                );
+                              },
+                              onFavoriteTap: () {
+                                _favoritesController.toggleFavorite(product);
+                                controller.refreshRecommendations();
+                              },
+                            ),
+                          )
+                          .toList(growable: false),
+                    ),
+                  );
+                },
               ),
           ],
         ),
