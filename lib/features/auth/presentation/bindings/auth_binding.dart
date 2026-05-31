@@ -37,12 +37,12 @@ class AuthBinding extends Bindings {
       NotificationDispatchService(),
       permanent: true,
     );
-    // Initialize notification service non-blocking to prevent startup delay
+    // Initialize notification service with delay to prevent startup blocking
     final notificationService = Get.put<NotificationPushService>(
       NotificationPushService(),
       permanent: true,
     );
-    scheduleMicrotask(notificationService.initialize);
+    Future.delayed(const Duration(seconds: 2), notificationService.initialize);
     Get.lazyPut<BoostController>(() => BoostController(), fenix: true);
   }
 }

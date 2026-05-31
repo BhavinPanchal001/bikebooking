@@ -58,19 +58,19 @@ Future<void> main() async {
   final stopwatch = Stopwatch()..start();
 
   WidgetsFlutterBinding.ensureInitialized();
-  print('[STARTUP] Flutter binding initialized: ${stopwatch.elapsedMilliseconds}ms');
+  print('=== [STARTUP] Flutter binding initialized: ${stopwatch.elapsedMilliseconds}ms ===');
 
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  print('[STARTUP] Firebase initialized: ${stopwatch.elapsedMilliseconds}ms');
+  print('=== [STARTUP] Firebase initialized: ${stopwatch.elapsedMilliseconds}ms ===');
 
   // Database initialization is now lazy - it will initialize on first access
   // This prevents blocking the UI thread during app startup with 12k+ records
-  // Defer FCM background handler to prevent creating a second Flutter engine during startup
-  scheduleMicrotask(() {
+  // Defer FCM background handler to prevent creating second engine during startup
+  Future.delayed(const Duration(seconds: 3), () {
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-    print('[STARTUP] FCM background handler set: ${stopwatch.elapsedMilliseconds}ms');
+    print('=== [STARTUP] FCM background handler registered after delay ===');
   });
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
@@ -79,7 +79,7 @@ Future<void> main() async {
       statusBarBrightness: Brightness.dark,
     ),
   );
-  print('[STARTUP] Running app: ${stopwatch.elapsedMilliseconds}ms');
+  print('=== [STARTUP] Running app: ${stopwatch.elapsedMilliseconds}ms ===');
   runApp(const MyApp());
 }
 

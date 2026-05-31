@@ -1,0 +1,114 @@
+Flutter crash report.
+Please report a bug at https://github.com/flutter/flutter/issues.
+
+## command
+
+flutter attach
+
+## exception
+
+StateError: Bad state: Stream has already been listened to.
+
+```
+#0      _StreamController._subscribe (dart:async/stream_controller.dart:695:7)
+#1      _ControllerStream._createSubscription (dart:async/stream_controller.dart:854:20)
+#2      _StreamImpl.listen (dart:async/stream_impl.dart:516:42)
+#3      new _ForwardingStreamSubscription (dart:async/stream_pipe.dart:141:37)
+#4      _ForwardingStream._createSubscription (dart:async/stream_pipe.dart:105:16)
+#5      _ForwardingStream.listen (dart:async/stream_pipe.dart:96:12)
+#6      FlutterDevice.connect (package:flutter_tools/src/resident_runner.dart:239:35)
+#7      ResidentRunner.connectToServiceProtocol (package:flutter_tools/src/resident_runner.dart:1307:21)
+#8      HotRunner._attach (package:flutter_tools/src/run_hot.dart:255:13)
+#9      HotRunner.attach (package:flutter_tools/src/run_hot.dart:240:12)
+#10     AttachCommand._attachToDevice (package:flutter_tools/src/commands/attach.dart:414:31)
+<asynchronous suspension>
+#11     AttachCommand.runCommand (package:flutter_tools/src/commands/attach.dart:272:5)
+<asynchronous suspension>
+#12     FlutterCommand.run.<anonymous closure> (package:flutter_tools/src/runner/flutter_command.dart:1563:27)
+<asynchronous suspension>
+#13     AppContext.run.<anonymous closure> (package:flutter_tools/src/base/context.dart:154:19)
+<asynchronous suspension>
+#14     CommandRunner.runCommand (package:args/command_runner.dart:212:13)
+<asynchronous suspension>
+#15     FlutterCommandRunner.runCommand.<anonymous closure> (package:flutter_tools/src/runner/flutter_command_runner.dart:494:9)
+<asynchronous suspension>
+#16     AppContext.run.<anonymous closure> (package:flutter_tools/src/base/context.dart:154:19)
+<asynchronous suspension>
+#17     FlutterCommandRunner.runCommand (package:flutter_tools/src/runner/flutter_command_runner.dart:431:5)
+<asynchronous suspension>
+#18     run.<anonymous closure>.<anonymous closure> (package:flutter_tools/runner.dart:98:11)
+<asynchronous suspension>
+#19     AppContext.run.<anonymous closure> (package:flutter_tools/src/base/context.dart:154:19)
+<asynchronous suspension>
+#20     main (package:flutter_tools/executable.dart:102:3)
+<asynchronous suspension>
+```
+
+## flutter doctor
+
+```
+[32m[✓][39m Flutter (Channel stable, 3.32.5, on Microsoft Windows [Version 10.0.26200.8524],
+    locale en-IN) [1,212ms]
+    [32m•[39m Flutter version 3.32.5 on channel stable at D:\fluttersdk\flutter
+    [32m•[39m Upstream repository https://github.com/flutter/flutter.git
+    [32m•[39m Framework revision fcf2c11572 (11 months ago), 2025-06-24 11:44:07 -0700
+    [32m•[39m Engine revision dd93de6fb1
+    [32m•[39m Dart version 3.8.1
+    [32m•[39m DevTools version 2.45.1
+
+[32m[✓][39m Windows Version (Windows 11 or higher, 25H2, 2009) [6.6s]
+
+[33m[!][39m Android toolchain - develop for Android devices (Android SDK version 36.0.0)
+    [6.0s]
+    [32m•[39m Android SDK at C:\Users\bhavi\AppData\Local\Android\sdk
+    [32m•[39m Platform android-36, build-tools 36.0.0
+    [32m•[39m Java binary at: C:\Program Files\Android\Android Studio\jbr\bin\java
+      This is the JDK bundled with the latest Android Studio installation on this
+      machine.
+      To manually set the JDK path, use: `flutter config --jdk-dir="path/to/jdk"`.
+    [32m•[39m Java version OpenJDK Runtime Environment (build 21.0.3+-12282718-b509.11)
+    [33m![39m Some Android licenses not accepted. To resolve this, run: flutter doctor
+      --android-licenses
+
+[32m[✓][39m Chrome - develop for the web [576ms]
+    [32m•[39m Chrome at C:\Program Files\Google\Chrome\Application\chrome.exe
+
+[33m[!][39m Visual Studio - develop Windows apps (Visual Studio Community 2022 17.12.4)
+    [574ms]
+    [32m•[39m Visual Studio at C:\Program Files\Microsoft Visual Studio\2022\Community
+    [32m•[39m Visual Studio Community 2022 version 17.12.35707.178
+    [31m✗[39m Visual Studio is missing necessary components. Please re-run the Visual Studio
+      installer for the "Desktop development with C++" workload, and include these
+      components:
+        MSVC v142 - VS 2019 C++ x64/x86 build tools
+         - If there are multiple build tool versions available, install the latest
+        C++ CMake tools for Windows
+        Windows 10 SDK
+
+[32m[✓][39m Android Studio (version 2024.2) [16ms]
+    [32m•[39m Android Studio at C:\Program Files\Android\Android Studio
+    [32m•[39m Flutter plugin can be installed from:
+      🔨 https://plugins.jetbrains.com/plugin/9212-flutter
+    [32m•[39m Dart plugin can be installed from:
+      🔨 https://plugins.jetbrains.com/plugin/6351-dart
+    [32m•[39m Java version OpenJDK Runtime Environment (build 21.0.3+-12282718-b509.11)
+
+[32m[✓][39m VS Code (version unknown) [12ms]
+    [32m•[39m VS Code at C:\Users\bhavi\AppData\Local\Programs\Microsoft VS Code
+    [32m•[39m Flutter extension version 3.134.0
+    [31m✗[39m Unable to determine VS Code version.
+
+[32m[✓][39m Connected device (4 available) [514ms]
+    [32m•[39m SM S721B (mobile) • 192.168.31.237:5555 • android-arm64  • Android 16 (API 36)
+    [32m•[39m Windows (desktop) • windows             • windows-x64    • Microsoft Windows
+      [Version 10.0.26200.8524]
+    [32m•[39m Chrome (web)      • chrome              • web-javascript • Google Chrome
+      148.0.7778.216
+    [32m•[39m Edge (web)        • edge                • web-javascript • Microsoft Edge
+      148.0.3967.96
+
+[32m[✓][39m Network resources [520ms]
+    [32m•[39m All expected network resources are available.
+
+[33m![39m Doctor found issues in 2 categories.
+```
