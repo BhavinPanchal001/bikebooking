@@ -2,19 +2,20 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:bikebooking/core/constants/global.dart';
-import 'package:flutter/scheduler.dart';
 import 'package:bikebooking/core/constants/product_categories.dart';
-import 'package:geocoding/geocoding.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/material.dart';
-import 'package:get/get.dart';
-import 'package:geolocator/geolocator.dart';
-import 'package:image_picker/image_picker.dart';
+import 'package:bikebooking/core/utils/image_crop_helper.dart';
 import 'package:bikebooking/features/auth/presentation/controllers/login_controller.dart';
 import 'package:bikebooking/features/home/data/models/product_model.dart';
 import 'package:bikebooking/features/home/data/models/product_status.dart';
 import 'package:bikebooking/features/home/data/services/product_firestore_service.dart';
 import 'package:bikebooking/features/home/data/services/product_storage_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
+import 'package:geocoding/geocoding.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:get/get.dart';
+import 'package:image_picker/image_picker.dart';
 
 class PickedProductImage {
   const PickedProductImage({
@@ -164,8 +165,13 @@ class ListProductController extends GetxController {
       final filesToAdd = pickedFiles.take(remainingSlots).toList();
       final newImages = <PickedProductImage>[];
       for (final file in filesToAdd) {
-        final bytes = await file.readAsBytes();
-        newImages.add(PickedProductImage(file: file, bytes: bytes));
+        final croppedFile = await ImageCropHelper.cropImage(
+          sourceFile: file,
+          aspectRatio: CropAspectRatioPresetType.freeStyle,
+        );
+        if (croppedFile == null) continue;
+        final bytes = await croppedFile.readAsBytes();
+        newImages.add(PickedProductImage(file: croppedFile, bytes: bytes));
       }
 
       _pickedImages.addAll(newImages);

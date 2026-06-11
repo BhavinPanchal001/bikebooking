@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:bikebooking/core/utils/image_crop_helper.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -205,9 +206,17 @@ class ChatDetailController extends GetxController {
         return;
       }
 
+      final croppedFile = await ImageCropHelper.cropImage(
+        sourceFile: pickedFile,
+        aspectRatio: CropAspectRatioPresetType.freeStyle,
+      );
+      if (croppedFile == null) {
+        return;
+      }
+
       final caption = messageController.text.trim();
       pendingCaption = caption;
-      final imageBytes = await pickedFile.readAsBytes();
+      final imageBytes = await croppedFile.readAsBytes();
       final sentAt = DateTime.now();
       final clientMessageId = _buildClientMessageId(userId, sentAt);
       pendingClientMessageId = clientMessageId;
@@ -236,7 +245,7 @@ class ChatDetailController extends GetxController {
       final imageUrl = await _chatImageStorageService.uploadChatImage(
         chatId: chatId,
         userId: userId,
-        imageFile: pickedFile,
+        imageFile: croppedFile,
       );
 
       await _chatService.sendMessage(

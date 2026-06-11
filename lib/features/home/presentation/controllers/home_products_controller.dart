@@ -27,6 +27,7 @@ class HomeProductsController extends GetxController {
   final SellerActionFirestoreService _sellerActionService;
   final LoginController _loginController;
   Set<String> _hiddenUserIds = <String>{};
+  Set<String>? _cachedHiddenUserIds;
 
   // ── Recently Viewed ──────────────────────────────────────────────────
   List<ProductModel> _recentlyViewed = [];
@@ -65,7 +66,7 @@ class HomeProductsController extends GetxController {
     update();
 
     try {
-      _hiddenUserIds = await _loadHiddenUserIds();
+      _hiddenUserIds = await _loadHiddenUserIds(forceRefresh: !showLoader);
       await Future.wait([
         _loadRecentlyViewed(),
         _loadJustAdded(),
@@ -170,14 +171,18 @@ class HomeProductsController extends GetxController {
     }
   }
 
-  Future<Set<String>> _loadHiddenUserIds() async {
+  Future<Set<String>> _loadHiddenUserIds({bool forceRefresh = false}) async {
+    if (!forceRefresh && _cachedHiddenUserIds != null) {
+      return _cachedHiddenUserIds!;
+    }
     final currentUserId = _currentUserId;
     if (currentUserId == null) {
       return <String>{};
     }
 
     try {
-      return await _sellerActionService.getHiddenUserIds(currentUserId);
+      _cachedHiddenUserIds = await _sellerActionService.getHiddenUserIds(currentUserId);
+      return _cachedHiddenUserIds!;
     } catch (error, stackTrace) {
       debugPrint('Error loading hidden users: $error\n$stackTrace');
       return <String>{};

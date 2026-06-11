@@ -33,6 +33,7 @@ class FilterResultController extends GetxController {
 
   List<ProductModel> _allProducts = [];
   Set<String> _hiddenUserIds = <String>{};
+  Set<String>? _cachedHiddenUserIds;
   List<ProductModel> get products => List.unmodifiable(_products);
   List<ProductModel> _products = [];
 
@@ -81,10 +82,14 @@ class FilterResultController extends GetxController {
     update();
 
     try {
-      _hiddenUserIds = await _loadHiddenUserIds();
-      final allProducts = await _firestoreService.getProducts(
-        categories: filterState.queryCategories,
-      );
+      final results = await Future.wait([
+        _loadHiddenUserIds(),
+        _firestoreService.getProducts(
+          categories: filterState.queryCategories,
+        ),
+      ]);
+      _hiddenUserIds = results[0] as Set<String>;
+      final allProducts = results[1] as List<ProductModel>;
       _allProducts = _filterHiddenProducts(allProducts);
       _products = _applyFilters(_allProducts, filterState);
     } catch (error, stackTrace) {
@@ -98,6 +103,7 @@ class FilterResultController extends GetxController {
   }
 
   Future<void> refreshProducts() async {
+    _cachedHiddenUserIds = null;
     await loadProducts(_filterState);
   }
 
@@ -155,12 +161,17 @@ class FilterResultController extends GetxController {
   }
 
   Future<Set<String>> _loadHiddenUserIds() async {
+    if (_cachedHiddenUserIds != null) {
+      return _cachedHiddenUserIds!;
+    }
+
     final currentUserId = _loginController.resolvedCurrentUserId.trim();
     if (currentUserId.isEmpty) {
       return <String>{};
     }
 
-    return _sellerActionService.getHiddenUserIds(currentUserId);
+    _cachedHiddenUserIds = await _sellerActionService.getHiddenUserIds(currentUserId);
+    return _cachedHiddenUserIds!;
   }
 
   List<ProductModel> _filterHiddenProducts(List<ProductModel> products) {

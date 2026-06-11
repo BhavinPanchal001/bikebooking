@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:bikebooking/core/constants/global.dart';
+import 'package:bikebooking/core/utils/image_crop_helper.dart';
 import 'package:bikebooking/core/widgets/app_snackbar.dart';
 import 'package:bikebooking/features/auth/data/models/app_user_model.dart';
 import 'package:bikebooking/features/auth/data/services/firebase_auth_service.dart';
@@ -1020,13 +1021,22 @@ class LoginController extends GetxController with WidgetsBindingObserver {
         return false;
       }
 
+      final croppedFile = await ImageCropHelper.cropImage(
+        sourceFile: pickedFile,
+        aspectRatio: CropAspectRatioPresetType.square,
+        lockAspectRatio: true,
+      );
+      if (croppedFile == null) {
+        return false;
+      }
+
       isUploadingProfilePhoto = true;
       update();
 
       final uploadedPhotoUrl =
           await _profilePhotoStorageService.uploadProfilePhoto(
         userId: resolvedUserId,
-        imageFile: pickedFile,
+        imageFile: croppedFile,
       );
 
       final updatedUser = await _persistProfilePhoto(uploadedPhotoUrl);

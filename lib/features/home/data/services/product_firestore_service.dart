@@ -74,6 +74,7 @@ class ProductFirestoreService {
     String? category,
     List<String>? categories,
     bool activeOnly = true,
+    int? limit = 100,
   }) async {
     final getProductsOverride = _getProductsOverride;
     if (getProductsOverride != null) {
@@ -86,6 +87,7 @@ class ProductFirestoreService {
       category: normalizedCategory,
       categories: normalizedCategories,
       orderByCreatedAt: true,
+      limit: limit,
     );
 
     try {
@@ -103,6 +105,7 @@ class ProductFirestoreService {
         category: normalizedCategory,
         categories: normalizedCategories,
         orderByCreatedAt: false,
+        limit: limit,
       );
       final fallbackSnapshot = await fallbackQuery.get();
       return _sortByCreatedAtDesc(
@@ -118,6 +121,7 @@ class ProductFirestoreService {
     String? category,
     List<String>? categories,
     bool activeOnly = true,
+    int? limit = 100,
   }) {
     final normalizedCategory = category?.trim() ?? '';
     final normalizedCategories = _normalizeCategories(categories);
@@ -125,6 +129,7 @@ class ProductFirestoreService {
       category: normalizedCategory,
       categories: normalizedCategories,
       orderByCreatedAt: true,
+      limit: limit,
     );
 
     return query.snapshots().map(
@@ -332,6 +337,7 @@ class ProductFirestoreService {
     required String category,
     required List<String> categories,
     required bool orderByCreatedAt,
+    int? limit,
   }) {
     Query<Map<String, dynamic>> query = _productsRef;
 
@@ -345,6 +351,10 @@ class ProductFirestoreService {
 
     if (orderByCreatedAt) {
       query = query.orderBy('createdAt', descending: true);
+    }
+
+    if (limit != null) {
+      query = query.limit(limit);
     }
 
     return query;

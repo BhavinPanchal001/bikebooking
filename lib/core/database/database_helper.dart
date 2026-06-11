@@ -20,7 +20,7 @@ class DatabaseHelper {
   static Database? _database;
 
   /// Bump this whenever you replace assets/db/locations.db with new data.
-  static const int _dbVersion = 2;
+  static const int _dbVersion = 3;
   static const String _dbName = 'locations.db';
   static const String _versionKey = 'db_version';
 
