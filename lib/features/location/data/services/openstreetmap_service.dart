@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:bikebooking/core/database/database_helper.dart';
@@ -126,7 +127,7 @@ class OpenStreetMapService {
     'Navi Mumbai': ['Vashi', 'Belapur', 'Airoli', 'Ghansoli', 'Kopar Khairane', 'Rabale', 'Turbhe', 'Sanpada', 'Nerul', 'Seawoods', 'Kharghar', 'Panvel', 'Ulwe', 'Taloja', 'Kamothe'],
 
     // Karnataka
-    'Bangalore': ['Koramangala', 'Indiranagar', 'Whitefield', 'JP Nagar', 'HSR Layout', 'BTM Layout', 'Malleshwaram', 'Electronic City', 'Marathahalli', 'Bannerghatta Road', 'Jayanagar', 'Rajajinagar', 'Yelahanka', 'Hebbal', 'Bellandur', 'Sarjapur', 'MG Road', 'Basavanagudi', 'Domlur', 'Bommanahalli', 'Begur', 'Akshayanagar', 'Hosa Road', 'Silk Board', 'Wilson Garden', 'Richmond Town', 'Shivaji Nagar', 'Frazer Town', 'Cox Town', 'Banaswadi', 'Hoodi', 'Mahadevapura', 'Kaggadasapura', 'Varthur', 'Devanahalli', 'Kengeri', 'Vijayanagar', 'Magadi Road', 'Tumkur Road', 'Peenya'],
+    'Bangalore': ['Koramangala', 'Indiranaga r', 'Whitefield', 'JP Nagar', 'HSR Layout', 'BTM Layout', 'Malleshwaram', 'Electronic City', 'Marathahalli', 'Bannerghatta Road', 'Jayanagar', 'Rajajinagar', 'Yelahanka', 'Hebbal', 'Bellandur', 'Sarjapur', 'MG Road', 'Basavanagudi', 'Domlur', 'Bommanahalli', 'Begur', 'Akshayanagar', 'Hosa Road', 'Silk Board', 'Wilson Garden', 'Richmond Town', 'Shivaji Nagar', 'Frazer Town', 'Cox Town', 'Banaswadi', 'Hoodi', 'Mahadevapura', 'Kaggadasapura', 'Varthur', 'Devanahalli', 'Kengeri', 'Vijayanagar', 'Magadi Road', 'Tumkur Road', 'Peenya'],
     'Mysore': ['Vontikoppal', 'Gokulam', 'Jayalakshmipuram', 'Vijayanagar', 'Nazarbad', 'Kuvempunagar', 'Hebbal', 'Saraswathipuram', 'Chamundipuram', 'N R Mohalla', 'Mandi Mohalla', 'Lashkar Mohalla'],
     'Mangalore': ['Kankanady', 'Bejai', 'Kadri', 'Attavar', 'Mallikatte', 'Falnir', 'Hampankatta', 'Kodialbail', 'Balmatta', 'Bendoorwell', 'Kulur', 'Urwa', 'Kavoor', 'Bikarnakatte'],
     'Hubli': ['Vidyanagar', 'Keshwapur', 'Gokul Road', 'Navalur', 'Unkal', 'Deshpande Nagar', 'Hosur', 'Lingarajnagar', 'Shirur', 'Hebsur'],
@@ -745,14 +746,7 @@ out center 200;
     } catch (e) {
       print('DEBUG: SQLite getStates failed, falling back to API: $e');
     }
-
-    // Fallback: convert API Place objects to StateModel
-    final places = await getIndianStates();
-    return places
-        .asMap()
-        .entries
-        .map((e) => StateModel(id: e.key + 1, name: e.value.name))
-        .toList();
+    return [];
   }
 
   /// Get cities for a state from SQLite, falling back to API.
@@ -764,23 +758,17 @@ out center 200;
     String stateName,
   ) async {
     try {
-      final cities = await DatabaseHelper.instance.getCitiesByState(stateId);
+      // Try by state ID first
+      var cities = await DatabaseHelper.instance.getCitiesByState(stateId);
+      if (cities.isNotEmpty) return cities;
+
+      // ID mismatch — resolve by state name instead
+      cities = await DatabaseHelper.instance.getCitiesByStateName(stateName);
       if (cities.isNotEmpty) return cities;
     } catch (e) {
       print('DEBUG: SQLite getCities failed, falling back to API: $e');
     }
-
-    // Fallback: convert API Place objects to CityModel
-    final places = await getCitiesInState(stateName);
-    return places
-        .asMap()
-        .entries
-        .map((e) => CityModel(
-              id: e.key + 1,
-              name: e.value.name,
-              stateId: stateId,
-            ))
-        .toList();
+    return [];
   }
 
   /// Get areas for a city from SQLite, falling back to API.
@@ -793,13 +781,26 @@ out center 200;
     String stateName,
   ) async {
     try {
-      final areas = await DatabaseHelper.instance.getAreasByCity(cityId);
+      final areasByCityAndState =
+          await DatabaseHelper.instance.getAreasByCityAndStateName(
+        cityName,
+        stateName,
+      );
+      if (areasByCityAndState.isNotEmpty) return areasByCityAndState;
+
+      // Try by ID first (works when states→cities flow came from DB)
+      var areas = await DatabaseHelper.instance.getAreasByCity(cityId);
+      if (areas.isNotEmpty) return areas;
+
+      // ID-based lookup returned empty — the cityId may not match the DB
+      // (e.g. cities were loaded from API fallback with sequential IDs).
+      // Resolve by city name instead.
+      areas = await DatabaseHelper.instance.getAreasByCityName(cityName);
       if (areas.isNotEmpty) return areas;
     } catch (e) {
       print('DEBUG: SQLite getAreas failed, falling back to API: $e');
     }
 
-    // Fallback: convert API Place objects to AreaModel
     final places = await getLocalitiesInCity(cityName, stateName);
     return places
         .asMap()
@@ -812,6 +813,47 @@ out center 200;
               longitude: e.value.lng,
             ))
         .toList();
+  }
+
+  /// Geocode an address to get latitude/longitude coordinates.
+  /// Uses Nominatim search API.
+  /// Returns null if address cannot be geocoded.
+  static Future<Place?> geocodeAddress(String address) async {
+    if (address.trim().isEmpty) return null;
+
+    try {
+      final encoded = Uri.encodeComponent(address.trim());
+      final url = '$_baseUrl/search?q=$encoded&format=json&limit=1&addressdetails=0';
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {'User-Agent': _userAgent},
+      );
+
+      if (response.statusCode != 200) {
+        throw Exception('Nominatim geocode failed: ${response.statusCode}');
+      }
+
+      final data = json.decode(response.body) as List<dynamic>;
+      if (data.isEmpty) return null;
+
+      final result = data[0];
+      final lat = double.tryParse(result['lat']?.toString() ?? '');
+      final lon = double.tryParse(result['lon']?.toString() ?? '');
+      final osmId = int.tryParse(result['osm_id']?.toString() ?? '');
+
+      if (lat == null || lon == null) return null;
+
+      return Place(
+        geonameId: result['place_id']?.toString() ?? '',
+        name: result['display_name']?.toString() ?? address,
+        lat: lat,
+        lng: lon,
+        osmId: osmId,
+      );
+    } catch (e) {
+      debugPrint('Geocoding error for "$address": $e');
+      return null;
+    }
   }
 
   /// Clear all cached data

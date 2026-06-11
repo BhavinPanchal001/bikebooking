@@ -92,7 +92,7 @@ class AppBottomNavBar extends StatelessWidget {
         Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
         return;
       case 1:
-        Navigator.pushNamed(context, '/filter_result', arguments: 'Bikes');
+        Navigator.pushNamed(context, '/filter_result', arguments: 'all');
         return;
       case 2:
         Navigator.pushNamed(context, '/list_product');

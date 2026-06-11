@@ -1,6 +1,7 @@
 import 'package:bikebooking/core/constants/global.dart';
 import 'package:bikebooking/core/widgets/app_snackbar.dart';
 import 'package:bikebooking/features/auth/presentation/controllers/login_controller.dart';
+import 'package:bikebooking/features/home/data/services/product_location_backfill_service.dart';
 import 'package:bikebooking/features/home/presentation/controllers/home_products_controller.dart';
 import 'package:bikebooking/features/home/presentation/controllers/notifications_controller.dart';
 import 'package:flutter/material.dart';
@@ -68,7 +69,24 @@ class _HomePageState extends State<HomePage> {
 
       _homeController.loadProducts();
       _notificationsController.bindNotifications();
+
+      // Backfill missing product coordinates in background
+      _runProductLocationBackfill();
     });
+  }
+
+  /// Backfills missing lat/long for old products (runs silently in background)
+  Future<void> _runProductLocationBackfill() async {
+    try {
+      final service = ProductLocationBackfillService();
+      final hasProductsNeedingBackfill = await service.hasProductsNeedingBackfill();
+      if (hasProductsNeedingBackfill) {
+        await service.backfillAll(batchSize: 10);
+      }
+    } catch (e) {
+      // Silently ignore errors - this is a background optimization
+      debugPrint('Background backfill error: $e');
+    }
   }
 
   @override
@@ -173,6 +191,8 @@ class _HomePageState extends State<HomePage> {
                                   children: controller.recentlyViewedProducts
                                       .map((product) => BikeCard(
                                             product: product,
+                                            userLatitude: controller.userLatitude,
+                                            userLongitude: controller.userLongitude,
                                             onTap: () {
                                               Navigator.pushNamed(
                                                 context,
@@ -215,6 +235,8 @@ class _HomePageState extends State<HomePage> {
                                   children: controller.justAddedProducts
                                       .map((product) => BikeCard(
                                             product: product,
+                                            userLatitude: controller.userLatitude,
+                                            userLongitude: controller.userLongitude,
                                             onTap: () {
                                               Navigator.pushNamed(
                                                 context,

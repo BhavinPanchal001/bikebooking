@@ -38,7 +38,9 @@ class SelectCategoryController extends GetxController {
   List<ProductModel> _allProducts = const <ProductModel>[];
   Set<String> _hiddenUserIds = <String>{};
 
-  String _focusedParentCategory = 'Bikes';
+  static const String allCategories = 'all';
+
+  String _focusedParentCategory = allCategories;
   String get focusedParentCategory => _focusedParentCategory;
 
   List<SelectCategorySection> _sections = <SelectCategorySection>[];
@@ -161,6 +163,10 @@ class SelectCategoryController extends GetxController {
         items: items,
       );
     }).toList(growable: false);
+
+    if (_focusedParentCategory == allCategories) {
+      return allSections;
+    }
 
     return allSections
         .where((section) => section.parentCategory == _focusedParentCategory)
@@ -298,6 +304,9 @@ class SelectCategoryController extends GetxController {
   }
 
   String _normalizeParentCategory(String? value) {
+    if (value == null || value.trim().isEmpty || value.trim() == allCategories) {
+      return allCategories;
+    }
     return ProductCategoryCatalog.baseCategoryFor(value);
   }
 

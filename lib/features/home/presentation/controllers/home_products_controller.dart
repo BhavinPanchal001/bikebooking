@@ -55,6 +55,18 @@ class HomeProductsController extends GetxController {
   String get userPhotoUrl =>
       _loginController.currentUserProfile?.photoUrl ?? '';
 
+  /// User's current location latitude for distance calculations.
+  double? get userLatitude {
+    final location = _loginController.currentUserProfile?.location;
+    return location?.isComplete == true ? location?.latitude : null;
+  }
+
+  /// User's current location longitude for distance calculations.
+  double? get userLongitude {
+    final location = _loginController.currentUserProfile?.location;
+    return location?.isComplete == true ? location?.longitude : null;
+  }
+
   // ── Public API ───────────────────────────────────────────────────────
 
   /// Loads both recently-viewed and just-added sections in parallel.

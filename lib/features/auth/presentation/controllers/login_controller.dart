@@ -266,8 +266,6 @@ class LoginController extends GetxController with WidgetsBindingObserver {
     update();
 
     try {
-      await Future<void>.delayed(const Duration(seconds: 2));
-
       // Try to restore session from SharedPreferences first.
       final savedSession = await _restorePersistedSession();
 

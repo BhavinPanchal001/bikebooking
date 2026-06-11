@@ -1,3 +1,4 @@
+import 'package:bikebooking/core/utils/geo_utils.dart';
 import 'package:bikebooking/core/widgets/product_cached_image.dart';
 import 'package:bikebooking/features/home/data/models/product_model.dart';
 import 'package:bikebooking/features/home/presentation/controllers/favorites_controller.dart';
@@ -11,12 +12,16 @@ class BikeCard extends StatelessWidget {
     this.width = 165,
     this.onTap,
     this.onFavoriteTap,
+    this.userLatitude,
+    this.userLongitude,
   });
 
   final ProductModel product;
   final double? width;
   final VoidCallback? onTap;
   final VoidCallback? onFavoriteTap;
+  final double? userLatitude;
+  final double? userLongitude;
 
   static const double _cardHeight = 252;
   static const double _imageHeight = 110;
@@ -235,12 +240,28 @@ class BikeCard extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      Text(
-                        _timeAgo(product.createdAt),
-                        style: TextStyle(
-                          color: Colors.grey.shade400,
-                          fontSize: 8,
-                        ),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (_buildDistanceText().isNotEmpty) ...[
+                            Text(
+                              _buildDistanceText(),
+                              style: TextStyle(
+                                color: Colors.grey.shade500,
+                                fontSize: 8,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                          ],
+                          Text(
+                            _timeAgo(product.createdAt),
+                            style: TextStyle(
+                              color: Colors.grey.shade400,
+                              fontSize: 8,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -358,6 +379,25 @@ class BikeCard extends StatelessWidget {
     }
 
     return tags.take(3).toList(growable: false);
+  }
+
+  String _buildDistanceText() {
+    if (userLatitude == null ||
+        userLongitude == null ||
+        product.latitude == null ||
+        product.longitude == null) {
+      return '';
+    }
+    final distance = GeoUtils.distanceKm(
+      userLatitude!,
+      userLongitude!,
+      product.latitude!,
+      product.longitude!,
+    );
+    if (distance < 1) {
+      return '${(distance * 1000).toInt()} m away';
+    }
+    return '${distance.toStringAsFixed(1)} km away';
   }
 
   String _timeAgo(DateTime? value) {

@@ -20,7 +20,7 @@ class DatabaseHelper {
   static Database? _database;
 
   /// Bump this whenever you replace assets/db/locations.db with new data.
-  static const int _dbVersion = 3;
+  static const int _dbVersion = 21;
   static const String _dbName = 'locations.db';
   static const String _versionKey = 'db_version';
 
@@ -114,6 +114,22 @@ class DatabaseHelper {
     return result.map((map) => CityModel.fromMap(map)).toList();
   }
 
+  /// Returns all cities for a state looked up by [stateName].
+  /// Useful when the caller's stateId may not match the DB.
+  Future<List<CityModel>> getCitiesByStateName(String stateName) async {
+    final db = await database;
+    final stateResult = await db.query(
+      'states',
+      columns: ['id'],
+      where: 'LOWER(TRIM(name)) = LOWER(TRIM(?))',
+      whereArgs: [stateName],
+      limit: 1,
+    );
+    if (stateResult.isEmpty) return [];
+    final realStateId = stateResult.first['id'] as int;
+    return getCitiesByState(realStateId);
+  }
+
   /// Returns cities for [stateId] whose name contains [query].
   Future<List<CityModel>> searchCities(int stateId, String query) async {
     final db = await database;
@@ -142,6 +158,42 @@ class DatabaseHelper {
     return result.map((map) => AreaModel.fromMap(map)).toList();
   }
 
+  /// Returns all areas for a city looked up by [cityName].
+  /// Useful when the caller's cityId may not match the DB (e.g. API fallback).
+  Future<List<AreaModel>> getAreasByCityName(String cityName) async {
+    final db = await database;
+    final cityResult = await db.query(
+      'cities',
+      columns: ['id'],
+      where: 'LOWER(TRIM(name)) = LOWER(TRIM(?))',
+      whereArgs: [cityName],
+      limit: 1,
+    );
+    if (cityResult.isEmpty) return [];
+    final realCityId = cityResult.first['id'] as int;
+    return getAreasByCity(realCityId);
+  }
+
+  Future<List<AreaModel>> getAreasByCityAndStateName(
+    String cityName,
+    String stateName,
+  ) async {
+    final db = await database;
+    final result = await db.rawQuery(
+      '''
+      SELECT areas.*
+      FROM areas
+      INNER JOIN cities ON cities.id = areas.city_id
+      INNER JOIN states ON states.id = cities.state_id
+      WHERE LOWER(TRIM(cities.name)) = LOWER(TRIM(?))
+        AND LOWER(TRIM(states.name)) = LOWER(TRIM(?))
+      ORDER BY areas.name ASC
+      ''',
+      [cityName, stateName],
+    );
+    return result.map((map) => AreaModel.fromMap(map)).toList();
+  }
+
   /// Returns areas for [cityId] whose name contains [query].
   Future<List<AreaModel>> searchAreas(int cityId, String query) async {
     final db = await database;
@@ -159,7 +211,8 @@ class DatabaseHelper {
     final db = await database;
     final result = await db.query(
       'areas',
-      where: 'latitude IS NULL OR longitude IS NULL OR latitude = 0 OR longitude = 0',
+      where:
+          'latitude IS NULL OR longitude IS NULL OR latitude = 0 OR longitude = 0',
       orderBy: 'name ASC',
     );
     return result.map((map) => AreaModel.fromMap(map)).toList();

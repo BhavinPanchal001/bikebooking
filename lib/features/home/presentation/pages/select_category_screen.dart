@@ -265,8 +265,13 @@ class _SelectCategoryScreenState extends State<SelectCategoryScreen> {
       ),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(12, 14, 12, 24),
-        child:
-            controller.sections.isEmpty ? const SizedBox.shrink() : _buildSection(context, controller.sections.first),
+        child: controller.sections.isEmpty
+            ? const SizedBox.shrink()
+            : Column(
+                children: controller.sections
+                    .map((section) => _buildSection(context, section))
+                    .toList(growable: false),
+              ),
       ),
     );
   }
@@ -425,7 +430,7 @@ class _SelectCategoryScreenState extends State<SelectCategoryScreen> {
       }
     }
 
-    return 'Bikes';
+    return SelectCategoryController.allCategories;
   }
 
   Widget _buildCardArtwork(SelectCategoryItem item) {
