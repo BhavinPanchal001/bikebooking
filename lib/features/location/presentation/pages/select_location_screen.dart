@@ -92,24 +92,24 @@ class _SelectLocationScreenState extends State<SelectLocationScreen> {
                           width: 35,
                         ),
                       ),
+                      // const SizedBox(height: 16),
+                      // _buildLocationOption(
+                      //   title: 'Add New Address',
+                      //   subtitle: '',
+                      //   onTap: controller.isSavingLocation
+                      //       ? null
+                      //       : () {
+                      //           Navigator.pushNamed(context, '/location_search');
+                      //         },
+                      //   leading: Image.asset(
+                      //     'assets/images/currentLocation2.png',
+                      //     height: 18,
+                      //     width: 25,
+                      //   ),
+                      // ),
                       const SizedBox(height: 16),
                       _buildLocationOption(
-                        title: 'Add New Address',
-                        subtitle: '',
-                        onTap: controller.isSavingLocation
-                            ? null
-                            : () {
-                                Navigator.pushNamed(context, '/location_search');
-                              },
-                        leading: Image.asset(
-                          'assets/images/currentLocation2.png',
-                          height: 18,
-                          width: 25,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      _buildLocationOption(
-                        title: 'Choose Location Manually',
+                        title: 'Choose Location',
                         subtitle: 'Select state, city and area',
                         onTap: controller.isSavingLocation
                             ? null

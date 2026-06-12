@@ -136,22 +136,22 @@ class ChangeLocationScreen extends StatelessWidget {
                     width: 35,
                   ),
                 ),
+                // const SizedBox(height: 16),
+                // LocationOptionCard(
+                //   title: 'Choose Location',
+                //   subtitle: 'Search and select from available locations',
+                //   onTap: controller.isSavingLocation
+                //       ? null
+                //       : () => _handleChooseLocation(context),
+                //   leading: Image.asset(
+                //     'assets/images/currentLocation2.png',
+                //     height: 18,
+                //     width: 25,
+                //   ),
+                // ),
                 const SizedBox(height: 16),
                 LocationOptionCard(
                   title: 'Choose Location',
-                  subtitle: 'Search and select from available locations',
-                  onTap: controller.isSavingLocation
-                      ? null
-                      : () => _handleChooseLocation(context),
-                  leading: Image.asset(
-                    'assets/images/currentLocation2.png',
-                    height: 18,
-                    width: 25,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                LocationOptionCard(
-                  title: 'Choose Location Manually',
                   subtitle: 'Select state, city and area',
                   onTap: controller.isSavingLocation
                       ? null
@@ -183,17 +183,17 @@ class ChangeLocationScreen extends StatelessWidget {
     }
   }
 
-  Future<void> _handleChooseLocation(BuildContext context) async {
-    final didSave = await Navigator.pushNamed(
-      context,
-      '/location_search',
-      arguments: {'returnOnSave': true},
-    );
-
-    if (didSave == true && context.mounted) {
-      Navigator.pop(context, true);
-    }
-  }
+  // Future<void> _handleChooseLocation(BuildContext context) async {
+  //   final didSave = await Navigator.pushNamed(
+  //     context,
+  //     '/location_search',
+  //     arguments: {'returnOnSave': true},
+  //   );
+  //
+  //   if (didSave == true && context.mounted) {
+  //     Navigator.pop(context, true);
+  //   }
+  // }
 
   Future<void> _handleChooseLocationManually(BuildContext context) async {
     final result = await Navigator.pushNamed(context, '/select_state');

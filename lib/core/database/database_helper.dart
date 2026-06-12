@@ -20,7 +20,7 @@ class DatabaseHelper {
   static Database? _database;
 
   /// Bump this whenever you replace assets/db/locations.db with new data.
-  static const int _dbVersion = 21;
+  static const int _dbVersion = 24;
   static const String _dbName = 'locations.db';
   static const String _versionKey = 'db_version';
 
@@ -43,6 +43,7 @@ class DatabaseHelper {
 
     if (!needsCopy && versionFile.existsSync()) {
       final storedVersion = int.tryParse(versionFile.readAsStringSync()) ?? 0;
+      print('DEBUG DB: storedVersion=$storedVersion, _dbVersion=$_dbVersion');
       if (storedVersion < _dbVersion) {
         needsCopy = true;
       }
@@ -51,7 +52,20 @@ class DatabaseHelper {
       needsCopy = true;
     }
 
+    print('DEBUG DB: needsCopy=$needsCopy, path=$path');
+
     if (needsCopy) {
+      // Close any existing connection before overwriting the file.
+      // sqflite's singleInstance mode may otherwise serve stale data.
+      if (file.existsSync()) {
+        try {
+          final oldDb = await openDatabase(path, singleInstance: true);
+          await oldDb.close();
+        } catch (_) {
+          // Ignore — file may be corrupt or not a valid DB.
+        }
+      }
+
       // Copy from assets
       final data = await rootBundle.load('assets/db/$_dbName');
       final bytes = data.buffer.asUint8List(
@@ -60,9 +74,10 @@ class DatabaseHelper {
       );
       await file.writeAsBytes(bytes, flush: true);
       await versionFile.writeAsString('$_dbVersion');
+      print('DEBUG DB: Fresh copy completed from assets, size=${bytes.length} bytes');
     }
 
-    return await openDatabase(
+    final db = await openDatabase(
       path,
       readOnly: true,
       singleInstance: true,
@@ -70,6 +85,14 @@ class DatabaseHelper {
         await db.execute('PRAGMA foreign_keys = ON');
       },
     );
+
+    // Verify data after opening
+    final areaCount = Sqflite.firstIntValue(
+      await db.rawQuery('SELECT COUNT(*) FROM areas WHERE city_id = 174'),
+    );
+    print('DEBUG DB: Areas for Adilabad (city_id=174) = $areaCount');
+
+    return db;
   }
 
   // ---------------------------------------------------------------------------

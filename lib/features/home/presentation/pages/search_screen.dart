@@ -6,8 +6,7 @@ import 'package:bikebooking/features/auth/presentation/controllers/login_control
 import 'package:bikebooking/features/home/data/models/product_filter_state.dart';
 import 'package:bikebooking/features/home/data/models/product_model.dart';
 import 'package:bikebooking/features/home/presentation/controllers/favorites_controller.dart';
-import 'package:bikebooking/features/home/presentation/controllers/search_controller.dart'
-    as home_search;
+import 'package:bikebooking/features/home/presentation/controllers/search_controller.dart' as home_search;
 import 'package:bikebooking/features/home/presentation/widgets/bike_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -68,8 +67,7 @@ class _SearchScreenState extends State<SearchScreen> {
 
   @override
   void dispose() {
-    if (_ownsSearchController &&
-        Get.isRegistered<home_search.SearchController>()) {
+    if (_ownsSearchController && Get.isRegistered<home_search.SearchController>()) {
       Get.delete<home_search.SearchController>();
     }
     super.dispose();
@@ -144,8 +142,7 @@ class _SearchScreenState extends State<SearchScreen> {
                                 : null,
                             filled: true,
                             fillColor: const Color(0xFFF1F4F8),
-                            contentPadding:
-                                const EdgeInsets.symmetric(vertical: 12),
+                            contentPadding: const EdgeInsets.symmetric(vertical: 12),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                               borderSide: BorderSide.none,
@@ -318,8 +315,7 @@ class _SearchScreenState extends State<SearchScreen> {
   ) {
     return GetBuilder<LoginController>(
       builder: (loginController) {
-        final selectedLocation =
-            loginController.currentUserProfile?.location?.address.trim() ?? '';
+        final selectedLocation = loginController.currentUserProfile?.location?.address.trim() ?? '';
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -328,15 +324,11 @@ class _SearchScreenState extends State<SearchScreen> {
                 Expanded(
                   child: _buildLocationButton(
                     icon: Icons.my_location,
-                    label: loginController.isFetchingCurrentLocation
-                        ? 'Detecting...'
-                        : 'Use Current Location',
-                    onTap: loginController.isFetchingCurrentLocation ||
-                            loginController.isSavingLocation
+                    label: loginController.isFetchingCurrentLocation ? 'Detecting...' : 'Use Current Location',
+                    onTap: loginController.isFetchingCurrentLocation || loginController.isSavingLocation
                         ? null
                         : () async {
-                            final location =
-                                await loginController.useCurrentLocation(
+                            final location = await loginController.useCurrentLocation(
                               navigateToHome: false,
                               showSuccessSnackbar: true,
                             );
@@ -346,35 +338,33 @@ class _SearchScreenState extends State<SearchScreen> {
                           },
                   ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _buildLocationButton(
-                    icon: Icons.add_circle_outline,
-                    label: loginController.isSavingLocation
-                        ? 'Saving...'
-                        : 'Change location',
-                    onTap: loginController.isSavingLocation
-                        ? null
-                        : () async {
-                            final didSave = await Navigator.pushNamed(
-                              context,
-                              '/location_search',
-                              arguments: {'returnOnSave': true},
-                            );
-                            if (didSave == true) {
-                              controller.refreshRecommendations();
-                            }
-                          },
-                  ),
-                ),
+                // const SizedBox(width: 12),
+                // Expanded(
+                //   child: _buildLocationButton(
+                //     icon: Icons.add_circle_outline,
+                //     label: loginController.isSavingLocation
+                //         ? 'Saving...'
+                //         : 'Change location',
+                //     onTap: loginController.isSavingLocation
+                //         ? null
+                //         : () async {
+                //             final didSave = await Navigator.pushNamed(
+                //               context,
+                //               '/location_search',
+                //               arguments: {'returnOnSave': true},
+                //             );
+                //             if (didSave == true) {
+                //               controller.refreshRecommendations();
+                //             }
+                //           },
+                //   ),
+                // ),
               ],
             ),
             const SizedBox(height: 12),
             _buildLocationButton(
               icon: Icons.location_city,
-              label: loginController.isSavingLocation
-                  ? 'Saving...'
-                  : 'Choose manually (State/City/Area)',
+              label: loginController.isSavingLocation ? 'Saving...' : 'Choose Location',
               onTap: loginController.isSavingLocation
                   ? null
                   : () async {
@@ -383,15 +373,11 @@ class _SearchScreenState extends State<SearchScreen> {
                         '/select_state',
                       );
                       if (result != null && result is Map<String, dynamic>) {
-                        final displayAddress =
-                            result['displayAddress'] as String? ?? '';
-                        final latitude =
-                            (result['latitude'] as num?)?.toDouble();
-                        final longitude =
-                            (result['longitude'] as num?)?.toDouble();
+                        final displayAddress = result['displayAddress'] as String? ?? '';
+                        final latitude = (result['latitude'] as num?)?.toDouble();
+                        final longitude = (result['longitude'] as num?)?.toDouble();
                         if (displayAddress.isNotEmpty) {
-                          final saved =
-                              await loginController.saveManualLocation(
+                          final saved = await loginController.saveManualLocation(
                             displayAddress,
                             latitude: latitude,
                             longitude: longitude,
@@ -476,12 +462,8 @@ class _SearchScreenState extends State<SearchScreen> {
                   message: filterState.hasActiveFilters
                       ? 'Try clearing one or two filters to broaden the results.'
                       : 'Try a different name, brand, location, or category to find more matches.',
-                  actionLabel: filterState.hasActiveFilters
-                      ? 'Clear filters'
-                      : 'Clear search',
-                  onAction: filterState.hasActiveFilters
-                      ? controller.clearFilters
-                      : controller.clearSearch,
+                  actionLabel: filterState.hasActiveFilters ? 'Clear filters' : 'Clear search',
+                  onAction: filterState.hasActiveFilters ? controller.clearFilters : controller.clearSearch,
                 )
               : RefreshIndicator(
                   color: AppColors.primary,
@@ -740,10 +722,7 @@ class _SearchScreenState extends State<SearchScreen> {
                             isSelected: selectedQuickPrice == option,
                             onTap: () {
                               setModalState(() {
-                                selectedQuickPrice =
-                                    selectedQuickPrice == option
-                                        ? null
-                                        : option;
+                                selectedQuickPrice = selectedQuickPrice == option ? null : option;
                               });
                             },
                           ),
@@ -882,9 +861,7 @@ class _SearchScreenState extends State<SearchScreen> {
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
-                  color: isSelected
-                      ? const Color(0xFF233A66)
-                      : const Color(0xFF262A36),
+                  color: isSelected ? const Color(0xFF233A66) : const Color(0xFF262A36),
                 ),
               ),
             ),
@@ -932,8 +909,7 @@ class _SearchScreenState extends State<SearchScreen> {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color:
-                      isSelected ? AppColors.primary : const Color(0xFF8EA0C1),
+                  color: isSelected ? AppColors.primary : const Color(0xFF8EA0C1),
                   width: 1.5,
                 ),
               ),
@@ -991,8 +967,7 @@ class _SearchScreenState extends State<SearchScreen> {
           child: Text(
             'Clear',
             style: TextStyle(
-              color:
-                  onClear == null ? const Color(0xFFB7C0D0) : AppColors.primary,
+              color: onClear == null ? const Color(0xFFB7C0D0) : AppColors.primary,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -1025,8 +1000,7 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
   bool _hasPriceFilter(ProductFilterState filterState) {
-    return (filterState.selectedQuickPrice?.trim().isNotEmpty ?? false) ||
-        filterState.maxPrice != null;
+    return (filterState.selectedQuickPrice?.trim().isNotEmpty ?? false) || filterState.maxPrice != null;
   }
 
   bool _hasYearFilter(ProductFilterState filterState) {
@@ -1168,11 +1142,9 @@ class _SearchScreenState extends State<SearchScreen> {
                         const SizedBox(width: 8),
                         GetBuilder<FavoritesController>(
                           builder: (favoritesController) {
-                            final isFavorite =
-                                favoritesController.isFavorite(product);
+                            final isFavorite = favoritesController.isFavorite(product);
                             return GestureDetector(
-                              onTap: () =>
-                                  _favoritesController.toggleFavorite(product),
+                              onTap: () => _favoritesController.toggleFavorite(product),
                               child: Container(
                                 padding: const EdgeInsets.all(7),
                                 decoration: const BoxDecoration(
@@ -1180,12 +1152,8 @@ class _SearchScreenState extends State<SearchScreen> {
                                   shape: BoxShape.circle,
                                 ),
                                 child: Icon(
-                                  isFavorite
-                                      ? Icons.favorite
-                                      : Icons.favorite_border,
-                                  color: isFavorite
-                                      ? Colors.red
-                                      : const Color(0xFF5E6E8C),
+                                  isFavorite ? Icons.favorite : Icons.favorite_border,
+                                  color: isFavorite ? Colors.red : const Color(0xFF5E6E8C),
                                   size: 18,
                                 ),
                               ),
@@ -1199,9 +1167,7 @@ class _SearchScreenState extends State<SearchScreen> {
                       Wrap(
                         spacing: 6,
                         runSpacing: 6,
-                        children: tags
-                            .map((tag) => _buildInfoTag(tag))
-                            .toList(growable: false),
+                        children: tags.map((tag) => _buildInfoTag(tag)).toList(growable: false),
                       ),
                     if (tags.isNotEmpty) const SizedBox(height: 8),
                     Row(
@@ -1696,8 +1662,7 @@ class _YearFilterBottomSheetState extends State<_YearFilterBottomSheet> {
                         isSelected: _selectedBikeAge == option,
                         onTap: () {
                           setState(() {
-                            _selectedBikeAge =
-                                _selectedBikeAge == option ? null : option;
+                            _selectedBikeAge = _selectedBikeAge == option ? null : option;
                           });
                         },
                       ),
@@ -1723,9 +1688,7 @@ class _YearFilterBottomSheetState extends State<_YearFilterBottomSheet> {
                     child: Text(
                       'Clear',
                       style: TextStyle(
-                        color: !_hasAnySelection
-                            ? const Color(0xFFB7C0D0)
-                            : AppColors.primary,
+                        color: !_hasAnySelection ? const Color(0xFFB7C0D0) : AppColors.primary,
                         fontWeight: FontWeight.w600,
                       ),
                     ),

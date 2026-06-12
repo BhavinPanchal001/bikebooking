@@ -48,18 +48,24 @@ class _SelectAreaScreenState extends State<SelectAreaScreen> {
 
   Future<void> _loadAreas() async {
     try {
+      print('DEBUG _loadAreas: selectedCity=${selectedCity?.id} "${selectedCity?.name}", selectedState="${selectedState?.name}"');
       if (selectedCity != null && selectedCity!.name.isNotEmpty) {
         final loadedAreas = await OpenStreetMapService.getAreasFromDb(
           selectedCity!.id,
           selectedCity!.name,
           selectedState!.name,
         );
+        print('DEBUG _loadAreas: loadedAreas count=${loadedAreas.length}');
+        if (loadedAreas.isNotEmpty) {
+          print('DEBUG _loadAreas: first area="${loadedAreas.first.name}", last area="${loadedAreas.last.name}"');
+        }
         setState(() {
           areas = loadedAreas;
           filteredAreas = loadedAreas;
           isLoading = false;
         });
       } else {
+        print('DEBUG _loadAreas: selectedCity is null or name is empty');
         setState(() {
           isLoading = false;
         });
@@ -72,7 +78,9 @@ class _SelectAreaScreenState extends State<SelectAreaScreen> {
           );
         }
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('DEBUG _loadAreas: EXCEPTION: $e');
+      print('DEBUG _loadAreas: STACK: $stackTrace');
       setState(() {
         isLoading = false;
       });

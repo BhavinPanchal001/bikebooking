@@ -781,26 +781,32 @@ out center 200;
     String stateName,
   ) async {
     try {
+      print('DEBUG getAreasFromDb: cityId=$cityId, cityName=$cityName, stateName=$stateName');
+      
       final areasByCityAndState =
           await DatabaseHelper.instance.getAreasByCityAndStateName(
         cityName,
         stateName,
       );
+      print('DEBUG getAreasFromDb: areasByCityAndState count=${areasByCityAndState.length}');
       if (areasByCityAndState.isNotEmpty) return areasByCityAndState;
 
       // Try by ID first (works when states→cities flow came from DB)
       var areas = await DatabaseHelper.instance.getAreasByCity(cityId);
+      print('DEBUG getAreasFromDb: areasByCity($cityId) count=${areas.length}');
       if (areas.isNotEmpty) return areas;
 
       // ID-based lookup returned empty — the cityId may not match the DB
       // (e.g. cities were loaded from API fallback with sequential IDs).
       // Resolve by city name instead.
       areas = await DatabaseHelper.instance.getAreasByCityName(cityName);
+      print('DEBUG getAreasFromDb: areasByCityName($cityName) count=${areas.length}');
       if (areas.isNotEmpty) return areas;
     } catch (e) {
       print('DEBUG: SQLite getAreas failed, falling back to API: $e');
     }
 
+    print('DEBUG getAreasFromDb: All DB lookups returned empty, falling back to API');
     final places = await getLocalitiesInCity(cityName, stateName);
     return places
         .asMap()
