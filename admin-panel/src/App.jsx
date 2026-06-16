@@ -26,6 +26,7 @@ const navItems = [
   { to: '/users', label: 'Users', eyebrow: 'People' },
   { to: '/payments', label: 'Payments', eyebrow: 'Billing' },
   { to: '/reported-persons', label: 'Reported Persons', eyebrow: 'Safety' },
+  { to: '/inbox', label: 'Inbox', eyebrow: 'Communications' },
   { to: '/cms', label: 'CMS Pages', eyebrow: 'Publishing' },
   { to: '/masters/fees', label: 'Fee Config', eyebrow: 'Master data' },
 // { to: '/masters/brands', label: 'Brand Master', eyebrow: 'Master data' },

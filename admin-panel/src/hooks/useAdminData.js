@@ -733,17 +733,21 @@ async function fetchFirebaseAdminData() {
 }
 
 export function useAdminData({ enabled = true } = {}) {
+  const MOCK_UI_TEST = import.meta.env.DEV && import.meta.env.VITE_MOCK_ADMIN === 'true';
   const [refreshKey, setRefreshKey] = useState(0);
   const [state, setState] = useState(() =>
-    enabled && hasFirebaseConfig
-      ? createEmptySnapshot({ source: 'firebase', loading: true })
-      : {
-          ...buildAdminSnapshot(mockAdminData, 'mock'),
-          loading: false,
-        },
+    MOCK_UI_TEST
+      ? { ...buildAdminSnapshot(mockAdminData, 'mock'), loading: false }
+      : enabled && hasFirebaseConfig
+        ? createEmptySnapshot({ source: 'firebase', loading: true })
+        : {
+            ...buildAdminSnapshot(mockAdminData, 'mock'),
+            loading: false,
+          },
   );
 
   useEffect(() => {
+    if (MOCK_UI_TEST) return;
     let isCancelled = false;
 
     async function hydrate() {
